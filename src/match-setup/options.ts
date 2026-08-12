@@ -1,8 +1,20 @@
 import type {
+  Generation,
   OpponentType,
   RestrictionMode,
   VisibilityMode,
 } from "./types";
+import { generations, implementedGeneration } from "./types";
+
+export const generationOptions: {
+  value: Generation;
+  title: string;
+  disabled: boolean;
+}[] = generations.map((generation) => ({
+  value: generation,
+  title: generation === 1 ? "初代" : `第${generation}世代`,
+  disabled: generation !== implementedGeneration,
+}));
 
 export const restrictionOptions: {
   value: RestrictionMode;

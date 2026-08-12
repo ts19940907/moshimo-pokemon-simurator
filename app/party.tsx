@@ -3,26 +3,36 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
+  generationOptions,
   opponentOptions,
   restrictionOptions,
   visibilityOptions,
 } from "../src/match-setup/options";
 import type {
+  Generation,
   OpponentType,
   RestrictionMode,
   VisibilityMode,
 } from "../src/match-setup/types";
 
-function labelOf<T extends string>(
+function labelOf<T extends string | number>(
   value: T,
   options: { value: T; title: string }[],
 ) {
-  return options.find((option) => option.value === value)?.title ?? value;
+  return options.find((option) => option.value === value)?.title ?? String(value);
+}
+
+function parseGeneration(value?: string): Generation {
+  const parsed = Number(value);
+  return (parsed >= 1 && parsed <= 9 ? parsed : 1) as Generation;
 }
 
 export default function PartyPlaceholderScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{
+    rulesGeneration?: string;
+    pokemonGeneration?: string;
+    moveGeneration?: string;
     restrictionMode?: RestrictionMode;
     opponentType?: OpponentType;
     visibilityMode?: VisibilityMode;
@@ -33,11 +43,26 @@ export default function PartyPlaceholderScreen() {
       <View style={styles.content}>
         <Text style={styles.kicker}>編成</Text>
         <Text style={styles.title}>編成画面はこれから用意します</Text>
-        <Text style={styles.lead}>スタート画面で選んだ内容は次のとおりです。</Text>
+        <Text style={styles.lead}>メニューで選んだ内容は次のとおりです。</Text>
 
         <View style={styles.summary}>
           <Text style={styles.summaryLine}>
-            使用ポケモン:{" "}
+            対戦ルール:{" "}
+            {labelOf(parseGeneration(params.rulesGeneration), generationOptions)}
+          </Text>
+          <Text style={styles.summaryLine}>
+            使えるポケモン:{" "}
+            {labelOf(
+              parseGeneration(params.pokemonGeneration),
+              generationOptions,
+            )}
+          </Text>
+          <Text style={styles.summaryLine}>
+            使える技:{" "}
+            {labelOf(parseGeneration(params.moveGeneration), generationOptions)}
+          </Text>
+          <Text style={styles.summaryLine}>
+            禁止制限:{" "}
             {labelOf(params.restrictionMode ?? "standard", restrictionOptions)}
           </Text>
           <Text style={styles.summaryLine}>
@@ -61,7 +86,7 @@ export default function PartyPlaceholderScreen() {
             pressed && styles.backButtonPressed,
           ]}
         >
-          <Text style={styles.backButtonText}>スタート画面へ戻る</Text>
+          <Text style={styles.backButtonText}>メニューへ戻る</Text>
         </Pressable>
       </View>
     </SafeAreaView>

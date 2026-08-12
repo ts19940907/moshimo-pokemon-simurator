@@ -3,7 +3,6 @@ import {
   Animated,
   Easing,
   Image,
-  ImageBackground,
   Pressable,
   StyleSheet,
   Text,
@@ -52,20 +51,30 @@ function useIdleBob(offset: number) {
 
 export function TitleScreen() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
-  const sideSize = Math.min(340, Math.max(180, width * 0.32));
-  const centerSize = Math.min(380, Math.max(210, width * 0.36));
+  const { width, height } = useWindowDimensions();
+  const stagePadding = Math.max(8, width * 0.012);
+  const gap = Math.max(4, width * 0.008);
+  const availableWidth = Math.max(240, width - stagePadding * 2 - gap * 2);
+  const sideSize = Math.min(availableWidth * 0.3, height * 0.42, 320);
+  const centerSize = Math.min(availableWidth * 0.34, height * 0.48, 360);
   const foxBob = useIdleBob(120);
   const lizardBob = useIdleBob(0);
   const turtleBob = useIdleBob(220);
 
   return (
-    <ImageBackground source={grassland} style={styles.background} resizeMode="cover">
+    <View style={styles.root}>
+      <Image
+        source={grassland}
+        style={[styles.backgroundImage, { width, height }]}
+        resizeMode="cover"
+      />
       <View style={styles.skyWash} />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.hero}>
           <Text style={styles.kicker}>初代・シングルバトル</Text>
-          <Text style={styles.title}>もしもポケモンシミュレーター</Text>
+          <Text style={[styles.title, width < 480 && styles.titleCompact]}>
+            もしもポケモンシミュレーター
+          </Text>
           <Pressable
             accessibilityRole="button"
             onPress={() => router.push("/menu")}
@@ -78,11 +87,16 @@ export function TitleScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.stage} pointerEvents="none">
+        <View
+          style={[
+            styles.stage,
+            { paddingHorizontal: stagePadding, gap },
+          ]}
+          pointerEvents="none"
+        >
           <Animated.View
             style={[
               styles.slot,
-              styles.leftSlot,
               { width: sideSize, height: sideSize, transform: [{ translateY: foxBob }] },
             ]}
           >
@@ -108,7 +122,6 @@ export function TitleScreen() {
           <Animated.View
             style={[
               styles.slot,
-              styles.rightSlot,
               { width: sideSize, height: sideSize, transform: [{ translateY: turtleBob }] },
             ]}
           >
@@ -117,14 +130,22 @@ export function TitleScreen() {
           </Animated.View>
         </View>
       </SafeAreaView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
+  root: {
     flex: 1,
+    width: "100%",
+    height: "100%",
+    overflow: "hidden",
     backgroundColor: "#87c6ef",
+  },
+  backgroundImage: {
+    position: "absolute",
+    top: 0,
+    left: 0,
   },
   skyWash: {
     position: "absolute",
@@ -136,6 +157,7 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+    width: "100%",
     justifyContent: "space-between",
   },
   hero: {
@@ -162,6 +184,9 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 8,
   },
+  titleCompact: {
+    fontSize: 24,
+  },
   startButton: {
     marginTop: 10,
     minWidth: 220,
@@ -185,29 +210,23 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   stage: {
-    height: "52%",
-    minHeight: 240,
+    width: "100%",
     flexDirection: "row",
     alignItems: "flex-end",
-    justifyContent: "space-between",
-    paddingHorizontal: "2%",
-    paddingBottom: "2%",
+    justifyContent: "center",
+    paddingBottom: 12,
   },
   slot: {
     alignItems: "center",
     justifyContent: "flex-end",
+    maxWidth: "32%",
   },
   creature: {
     width: "100%",
     height: "100%",
   },
-  leftSlot: {
-    zIndex: 1,
-  },
   centerSlot: {
     zIndex: 2,
-  },
-  rightSlot: {
-    zIndex: 1,
+    maxWidth: "36%",
   },
 });

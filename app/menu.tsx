@@ -1,5 +1,5 @@
-import { StartScreen } from "../src/screens/StartScreen";
+import { MenuScreen } from "../src/screens/MenuScreen";
 
 export default function MenuRoute() {
-  return <StartScreen />;
+  return <MenuScreen />;
 }
