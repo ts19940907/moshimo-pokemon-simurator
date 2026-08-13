@@ -29,13 +29,14 @@ import {
   type PartyMemberBuild,
 } from "../../party/types";
 import type { LevelCapMode } from "../../match-setup/types";
+import type { GenerationFilterOptions } from "../../match-setup/generationFilter";
 
 type Props = {
   visible: boolean;
   member: PartyMemberBuild;
   species: PokemonSpecies;
   levelCapMode: LevelCapMode;
-  moveGeneration: number;
+  moveGenerationOptions: GenerationFilterOptions;
   onClose: () => void;
   onSave: (build: PartyMemberBuild) => void;
 };
@@ -385,7 +386,7 @@ export function SetPokemonDialog({
   member,
   species,
   levelCapMode,
-  moveGeneration,
+  moveGenerationOptions,
   onClose,
   onSave,
 }: Props) {
@@ -415,7 +416,10 @@ export function SetPokemonDialog({
       try {
         setLoadingMoves(true);
         setErrorMessage(null);
-        const rows = await fetchMovesForPokemon(member.speciesId, moveGeneration);
+        const rows = await fetchMovesForPokemon(
+          member.speciesId,
+          moveGenerationOptions,
+        );
         if (!cancelled) setMoves(rows);
       } catch (error) {
         if (!cancelled) {
@@ -430,7 +434,7 @@ export function SetPokemonDialog({
     return () => {
       cancelled = true;
     };
-  }, [visible, member.speciesId, moveGeneration]);
+  }, [visible, member.speciesId, moveGenerationOptions]);
 
   const filteredMoves = useMemo(
     () => moves.filter((move) => matchesMoveFilters(move, moveFilters)),

@@ -11,7 +11,8 @@
     "pp": 35,
     "priority": 0,
     "description": "Inflicts regular damage with no additional effect.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000002",
@@ -25,7 +26,8 @@
     "pp": 25,
     "priority": 0,
     "description": "Has an increased chance for a critical hit.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000003",
@@ -39,7 +41,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Hits 2-5 times in one turn.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000004",
@@ -53,7 +56,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Hits 2-5 times in one turn.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000005",
@@ -67,7 +71,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Inflicts regular damage with no additional effect.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000006",
@@ -81,7 +86,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Scatters money on the ground worth five times the user’s level.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000007",
@@ -95,7 +101,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Has a chance to burn the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000008",
@@ -109,7 +116,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Has a chance to freeze the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000009",
@@ -123,7 +131,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Has a chance to paralyze the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000010",
@@ -137,7 +146,8 @@
     "pp": 35,
     "priority": 0,
     "description": "Inflicts regular damage with no additional effect.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000011",
@@ -151,7 +161,8 @@
     "pp": 30,
     "priority": 0,
     "description": "Inflicts regular damage with no additional effect.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000012",
@@ -165,7 +176,8 @@
     "pp": 5,
     "priority": 0,
     "description": "Causes a one-hit KO.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000013",
@@ -179,7 +191,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Requires a turn to charge before attacking.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000014",
@@ -193,7 +206,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Raises the user’s Attack by two stages.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000015",
@@ -207,7 +221,8 @@
     "pp": 30,
     "priority": 0,
     "description": "Inflicts regular damage with no additional effect.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000016",
@@ -221,7 +236,8 @@
     "pp": 35,
     "priority": 0,
     "description": "Inflicts regular damage and can hit Pokémon in the air.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000017",
@@ -235,7 +251,8 @@
     "pp": 35,
     "priority": 0,
     "description": "Inflicts regular damage with no additional effect.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000018",
@@ -249,7 +266,8 @@
     "pp": 20,
     "priority": -6,
     "description": "Immediately ends wild battles. Forces trainers to switch Pokémon.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000019",
@@ -263,7 +281,8 @@
     "pp": 15,
     "priority": 0,
     "description": "User flies high into the air, dodging all attacks, and hits next turn.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000020",
@@ -277,7 +296,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Prevents the target from fleeing and inflicts damage for 2-5 turns.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000021",
@@ -291,7 +311,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Inflicts regular damage with no additional effect.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000022",
@@ -305,7 +326,8 @@
     "pp": 25,
     "priority": 0,
     "description": "Inflicts regular damage with no additional effect.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000023",
@@ -319,7 +341,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Has a chance to make the target flinch.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000024",
@@ -333,7 +356,8 @@
     "pp": 30,
     "priority": 0,
     "description": "Hits twice in one turn.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000025",
@@ -347,7 +371,8 @@
     "pp": 5,
     "priority": 0,
     "description": "Inflicts regular damage with no additional effect.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000026",
@@ -361,7 +386,8 @@
     "pp": 10,
     "priority": 0,
     "description": "If the user misses, it takes half the damage it would have inflicted in recoil.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000027",
@@ -375,7 +401,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Has a chance to make the target flinch.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000028",
@@ -389,7 +416,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Lowers the target’s accuracy by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000029",
@@ -403,7 +431,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Has a chance to make the target flinch.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000030",
@@ -417,7 +446,8 @@
     "pp": 25,
     "priority": 0,
     "description": "Inflicts regular damage with no additional effect.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000031",
@@ -431,7 +461,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Hits 2-5 times in one turn.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000032",
@@ -445,7 +476,8 @@
     "pp": 5,
     "priority": 0,
     "description": "Causes a one-hit KO.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000033",
@@ -459,7 +491,8 @@
     "pp": 35,
     "priority": 0,
     "description": "Inflicts regular damage with no additional effect.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000034",
@@ -473,7 +506,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Has a chance to paralyze the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000035",
@@ -487,7 +521,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Prevents the target from fleeing and inflicts damage for 2-5 turns.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000036",
@@ -501,7 +536,8 @@
     "pp": 20,
     "priority": 0,
     "description": "User receives 1/4 the damage it inflicts in recoil.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000037",
@@ -515,7 +551,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Hits every turn for 2-3 turns, then confuses the user.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000038",
@@ -529,7 +566,8 @@
     "pp": 15,
     "priority": 0,
     "description": "User receives 1/3 the damage inflicted in recoil.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000039",
@@ -543,7 +581,8 @@
     "pp": 30,
     "priority": 0,
     "description": "Lowers the target’s Defense by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000040",
@@ -557,7 +596,8 @@
     "pp": 35,
     "priority": 0,
     "description": "Has a chance to poison the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000041",
@@ -571,7 +611,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Hits twice in the same turn. Has a chance to poison the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000042",
@@ -585,7 +626,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Hits 2-5 times in one turn.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000043",
@@ -599,7 +641,8 @@
     "pp": 30,
     "priority": 0,
     "description": "Lowers the target’s Defense by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000044",
@@ -613,7 +656,8 @@
     "pp": 25,
     "priority": 0,
     "description": "Has a chance to make the target flinch.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000045",
@@ -627,7 +671,8 @@
     "pp": 40,
     "priority": 0,
     "description": "Lowers the target’s Attack by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000046",
@@ -641,7 +686,8 @@
     "pp": 20,
     "priority": -6,
     "description": "Immediately ends wild battles. Forces trainers to switch Pokémon.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000047",
@@ -655,7 +701,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Puts the target to sleep.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000048",
@@ -669,7 +716,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Confuses the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000049",
@@ -683,7 +731,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Inflicts 20 points of damage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000050",
@@ -697,7 +746,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Disables the target’s last used move for 1-8 turns.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000051",
@@ -711,7 +761,8 @@
     "pp": 30,
     "priority": 0,
     "description": "Has a chance to lower the target’s Special Defense by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000052",
@@ -725,7 +776,8 @@
     "pp": 25,
     "priority": 0,
     "description": "Has a chance to burn the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000053",
@@ -739,7 +791,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Has a chance to burn the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000054",
@@ -753,7 +806,8 @@
     "pp": 30,
     "priority": 0,
     "description": "Protects the user’s stats from being changed by enemy moves.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000055",
@@ -767,7 +821,8 @@
     "pp": 25,
     "priority": 0,
     "description": "Inflicts regular damage with no additional effect.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000056",
@@ -781,7 +836,8 @@
     "pp": 5,
     "priority": 0,
     "description": "Inflicts regular damage with no additional effect.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000057",
@@ -795,7 +851,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Inflicts regular damage and can hit Dive users.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000058",
@@ -809,7 +866,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Has a chance to freeze the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000059",
@@ -823,7 +881,8 @@
     "pp": 5,
     "priority": 0,
     "description": "Has a chance to freeze the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000060",
@@ -837,7 +896,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Has a chance to confuse the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000061",
@@ -851,7 +911,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Has a chance to lower the target’s Speed by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000062",
@@ -865,7 +926,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Has a chance to lower the target’s Attack by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000063",
@@ -879,7 +941,8 @@
     "pp": 5,
     "priority": 0,
     "description": "User foregoes its next turn to recharge.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000064",
@@ -893,7 +956,8 @@
     "pp": 35,
     "priority": 0,
     "description": "Inflicts regular damage with no additional effect.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000065",
@@ -907,7 +971,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Inflicts regular damage with no additional effect.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000066",
@@ -921,7 +986,8 @@
     "pp": 20,
     "priority": 0,
     "description": "User receives 1/4 the damage it inflicts in recoil.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000067",
@@ -935,7 +1001,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Inflicts more damage to heavier targets, with a maximum of 120 power.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000068",
@@ -949,7 +1016,8 @@
     "pp": 20,
     "priority": -5,
     "description": "Inflicts twice the damage the user received from the last physical hit it took.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000069",
@@ -963,7 +1031,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Inflicts damage equal to the user’s level.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000070",
@@ -977,7 +1046,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Inflicts regular damage with no additional effect.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000071",
@@ -991,7 +1061,8 @@
     "pp": 25,
     "priority": 0,
     "description": "Drains half the damage inflicted to heal the user.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000072",
@@ -1005,7 +1076,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Drains half the damage inflicted to heal the user.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000073",
@@ -1019,7 +1091,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Seeds the target, stealing HP from it every turn.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000074",
@@ -1033,7 +1106,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Raises the user’s Attack and Special Attack by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000075",
@@ -1047,7 +1121,8 @@
     "pp": 25,
     "priority": 0,
     "description": "Has an increased chance for a critical hit.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000076",
@@ -1061,7 +1136,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Requires a turn to charge before attacking.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000077",
@@ -1075,7 +1151,8 @@
     "pp": 35,
     "priority": 0,
     "description": "Poisons the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000078",
@@ -1089,7 +1166,8 @@
     "pp": 30,
     "priority": 0,
     "description": "Paralyzes the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000079",
@@ -1103,7 +1181,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Puts the target to sleep.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000080",
@@ -1117,7 +1196,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Hits every turn for 2-3 turns, then confuses the user.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000081",
@@ -1131,7 +1211,8 @@
     "pp": 40,
     "priority": 0,
     "description": "Lowers the target’s Speed by two stages.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000082",
@@ -1145,7 +1226,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Inflicts 40 points of damage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000083",
@@ -1159,7 +1241,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Prevents the target from fleeing and inflicts damage for 2-5 turns.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000084",
@@ -1173,7 +1256,8 @@
     "pp": 30,
     "priority": 0,
     "description": "Has a chance to paralyze the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000085",
@@ -1187,7 +1271,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Has a chance to paralyze the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000086",
@@ -1201,7 +1286,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Paralyzes the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000087",
@@ -1215,7 +1301,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Has a chance to paralyze the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000088",
@@ -1229,7 +1316,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Inflicts regular damage with no additional effect.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000089",
@@ -1243,7 +1331,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Inflicts regular damage and can hit Dig users.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000090",
@@ -1257,7 +1346,8 @@
     "pp": 5,
     "priority": 0,
     "description": "Causes a one-hit KO.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000091",
@@ -1271,7 +1361,8 @@
     "pp": 10,
     "priority": 0,
     "description": "User digs underground, dodging all attacks, and hits next turn.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000092",
@@ -1285,7 +1376,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Badly poisons the target, inflicting more damage every turn.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000093",
@@ -1299,7 +1391,8 @@
     "pp": 25,
     "priority": 0,
     "description": "Has a chance to confuse the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000094",
@@ -1313,7 +1406,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Has a chance to lower the target’s Special Defense by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000095",
@@ -1327,7 +1421,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Puts the target to sleep.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000096",
@@ -1341,7 +1436,8 @@
     "pp": 40,
     "priority": 0,
     "description": "Raises the user’s Attack by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000097",
@@ -1355,7 +1451,8 @@
     "pp": 30,
     "priority": 0,
     "description": "Raises the user’s Speed by two stages.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000098",
@@ -1369,7 +1466,8 @@
     "pp": 30,
     "priority": 1,
     "description": "Inflicts regular damage with no additional effect.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000099",
@@ -1383,7 +1481,8 @@
     "pp": 20,
     "priority": 0,
     "description": "If the user is hit after using this move, its Attack rises by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000100",
@@ -1397,7 +1496,8 @@
     "pp": 20,
     "priority": -6,
     "description": "Immediately ends wild battles. No effect otherwise.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000101",
@@ -1411,7 +1511,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Inflicts damage equal to the user’s level.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000102",
@@ -1425,7 +1526,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Copies the target’s last used move.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000103",
@@ -1439,7 +1541,8 @@
     "pp": 40,
     "priority": 0,
     "description": "Lowers the target’s Defense by two stages.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000104",
@@ -1453,7 +1556,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Raises the user’s evasion by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000105",
@@ -1467,7 +1571,8 @@
     "pp": 5,
     "priority": 0,
     "description": "Heals the user by half its max HP.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000106",
@@ -1481,7 +1586,8 @@
     "pp": 30,
     "priority": 0,
     "description": "Raises the user’s Defense by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000107",
@@ -1495,7 +1601,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Raises the user’s evasion by two stages.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000108",
@@ -1509,7 +1616,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Lowers the target’s accuracy by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000109",
@@ -1523,7 +1631,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Confuses the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000110",
@@ -1537,7 +1646,8 @@
     "pp": 40,
     "priority": 0,
     "description": "Raises the user’s Defense by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000111",
@@ -1551,7 +1661,8 @@
     "pp": 40,
     "priority": 0,
     "description": "Raises user’s Defense by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000112",
@@ -1565,7 +1676,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Raises the user’s Defense by two stages.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000113",
@@ -1579,7 +1691,8 @@
     "pp": 30,
     "priority": 0,
     "description": "Reduces damage from special attacks by 50% for five turns.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000114",
@@ -1593,7 +1706,8 @@
     "pp": 30,
     "priority": 0,
     "description": "Resets all Pokémon’s stats, accuracy, and evasion.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000115",
@@ -1607,7 +1721,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Reduces damage from physical attacks by half.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000116",
@@ -1621,7 +1736,8 @@
     "pp": 30,
     "priority": 0,
     "description": "Increases the user’s chance to score a critical hit.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000117",
@@ -1635,7 +1751,8 @@
     "pp": 10,
     "priority": 1,
     "description": "User waits for two turns, then hits back for twice the damage it took.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000118",
@@ -1649,7 +1766,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Randomly selects and uses any move in the game.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000119",
@@ -1663,7 +1781,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Uses the target’s last used move.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000120",
@@ -1677,7 +1796,8 @@
     "pp": 5,
     "priority": 0,
     "description": "User faints.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000121",
@@ -1691,7 +1811,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Inflicts regular damage with no additional effect.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000122",
@@ -1705,7 +1826,8 @@
     "pp": 30,
     "priority": 0,
     "description": "Has a chance to paralyze the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000123",
@@ -1719,7 +1841,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Has a chance to poison the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000124",
@@ -1733,7 +1856,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Has a chance to poison the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000125",
@@ -1747,7 +1871,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Has a chance to make the target flinch.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000126",
@@ -1761,7 +1886,8 @@
     "pp": 5,
     "priority": 0,
     "description": "Has a chance to burn the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000127",
@@ -1775,7 +1901,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Has a chance to make the target flinch.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000128",
@@ -1789,7 +1916,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Prevents the target from fleeing and inflicts damage for 2-5 turns.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000129",
@@ -1803,7 +1931,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Never misses.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000130",
@@ -1817,7 +1946,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Raises the user’s Defense by one stage. User charges for one turn before attacking.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000131",
@@ -1831,7 +1961,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Hits 2-5 times in one turn.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000132",
@@ -1845,7 +1976,8 @@
     "pp": 35,
     "priority": 0,
     "description": "Has a chance to lower the target’s Speed by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000133",
@@ -1859,7 +1991,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Raises the user’s Special Defense by two stages.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000134",
@@ -1873,7 +2006,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Lowers the target’s accuracy by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000135",
@@ -1887,7 +2021,8 @@
     "pp": 5,
     "priority": 0,
     "description": "Heals the user by half its max HP.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000136",
@@ -1901,7 +2036,8 @@
     "pp": 10,
     "priority": 0,
     "description": "If the user misses, it takes half the damage it would have inflicted in recoil.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000137",
@@ -1915,7 +2051,8 @@
     "pp": 30,
     "priority": 0,
     "description": "Paralyzes the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000138",
@@ -1929,7 +2066,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Only works on sleeping Pokémon. Drains half the damage inflicted to heal the user.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000139",
@@ -1943,7 +2081,8 @@
     "pp": 40,
     "priority": 0,
     "description": "Poisons the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000140",
@@ -1957,7 +2096,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Hits 2-5 times in one turn.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000141",
@@ -1971,7 +2111,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Drains half the damage inflicted to heal the user.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000142",
@@ -1985,7 +2126,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Puts the target to sleep.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000143",
@@ -1999,7 +2141,8 @@
     "pp": 5,
     "priority": 0,
     "description": "User charges for one turn before attacking. Has a chance to make the target flinch.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000144",
@@ -2013,7 +2156,8 @@
     "pp": 10,
     "priority": 0,
     "description": "User becomes a copy of the target until it leaves battle.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000145",
@@ -2027,7 +2171,8 @@
     "pp": 30,
     "priority": 0,
     "description": "Has a chance to lower the target’s Speed by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000146",
@@ -2041,7 +2186,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Has a chance to confuse the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000147",
@@ -2055,7 +2201,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Puts the target to sleep.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000148",
@@ -2069,7 +2216,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Lowers the target’s accuracy by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000149",
@@ -2083,7 +2231,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Inflicts damage between 50% and 150% of the user’s level.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 127
   },
   {
     "id": "00000000-0000-4000-8001-000000000150",
@@ -2097,7 +2246,8 @@
     "pp": 40,
     "priority": 0,
     "description": "Does nothing.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000151",
@@ -2111,7 +2261,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Raises the user’s Defense by two stages.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000152",
@@ -2125,7 +2276,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Has an increased chance for a critical hit.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000153",
@@ -2139,7 +2291,8 @@
     "pp": 5,
     "priority": 0,
     "description": "User faints.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000154",
@@ -2153,7 +2306,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Hits 2-5 times in one turn.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000155",
@@ -2167,7 +2321,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Hits twice in one turn.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000156",
@@ -2181,7 +2336,8 @@
     "pp": 5,
     "priority": 0,
     "description": "User sleeps for two turns, completely healing itself.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000157",
@@ -2195,7 +2351,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Has a chance to make the target flinch.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000158",
@@ -2209,7 +2366,8 @@
     "pp": 15,
     "priority": 0,
     "description": "Has a chance to make the target flinch.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000159",
@@ -2223,7 +2381,8 @@
     "pp": 30,
     "priority": 0,
     "description": "Raises the user’s Attack by one stage.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000160",
@@ -2237,7 +2396,8 @@
     "pp": 30,
     "priority": 0,
     "description": "User’s type changes to the type of one of its moves at random.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000161",
@@ -2251,7 +2411,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Has a chance to burn, freeze, or paralyze the target.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000162",
@@ -2265,7 +2426,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Inflicts damage equal to half the target’s HP.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000163",
@@ -2279,7 +2441,8 @@
     "pp": 20,
     "priority": 0,
     "description": "Has an increased chance for a critical hit.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000164",
@@ -2293,7 +2456,8 @@
     "pp": 10,
     "priority": 0,
     "description": "Transfers 1/4 of the user’s max HP into a doll, protecting the user from further damage or status changes until it breaks.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   },
   {
     "id": "00000000-0000-4000-8001-000000000165",
@@ -2307,6 +2471,7 @@
     "pp": 1,
     "priority": 0,
     "description": "User takes 1/4 its max HP in recoil.",
-    "generation_introduced": 7
+    "introduced_generation": 1,
+    "available_generations": 511
   }
 ]

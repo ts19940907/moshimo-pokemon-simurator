@@ -26,6 +26,9 @@ type MatchParams = {
   side?: string;
   selectSide?: string;
   rulesGeneration?: string;
+  syncGenerationsWithRules?: string;
+  pokemonGenerations?: string;
+  moveGenerations?: string;
   pokemonGeneration?: string;
   moveGeneration?: string;
   restrictionMode?: string;

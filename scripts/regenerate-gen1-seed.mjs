@@ -6,8 +6,8 @@
  * (verified against Gen1 reference tables).
  *
  * Split into two records when Gen6 changes physical stats and/or Fairy typing:
- * - generation_introduced=31  (Gen1-5): Gen1 physical/types + base_special
- * - generation_introduced=480 (Gen6-9): post-change values, base_special=null
+ * - available_generations=31 / introduced_generation=1  (Gen1-5): Gen1 physical/types + base_special
+ * - available_generations=Gen6+ (Gen8/9 bits cleared if unavailable) (Gen6-9): post-change values, base_special=null
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -109,13 +109,13 @@ async function main() {
   const raw = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
   const byDex = new Map();
   for (const row of raw) {
-    if (!byDex.has(row.dex_no) || (row.generation_introduced & 1) !== 0) {
+    if (!byDex.has(row.dex_no) || (row.available_generations & 1) !== 0) {
       byDex.set(row.dex_no, {
         ...row,
-        generation_introduced: 511,
+        available_generations: 511,
         base_special: row.base_special,
         // Prefer Gen1 physical/types from Gen1-bit rows
-        ...(GEN1_TYPES_PRE_FAIRY[row.dex_no] && (row.generation_introduced & 1)
+        ...(GEN1_TYPES_PRE_FAIRY[row.dex_no] && (row.available_generations & 1)
           ? GEN1_TYPES_PRE_FAIRY[row.dex_no]
           : {}),
       });
@@ -192,13 +192,13 @@ async function main() {
     const buff = GEN6_PHYSICAL_BUFFS[row.dex_no];
     const fairy = GEN1_TYPES_PRE_FAIRY[row.dex_no];
     if (!buff && !fairy) {
-      our.push({ ...filled, generation_introduced: 511 });
+      our.push({ ...filled, available_generations: 511 });
       continue;
     }
 
     const pre = {
       ...filled,
-      generation_introduced: GEN1_5,
+      available_generations: GEN1_5,
       ...(fairy || {}),
       ...(GEN1_5_SPA[row.dex_no] != null
         ? { base_sp_attack: GEN1_5_SPA[row.dex_no] }
@@ -208,7 +208,7 @@ async function main() {
       ...filled,
       ...(buff || {}),
       ...(fairy ? GEN6_TYPES_FAIRY[row.dex_no] : {}),
-      generation_introduced: GEN6_9,
+      available_generations: GEN6_9,
       base_special: null,
       base_sp_attack: e.base_sp_attack,
     };
@@ -233,7 +233,7 @@ async function main() {
   ].join("\n");
 
   const cols =
-    "dex_no, region_type, name_ja, name_en, category, generation_introduced, type1, type2, base_hp, base_attack, base_defense, base_special, base_sp_attack, base_sp_defense, base_speed, ability1_id, ability2_id, hidden_ability_id, gender, is_mega, is_final_evolution, sprite_url";
+    "dex_no, region_type, name_ja, name_en, category, introduced_generation, available_generations, type1, type2, base_hp, base_attack, base_defense, base_special, base_sp_attack, base_sp_defense, base_speed, ability1_id, ability2_id, hidden_ability_id, gender, is_mega, is_final_evolution, sprite_url";
 
   const pokemonSql = [
     "-- Gen1 species seed. Split on Gen6 physical buffs and/or Fairy type changes.",
@@ -246,7 +246,8 @@ async function main() {
           p.name_ja,
           p.name_en,
           p.category,
-          p.generation_introduced,
+          1,
+          p.available_generations,
           p.type1,
           p.type2,
           p.base_hp,

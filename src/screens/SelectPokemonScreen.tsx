@@ -14,7 +14,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { RestrictionMode } from "../match-setup/types";
-import type { Generation } from "../match-setup/types";
+import { pokemonGenerationFilterFromParams } from "../match-setup/params";
 import { usePartySetup } from "../party/PartySetupContext";
 import type { PartySide } from "../party/types";
 import {
@@ -148,6 +148,9 @@ function toggleTypeFilter(current: TypeId[], typeId: TypeId): TypeId[] {
 type MatchParams = {
   side?: string;
   rulesGeneration?: string;
+  syncGenerationsWithRules?: string;
+  pokemonGenerations?: string;
+  moveGenerations?: string;
   pokemonGeneration?: string;
   moveGeneration?: string;
   restrictionMode?: RestrictionMode;
@@ -644,8 +647,15 @@ export function SelectPokemonScreen() {
   const isOpponentSide = side === "b";
   const restrictionMode = (params.restrictionMode ??
     "standard") as RestrictionMode;
-  const pokemonGeneration = (Number(params.pokemonGeneration) ||
-    1) as Generation;
+  const pokemonGenerationOptions = useMemo(
+    () => pokemonGenerationFilterFromParams(params),
+    [
+      params.rulesGeneration,
+      params.syncGenerationsWithRules,
+      params.pokemonGenerations,
+      params.pokemonGeneration,
+    ],
+  );
 
   const [allSpecies, setAllSpecies] = useState<PokemonSpecies[]>([]);
   const [loading, setLoading] = useState(true);
@@ -710,9 +720,9 @@ export function SelectPokemonScreen() {
       getSelectableSpeciesFromList(
         allSpecies,
         restrictionMode,
-        pokemonGeneration,
+        pokemonGenerationOptions,
       ),
-    [allSpecies, restrictionMode, pokemonGeneration],
+    [allSpecies, restrictionMode, pokemonGenerationOptions],
   );
 
   const filteredSpecies = useMemo(() => {
@@ -837,6 +847,9 @@ export function SelectPokemonScreen() {
       pathname: "/menu",
       params: {
         rulesGeneration: params.rulesGeneration,
+        syncGenerationsWithRules: params.syncGenerationsWithRules,
+        pokemonGenerations: params.pokemonGenerations,
+        moveGenerations: params.moveGenerations,
         pokemonGeneration: params.pokemonGeneration,
         moveGeneration: params.moveGeneration,
         restrictionMode: params.restrictionMode,

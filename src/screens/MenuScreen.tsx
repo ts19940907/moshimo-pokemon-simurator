@@ -14,9 +14,11 @@ import {
   generationOptions,
   levelCapOptions,
   opponentOptions,
+  poolGenerationOptions,
   restrictionOptions,
   visibilityOptions,
 } from "../match-setup/options";
+import { matchGenerationRouteParams } from "../match-setup/params";
 import type {
   Generation,
   LevelCapMode,
@@ -32,8 +34,9 @@ const grassland = require("../../assets/title/title-grassland.png");
 
 const defaultSetup: MatchSetup = {
   rulesGeneration: implementedGeneration,
-  pokemonGeneration: implementedGeneration,
-  moveGeneration: implementedGeneration,
+  syncGenerationsWithRules: true,
+  pokemonGenerations: [implementedGeneration],
+  moveGenerations: [implementedGeneration],
   restrictionMode: "standard",
   opponentType: "local_both",
   visibilityMode: "full",
@@ -92,6 +95,17 @@ function labelOf<T extends string | number>(
   return options.find((option) => option.value === value)?.title ?? String(value);
 }
 
+function labelsOf(
+  values: Generation[],
+  options: { value: Generation; title: string }[],
+) {
+  return values
+    .slice()
+    .sort((a, b) => a - b)
+    .map((value) => labelOf(value, options))
+    .join("・");
+}
+
 type GenerationRadioGroupProps = {
   value: Generation;
   onChange: (value: Generation) => void;
@@ -139,17 +153,82 @@ function GenerationRadioGroup({ value, onChange }: GenerationRadioGroupProps) {
   );
 }
 
+type GenerationCheckboxGroupProps = {
+  values: Generation[];
+  disabled?: boolean;
+  onChange: (values: Generation[]) => void;
+};
+
+function GenerationCheckboxGroup({
+  values,
+  disabled,
+  onChange,
+}: GenerationCheckboxGroupProps) {
+  const selected = new Set(values);
+
+  const toggle = (generation: Generation) => {
+    if (disabled) return;
+    if (selected.has(generation)) {
+      if (selected.size <= 1) return;
+      onChange(values.filter((value) => value !== generation));
+      return;
+    }
+    onChange([...values, generation]);
+  };
+
+  return (
+    <View style={styles.generationRow}>
+      {poolGenerationOptions.map((option) => {
+        const isOn = selected.has(option.value);
+        const isDisabled = Boolean(disabled) || option.disabled;
+        return (
+          <Pressable
+            key={option.value}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: isOn, disabled: isDisabled }}
+            disabled={isDisabled}
+            onPress={() => toggle(option.value)}
+            style={({ pressed }) => [
+              styles.generationChip,
+              isOn && styles.generationChipSelected,
+              isDisabled && styles.generationChipDisabled,
+              pressed && !isDisabled && styles.cardPressed,
+            ]}
+          >
+            <View
+              style={[styles.checkbox, isOn && styles.checkboxSelected]}
+              accessibilityElementsHidden
+            />
+            <Text
+              style={[
+                styles.generationChipText,
+                isOn && styles.generationChipTextSelected,
+                isDisabled && styles.disabledText,
+              ]}
+            >
+              {option.title}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export function MenuScreen() {
   const router = useRouter();
   const { clearAllParties } = usePartySetup();
   const [rulesGeneration, setRulesGeneration] = useState<Generation>(
     defaultSetup.rulesGeneration,
   );
-  const [pokemonGeneration, setPokemonGeneration] = useState<Generation>(
-    defaultSetup.pokemonGeneration,
+  const [syncGenerationsWithRules, setSyncGenerationsWithRules] = useState(
+    defaultSetup.syncGenerationsWithRules,
   );
-  const [moveGeneration, setMoveGeneration] = useState<Generation>(
-    defaultSetup.moveGeneration,
+  const [pokemonGenerations, setPokemonGenerations] = useState<Generation[]>(
+    defaultSetup.pokemonGenerations,
+  );
+  const [moveGenerations, setMoveGenerations] = useState<Generation[]>(
+    defaultSetup.moveGenerations,
   );
   const [restrictionMode, setRestrictionMode] = useState<RestrictionMode>(
     defaultSetup.restrictionMode,
@@ -167,6 +246,34 @@ export function MenuScreen() {
   const isLocalBoth = opponentType === "local_both";
   const resolvedVisibility = isLocalBoth ? visibilityMode : "opponent_hidden";
 
+  const displayedPokemonGens = syncGenerationsWithRules
+    ? [rulesGeneration]
+    : pokemonGenerations;
+  const displayedMoveGens = syncGenerationsWithRules
+    ? [rulesGeneration]
+    : moveGenerations;
+
+  const handleRulesChange = (value: Generation) => {
+    setRulesGeneration(value);
+    if (syncGenerationsWithRules) {
+      setPokemonGenerations([value]);
+      setMoveGenerations([value]);
+    }
+  };
+
+  const handleSyncChange = (enabled: boolean) => {
+    setSyncGenerationsWithRules(enabled);
+    if (enabled) {
+      setPokemonGenerations([rulesGeneration]);
+      setMoveGenerations([rulesGeneration]);
+    } else {
+      setPokemonGenerations(
+        pokemonGenerations.length > 0 ? pokemonGenerations : [1],
+      );
+      setMoveGenerations(moveGenerations.length > 0 ? moveGenerations : [1]);
+    }
+  };
+
   const handleOpponentChange = (value: OpponentType) => {
     setOpponentType(value);
     if (value === "ai") {
@@ -180,9 +287,12 @@ export function MenuScreen() {
       pathname: "/party",
       params: {
         side: "a",
-        rulesGeneration: String(rulesGeneration),
-        pokemonGeneration: String(pokemonGeneration),
-        moveGeneration: String(moveGeneration),
+        ...matchGenerationRouteParams({
+          rulesGeneration,
+          syncGenerationsWithRules,
+          pokemonGenerations: displayedPokemonGens,
+          moveGenerations: displayedMoveGens,
+        }),
         restrictionMode,
         opponentType,
         visibilityMode: resolvedVisibility,
@@ -208,7 +318,7 @@ export function MenuScreen() {
               <Text style={styles.kicker}>メニュー</Text>
               <Text style={styles.title}>対戦設定</Text>
               <Text style={styles.lead}>
-                対戦ルール・使えるポケモン・使える技を世代ごとに選べます。いまは初代のみ実装しています。
+                対戦ルールは世代ルール、ポケモン／技は初登場世代の複数選択か「対戦ルールに合わせる」で選べます。ダメージ計算はいま初代のみ実装しています。
               </Text>
             </View>
 
@@ -217,25 +327,51 @@ export function MenuScreen() {
               <Text style={styles.sectionHint}>ダメージ計算や状態異常などの世代ルール</Text>
               <GenerationRadioGroup
                 value={rulesGeneration}
-                onChange={setRulesGeneration}
+                onChange={handleRulesChange}
+              />
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>世代の合わせ方</Text>
+              <OptionCard
+                title="対戦ルールに合わせる"
+                description="使えるポケモン・技を対戦ルール世代の環境（可用性ビット）に自動同期します。"
+                selected={syncGenerationsWithRules}
+                onPress={() => handleSyncChange(true)}
+              />
+              <OptionCard
+                title="手動で選ぶ"
+                description="ポケモンと技の初登場世代をそれぞれ複数選択します。行データはルール世代を優先し、無ければ最新行を使います。"
+                selected={!syncGenerationsWithRules}
+                onPress={() => handleSyncChange(false)}
               />
             </View>
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>使えるポケモン</Text>
-              <Text style={styles.sectionHint}>その世代までに登場したポケモン</Text>
-              <GenerationRadioGroup
-                value={pokemonGeneration}
-                onChange={setPokemonGeneration}
+              <Text style={styles.sectionHint}>
+                {syncGenerationsWithRules
+                  ? "対戦ルール世代で使えるポケモン（自動）"
+                  : "初登場世代（複数可）。少なくとも1つ必要です。"}
+              </Text>
+              <GenerationCheckboxGroup
+                values={displayedPokemonGens}
+                disabled={syncGenerationsWithRules}
+                onChange={setPokemonGenerations}
               />
             </View>
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>使える技</Text>
-              <Text style={styles.sectionHint}>その世代の技データ・習得技</Text>
-              <GenerationRadioGroup
-                value={moveGeneration}
-                onChange={setMoveGeneration}
+              <Text style={styles.sectionHint}>
+                {syncGenerationsWithRules
+                  ? "対戦ルール世代で使える技（自動）"
+                  : "初登場世代（複数可）。少なくとも1つ必要です。"}
+              </Text>
+              <GenerationCheckboxGroup
+                values={displayedMoveGens}
+                disabled={syncGenerationsWithRules}
+                onChange={setMoveGenerations}
               />
             </View>
 
@@ -297,9 +433,12 @@ export function MenuScreen() {
             <View style={styles.summary}>
               <Text style={styles.summaryTitle}>この対戦</Text>
               <Text style={styles.summaryLine}>
-                ルール {labelOf(rulesGeneration, generationOptions)} ／ ポケモン{" "}
-                {labelOf(pokemonGeneration, generationOptions)} ／ 技{" "}
-                {labelOf(moveGeneration, generationOptions)}
+                ルール {labelOf(rulesGeneration, generationOptions)} ／{" "}
+                {syncGenerationsWithRules ? "世代合わせ ON" : "手動"}
+              </Text>
+              <Text style={styles.summaryLine}>
+                ポケモン {labelsOf(displayedPokemonGens, poolGenerationOptions)}{" "}
+                ／ 技 {labelsOf(displayedMoveGens, poolGenerationOptions)}
               </Text>
               <Text style={styles.summaryLine}>
                 {labelOf(restrictionMode, restrictionOptions)} ／{" "}
@@ -436,6 +575,17 @@ const styles = StyleSheet.create({
   },
   generationChipTextSelected: {
     color: "#1f6b4a",
+  },
+  checkbox: {
+    width: 16,
+    height: 16,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: "#8a8172",
+  },
+  checkboxSelected: {
+    borderColor: "#1f6b4a",
+    backgroundColor: "#1f6b4a",
   },
   card: {
     backgroundColor: "#fffdf8",

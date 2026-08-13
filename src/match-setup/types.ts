@@ -26,8 +26,12 @@ export type LevelCapMode = (typeof levelCapModes)[number];
 
 export type MatchSetup = {
   rulesGeneration: Generation;
-  pokemonGeneration: Generation;
-  moveGeneration: Generation;
+  /** When true, pokemon/move pools follow rulesGeneration via availability bits only. */
+  syncGenerationsWithRules: boolean;
+  /** Debut generations for pokemon pool (used when sync is off). Default [1]. */
+  pokemonGenerations: Generation[];
+  /** Debut generations for move pool (used when sync is off). Default [1]. */
+  moveGenerations: Generation[];
   restrictionMode: RestrictionMode;
   opponentType: OpponentType;
   visibilityMode: VisibilityMode;

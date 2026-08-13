@@ -1,13 +1,14 @@
 import { supabase } from "../lib/supabase";
 import type { Move } from "./moves";
-import { generationBit } from "./types";
+import {
+  filterByGenerationAvailability,
+  type GenerationFilterOptions,
+} from "../match-setup/generationFilter";
 
 export async function fetchMovesForPokemon(
   pokemonId: string,
-  moveGeneration: number,
+  generationOptions: GenerationFilterOptions,
 ): Promise<Move[]> {
-  const bit = generationBit(moveGeneration);
-
   const { data: links, error: linkError } = await supabase
     .from("pokemon_moves")
     .select("move_id")
@@ -37,7 +38,8 @@ export async function fetchMovesForPokemon(
         "pp",
         "priority",
         "description",
-        "generation_introduced",
+        "introduced_generation",
+        "available_generations",
       ].join(","),
     )
     .in("id", moveIds)
@@ -47,7 +49,9 @@ export async function fetchMovesForPokemon(
     throw new Error(`技マスタの取得に失敗しました: ${error.message}`);
   }
 
-  return ((data as unknown as Move[]) ?? []).filter(
-    (move) => (move.generation_introduced & bit) !== 0,
+  return filterByGenerationAvailability(
+    (data as unknown as Move[]) ?? [],
+    generationOptions,
+    (move) => String(move.pokeapi_id),
   );
 }

@@ -32,8 +32,10 @@ export type PokemonSpecies = {
   name_ja: string;
   name_en: string;
   category: PokemonCategory;
-  /** Bitmask of selectable generations. Gen N = 2^(N-1). */
-  generation_introduced: number;
+  /** Debut generation (Hisui forms use 9). */
+  introduced_generation: number;
+  /** Bitmask of competitive-usable generations. Gen N = 2^(N-1). */
+  available_generations: number;
   type1: TypeId;
   /** 0 means single-type. */
   type2: TypeId;
@@ -79,10 +81,7 @@ export const TYPE_BY_ID: Record<number, { nameJa: string; nameEn: string }> = {
   18: { nameJa: "フェアリー", nameEn: "Fairy" },
 };
 
-/** Gen N bit flag: 2^(N-1) */
-export function generationBit(generation: number): number {
-  return 1 << (generation - 1);
-}
-
-/** All of Gen1..Gen9 */
-export const ALL_GENERATION_BITS = (1 << 9) - 1;
+export {
+  ALL_GENERATION_BITS,
+  generationBit,
+} from "../match-setup/generationFilter";

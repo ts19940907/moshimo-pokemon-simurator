@@ -12,8 +12,10 @@ export type Move = {
   pp: number | null;
   priority: number;
   description: string | null;
-  /** Bitmask. Gen1 seed uses 7 (Gen1–3). */
-  generation_introduced: number;
+  /** Debut generation of this move. */
+  introduced_generation: number;
+  /** Bitmask of competitive-usable generations. Gen N = 2^(N-1). */
+  available_generations: number;
 };
 
 export type PokemonMove = {

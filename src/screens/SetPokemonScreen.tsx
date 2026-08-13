@@ -23,9 +23,13 @@ import {
 import { formatDexNo } from "../pokemon/catalog";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
 import { fetchMovesForPokemon } from "../pokemon/moveRepository";
-import { fetchPokemonSpecies } from "../pokemon/repository";
+import { fetchPokemonSpecies, filterSelectableSpecies } from "../pokemon/repository";
 import type { PokemonSpecies } from "../pokemon/types";
 import type { LevelCapMode, OpponentType } from "../match-setup/types";
+import {
+  moveGenerationFilterFromParams,
+  pokemonGenerationFilterFromParams,
+} from "../match-setup/params";
 import { SetPokemonDialog } from "./set/SetPokemonDialog";
 
 const grassland = require("../../assets/title/title-grassland.png");
@@ -34,6 +38,9 @@ type MatchParams = {
   side?: string;
   party?: string;
   rulesGeneration?: string;
+  syncGenerationsWithRules?: string;
+  pokemonGenerations?: string;
+  moveGenerations?: string;
   pokemonGeneration?: string;
   moveGeneration?: string;
   restrictionMode?: string;
@@ -81,7 +88,24 @@ export function SetPokemonScreen() {
 
   const levelCapMode = (params.levelCapMode ?? "max_50") as LevelCapMode;
   const rulesGeneration = Number(params.rulesGeneration) || 1;
-  const moveGeneration = Number(params.moveGeneration) || 1;
+  const pokemonGenerationOptions = useMemo(
+    () => pokemonGenerationFilterFromParams(params),
+    [
+      params.rulesGeneration,
+      params.syncGenerationsWithRules,
+      params.pokemonGenerations,
+      params.pokemonGeneration,
+    ],
+  );
+  const moveGenerationOptions = useMemo(
+    () => moveGenerationFilterFromParams(params),
+    [
+      params.rulesGeneration,
+      params.syncGenerationsWithRules,
+      params.moveGenerations,
+      params.moveGeneration,
+    ],
+  );
   const partyDexNos = useMemo(
     () =>
       (params.party ?? "")
@@ -100,9 +124,10 @@ export function SetPokemonScreen() {
         const rows = await fetchPokemonSpecies();
         if (cancelled) return;
 
-        const bit = 1 << (rulesGeneration - 1);
-        const usable = rows.filter(
-          (row) => (row.generation_introduced & bit) !== 0 && !row.is_mega,
+        const usable = filterSelectableSpecies(
+          rows,
+          "anything",
+          pokemonGenerationOptions,
         );
         const picked = partyDexNos
           .map((dex) => usable.find((row) => row.dex_no === dex))
@@ -134,7 +159,14 @@ export function SetPokemonScreen() {
     return () => {
       cancelled = true;
     };
-  }, [params.party, side, rulesGeneration, levelCapMode, initEditingParty]);
+  }, [
+    params.party,
+    side,
+    rulesGeneration,
+    levelCapMode,
+    initEditingParty,
+    pokemonGenerationOptions,
+  ]);
 
   const members = editing?.members ?? [];
   const focused = members.find((m) => m.speciesId === focusedId) ?? null;
@@ -147,7 +179,7 @@ export function SetPokemonScreen() {
       try {
         const moves = await fetchMovesForPokemon(
           focused.speciesId,
-          moveGeneration,
+          moveGenerationOptions,
         );
         if (cancelled) return;
         const map: Record<string, string> = {};
@@ -160,7 +192,7 @@ export function SetPokemonScreen() {
     return () => {
       cancelled = true;
     };
-  }, [focused?.speciesId, moveGeneration]);
+  }, [focused?.speciesId, moveGenerationOptions]);
 
   const matchParams = useMemo(() => {
     const { party: _party, ...rest } = params;
@@ -344,7 +376,7 @@ export function SetPokemonScreen() {
           member={focused}
           species={focusedSpecies}
           levelCapMode={levelCapMode}
-          moveGeneration={moveGeneration}
+          moveGenerationOptions={moveGenerationOptions}
           onClose={() => setDialogOpen(false)}
           onSave={(build) => updateMember(build.speciesId, build)}
         />

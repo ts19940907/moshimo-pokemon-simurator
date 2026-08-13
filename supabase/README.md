@@ -10,6 +10,7 @@ App tables live in the **`moshimo`** schema (not `public`), to keep them separat
 - Migration (gender): `supabase/migrations/20260813133000_add_pokemon_gender.sql`
 - Migration (moves): `supabase/migrations/20260813140000_create_moves.sql`
 - Migration (final evolution): `supabase/migrations/20260813150000_add_pokemon_final_evolution.sql`
+- Migration (generation columns): `supabase/migrations/20260813160000_pokemon_moves_generation_columns.sql`
 - Ability seed: `supabase/seed/abilities.sql`
 - Gen1 pokemon seed: `supabase/seed/gen1_pokemon.sql`
 - Combined pokemon reseed: `supabase/seed/gen1_all.sql`（abilities → pokemon の順）
@@ -25,7 +26,10 @@ createClient(url, key, { db: { schema: "moshimo" } })
 
 Remote API must expose `moshimo` (Dashboard → Settings → API → Exposed schemas, or PostgREST `db_schema`).
 
-## Bitmask (`generation_introduced`)
+## Generation columns
+
+- `introduced_generation`: 初登場世代（ヒスイは 9）
+- `available_generations`: その環境の対戦で使える世代のビットマスク
 
 | Generation | Bit value |
 |------------|-----------|
@@ -41,12 +45,12 @@ Remote API must expose `moshimo` (Dashboard → Settings → API → Exposed sch
 
 ```sql
 select * from moshimo.pokemon
-where generation_introduced & (1 << (N - 1)) <> 0;
+where available_generations & (1 << (N - 1)) <> 0;
 ```
 
-同一種族は **値が世代で変わらない限り1レコード**（例: `511` = Gen1..9）。種族値・タイプ・特性が変わるときだけレコードを分け、bitmask を分割する（ユニークキーに `generation_introduced` を含む）。
+同一種族は **値が世代で変わらない限り1レコード**（例: `511` = Gen1..9）。種族値・タイプ・特性が変わるときだけレコードを分け、bitmask を分割する（ユニークキーに `available_generations` を含む）。
 
-第6世代で値が変わる初代勢は `31`（Gen1–5）と `480`（Gen6–9）に分割。Gen6–9 側の `base_special` は NULL。
+第6世代で値が変わる初代勢は `31`（Gen1–5）と Gen6 以降行に分割。Gen8/9 で対戦不可の種は該当ビットを落とす（例: スピアーの Gen6 行は `96` = Gen6–7）。
 
 - 物理種族値バフ: 13体（スピアー、ピジョット、アーボック など）
 - フェアリータイプ化: 5体（ピッピ、ピクシー、プリン、プクリン、バリヤード）

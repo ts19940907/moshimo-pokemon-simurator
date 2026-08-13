@@ -1,7 +1,7 @@
 /**
  * Build Gen1 move master + pokemon_moves seed SQL from PokeAPI.
  *
- * - moves.generation_introduced = 7 (Gen1–3)
+ * - introduced_generation=1; available_generations includes competitive gens
  * - damage_class: status from API meta, else Gen1 type-based physical/special
  * - junction: Gen1-usable pokemon rows (bit 0 set) × RB/Yellow learnset (level-up/TM/HM)
  */
@@ -116,7 +116,8 @@ async function main() {
       pp: m.pp,
       priority: m.priority ?? 0,
       description,
-      generation_introduced: GEN1_3_BITS,
+      introduced_generation: 1,
+      available_generations: GEN1_3_BITS,
     });
   }
   console.log(`\nmoves ${moves.length}`);
@@ -143,11 +144,11 @@ async function main() {
   const moveByPokeapi = new Map(moves.map((m) => [m.pokeapi_id, m]));
 
   const movesSql = [
-    "-- Gen1 move master (generation_introduced=7 => Gen1–3)",
+    "-- Gen1 move master (introduced_generation=1)",
     "truncate table moshimo.pokemon_moves cascade;",
     "truncate table moshimo.moves cascade;",
     "",
-    "insert into moshimo.moves (id, pokeapi_id, name_ja, name_en, type_id, damage_class, power, accuracy, pp, priority, description, generation_introduced) values",
+    "insert into moshimo.moves (id, pokeapi_id, name_ja, name_en, type_id, damage_class, power, accuracy, pp, priority, description, introduced_generation, available_generations) values",
     `${moves
       .map(
         (m) =>
@@ -163,7 +164,8 @@ async function main() {
             m.pp,
             m.priority,
             m.description,
-            m.generation_introduced,
+            m.introduced_generation,
+            m.available_generations,
           ]
             .map(sqlStr)
             .join(", ")})`,
@@ -178,7 +180,7 @@ async function main() {
     for (const moveId of moveIds) {
       if (!moveByPokeapi.has(moveId)) continue;
       junctionLines.push(
-        `select p.id, ${sqlStr(moveUuid(moveId))}::uuid from moshimo.pokemon p where p.dex_no = ${dex} and (p.generation_introduced & 1) <> 0`,
+        `select p.id, ${sqlStr(moveUuid(moveId))}::uuid from moshimo.pokemon p where p.dex_no = ${dex} and (p.available_generations & 1) <> 0`,
       );
     }
   }

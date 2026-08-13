@@ -17,6 +17,17 @@ export const generationOptions: {
   disabled: generation !== implementedGeneration,
 }));
 
+/** Debut-generation checkboxes (Gen2+ disabled until those seeds exist). */
+export const poolGenerationOptions: {
+  value: Generation;
+  title: string;
+  disabled: boolean;
+}[] = generations.map((generation) => ({
+  value: generation,
+  title: generation === 1 ? "初代" : `第${generation}世代`,
+  disabled: generation !== implementedGeneration,
+}));
+
 export const restrictionOptions: {
   value: RestrictionMode;
   title: string;

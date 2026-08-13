@@ -1,10 +1,10 @@
 import type { RestrictionMode } from "../match-setup/types";
 import {
+  filterByGenerationAvailability,
   generationBit,
-  TYPE_BY_ID,
-  TYPE_NONE,
-  type PokemonSpecies,
-} from "./types";
+  type GenerationFilterOptions,
+} from "../match-setup/generationFilter";
+import { TYPE_BY_ID, TYPE_NONE, type PokemonSpecies } from "./types";
 
 export const PAGE_SIZE = 10;
 export const PARTY_SIZE = 6;
@@ -14,7 +14,7 @@ export function isUsableInGeneration(
   pokemon: PokemonSpecies,
   generation: number,
 ): boolean {
-  return (pokemon.generation_introduced & generationBit(generation)) !== 0;
+  return (pokemon.available_generations & generationBit(generation)) !== 0;
 }
 
 export function filterSpeciesByRestriction(
@@ -32,13 +32,20 @@ export function filterSpeciesByRestriction(
   });
 }
 
+function pokemonIdentityKey(pokemon: PokemonSpecies): string {
+  return `${pokemon.dex_no}:${pokemon.region_type}:${pokemon.is_mega}:${pokemon.name_en}`;
+}
+
 export function getSelectableSpeciesFromList(
   species: PokemonSpecies[],
   mode: RestrictionMode,
-  pokemonGeneration = 1,
+  generationOptions: GenerationFilterOptions,
 ): PokemonSpecies[] {
-  return filterSpeciesByRestriction(species, mode)
-    .filter((pokemon) => isUsableInGeneration(pokemon, pokemonGeneration))
+  return filterByGenerationAvailability(
+    filterSpeciesByRestriction(species, mode),
+    generationOptions,
+    pokemonIdentityKey,
+  )
     .filter((pokemon) => !pokemon.is_mega)
     .sort((a, b) => a.dex_no - b.dex_no || a.region_type - b.region_type);
 }
