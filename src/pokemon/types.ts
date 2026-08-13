@@ -50,6 +50,8 @@ export type PokemonSpecies = {
   /** 0=none, 1=both, 2=male only, 3=female only */
   gender: Gender;
   is_mega: boolean;
+  /** True when no further evolution within this row's generations (Gen1: no Gen1 evolves-to). */
+  is_final_evolution: boolean;
   sprite_url: string | null;
 };
 

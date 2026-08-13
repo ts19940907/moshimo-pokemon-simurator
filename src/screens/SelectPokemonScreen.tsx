@@ -15,6 +15,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { RestrictionMode } from "../match-setup/types";
 import type { Generation } from "../match-setup/types";
+import { usePartySetup } from "../party/PartySetupContext";
+import type { PartySide } from "../party/types";
 import {
   formatDexNo,
   getDisplayBaseStats,
@@ -27,6 +29,7 @@ import {
 import { fetchPokemonSpecies } from "../pokemon/repository";
 import {
   TYPE_BY_ID,
+  TYPE_NONE,
   type PokemonSpecies,
   type TypeId,
 } from "../pokemon/types";
@@ -38,6 +41,10 @@ type StatKey = "hp" | "attack" | "defense" | "special" | "speed";
 type StatCompareMode = "gte" | "lte";
 type StatFilterEntry = { value: string; mode: StatCompareMode };
 type StatFiltersState = Record<StatKey, StatFilterEntry>;
+/** When 2 types are selected: ignore order vs type1/type2 order. */
+type DualTypeOrderMode = "any" | "exact";
+
+const MAX_TYPE_FILTERS = 2;
 
 const STAT_FILTERS: { key: StatKey; label: string }[] = [
   { key: "hp", label: "HP" },
@@ -96,7 +103,50 @@ function matchesStatFilter(
   return filter.mode === "gte" ? statValue >= threshold : statValue <= threshold;
 }
 
+function matchesTypeFilter(
+  pokemon: PokemonSpecies,
+  typeFilters: TypeId[],
+  singleTypeOnly: boolean,
+  dualOrderMode: DualTypeOrderMode,
+): boolean {
+  if (typeFilters.length === 0) {
+    return true;
+  }
+
+  if (typeFilters.length === 1) {
+    const typeId = typeFilters[0];
+    if (singleTypeOnly) {
+      return pokemon.type1 === typeId && pokemon.type2 === TYPE_NONE;
+    }
+    return pokemon.type1 === typeId || pokemon.type2 === typeId;
+  }
+
+  const [first, second] = typeFilters;
+  if (dualOrderMode === "exact") {
+    return pokemon.type1 === first && pokemon.type2 === second;
+  }
+  const hasFirst = pokemon.type1 === first || pokemon.type2 === first;
+  const hasSecond = pokemon.type1 === second || pokemon.type2 === second;
+  return (
+    pokemon.type2 !== TYPE_NONE &&
+    hasFirst &&
+    hasSecond &&
+    first !== second
+  );
+}
+
+function toggleTypeFilter(current: TypeId[], typeId: TypeId): TypeId[] {
+  if (current.includes(typeId)) {
+    return current.filter((id) => id !== typeId);
+  }
+  if (current.length >= MAX_TYPE_FILTERS) {
+    return current;
+  }
+  return [...current, typeId];
+}
+
 type MatchParams = {
+  side?: string;
   rulesGeneration?: string;
   pokemonGeneration?: string;
   moveGeneration?: string;
@@ -105,6 +155,10 @@ type MatchParams = {
   visibilityMode?: string;
   levelCapMode?: string;
 };
+
+function parseSide(value: string | undefined): PartySide {
+  return value === "b" ? "b" : "a";
+}
 
 function StatRow({ label, value }: { label: string; value: number }) {
   return (
@@ -321,8 +375,14 @@ function SpeciesFilters({
   onNameQueryChange,
   suggestions,
   onPickSuggestion,
-  typeFilter,
-  onTypeFilterChange,
+  typeFilters,
+  onToggleTypeFilter,
+  singleTypeOnly,
+  onSingleTypeOnlyChange,
+  dualOrderMode,
+  onDualOrderModeChange,
+  finalEvolutionOnly,
+  onFinalEvolutionOnlyChange,
   statFilters,
   onStatFilterChange,
   resultCount,
@@ -332,8 +392,14 @@ function SpeciesFilters({
   onNameQueryChange: (value: string) => void;
   suggestions: PokemonSpecies[];
   onPickSuggestion: (pokemon: PokemonSpecies) => void;
-  typeFilter: TypeId | null;
-  onTypeFilterChange: (typeId: TypeId | null) => void;
+  typeFilters: TypeId[];
+  onToggleTypeFilter: (typeId: TypeId) => void;
+  singleTypeOnly: boolean;
+  onSingleTypeOnlyChange: (value: boolean) => void;
+  dualOrderMode: DualTypeOrderMode;
+  onDualOrderModeChange: (value: DualTypeOrderMode) => void;
+  finalEvolutionOnly: boolean;
+  onFinalEvolutionOnlyChange: (value: boolean) => void;
   statFilters: StatFiltersState;
   onStatFilterChange: (
     key: StatKey,
@@ -344,7 +410,9 @@ function SpeciesFilters({
 }) {
   const hasFilters =
     nameQuery.trim().length > 0 ||
-    typeFilter != null ||
+    typeFilters.length > 0 ||
+    singleTypeOnly ||
+    !finalEvolutionOnly ||
     STAT_FILTERS.some(
       ({ key }) => parseStatThreshold(statFilters[key].value) != null,
     );
@@ -389,16 +457,20 @@ function SpeciesFilters({
         ) : null}
       </View>
 
-      <Text style={styles.filterLabel}>タイプ</Text>
+      <Text style={styles.filterLabel}>
+        タイプ（最大2つ・選んだ順がタイプ1→タイプ2）
+      </Text>
       <View style={styles.typeChipRow}>
         {TYPE_OPTIONS.map((type) => {
-          const selected = typeFilter === type.id;
+          const selectedIndex = typeFilters.indexOf(type.id);
+          const selected = selectedIndex >= 0;
+          const blocked =
+            !selected && typeFilters.length >= MAX_TYPE_FILTERS;
           return (
             <Pressable
               key={type.id}
-              onPress={() =>
-                onTypeFilterChange(selected ? null : type.id)
-              }
+              disabled={blocked}
+              onPress={() => onToggleTypeFilter(type.id)}
               style={[
                 styles.typeChip,
                 {
@@ -407,6 +479,7 @@ function SpeciesFilters({
                     : "#fffdf8",
                   borderColor: TYPE_COLORS[type.nameJa] ?? "#888",
                 },
+                blocked && styles.typeChipBlocked,
               ]}
             >
               <Text
@@ -415,12 +488,87 @@ function SpeciesFilters({
                   selected && styles.typeChipTextSelected,
                 ]}
               >
-                {type.nameJa}
+                {selected ? `${selectedIndex + 1}.${type.nameJa}` : type.nameJa}
               </Text>
             </Pressable>
           );
         })}
       </View>
+
+      {typeFilters.length === 1 ? (
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: singleTypeOnly }}
+          onPress={() => onSingleTypeOnlyChange(!singleTypeOnly)}
+          style={styles.checkRow}
+        >
+          <View
+            style={[
+              styles.checkbox,
+              singleTypeOnly && styles.checkboxChecked,
+            ]}
+          >
+            {singleTypeOnly ? <Text style={styles.checkboxMark}>✓</Text> : null}
+          </View>
+          <Text style={styles.checkLabel}>単タイプのみ</Text>
+        </Pressable>
+      ) : null}
+
+      {typeFilters.length === 2 ? (
+        <View style={styles.dualOrderRow}>
+          <Pressable
+            onPress={() => onDualOrderModeChange("any")}
+            style={[
+              styles.dualOrderChip,
+              dualOrderMode === "any" && styles.dualOrderChipSelected,
+            ]}
+          >
+            <Text
+              style={[
+                styles.dualOrderChipText,
+                dualOrderMode === "any" && styles.dualOrderChipTextSelected,
+              ]}
+            >
+              順序を問わない
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => onDualOrderModeChange("exact")}
+            style={[
+              styles.dualOrderChip,
+              dualOrderMode === "exact" && styles.dualOrderChipSelected,
+            ]}
+          >
+            <Text
+              style={[
+                styles.dualOrderChipText,
+                dualOrderMode === "exact" && styles.dualOrderChipTextSelected,
+              ]}
+            >
+              順序どおり（1→2）
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      <Pressable
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: finalEvolutionOnly }}
+        onPress={() => onFinalEvolutionOnlyChange(!finalEvolutionOnly)}
+        style={styles.checkRow}
+      >
+        <View
+          style={[
+            styles.checkbox,
+            finalEvolutionOnly && styles.checkboxChecked,
+          ]}
+        >
+          {finalEvolutionOnly ? (
+            <Text style={styles.checkboxMark}>✓</Text>
+          ) : null}
+        </View>
+        <Text style={styles.checkLabel}>最終進化のみ</Text>
+      </Pressable>
 
       <Text style={styles.filterLabel}>種族値</Text>
       <View style={styles.statFilterRow}>
@@ -491,6 +639,9 @@ function SpeciesFilters({
 export function SelectPokemonScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<MatchParams>();
+  const { getSide } = usePartySetup();
+  const side = parseSide(params.side);
+  const isOpponentSide = side === "b";
   const restrictionMode = (params.restrictionMode ??
     "standard") as RestrictionMode;
   const pokemonGeneration = (Number(params.pokemonGeneration) ||
@@ -503,10 +654,27 @@ export function SelectPokemonScreen() {
   const [selectedDexNos, setSelectedDexNos] = useState<number[]>([]);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [nameQuery, setNameQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState<TypeId | null>(null);
+  const [typeFilters, setTypeFilters] = useState<TypeId[]>([]);
+  const [singleTypeOnly, setSingleTypeOnly] = useState(false);
+  const [dualOrderMode, setDualOrderMode] =
+    useState<DualTypeOrderMode>("any");
+  const [finalEvolutionOnly, setFinalEvolutionOnly] = useState(true);
   const [statFilters, setStatFilters] =
     useState<StatFiltersState>(EMPTY_STAT_FILTERS);
   const [suggestOpen, setSuggestOpen] = useState(false);
+
+  useEffect(() => {
+    const existing = getSide(side);
+    setSelectedDexNos(existing?.members.map((member) => member.dexNo) ?? []);
+    setPage(0);
+    setNameQuery("");
+    setTypeFilters([]);
+    setSingleTypeOnly(false);
+    setDualOrderMode("any");
+    setFinalEvolutionOnly(true);
+    setStatFilters(EMPTY_STAT_FILTERS);
+    setSuggestOpen(false);
+  }, [side]);
 
   useEffect(() => {
     let cancelled = false;
@@ -552,10 +720,18 @@ export function SelectPokemonScreen() {
       if (!matchesNameQuery(pokemon, nameQuery)) {
         return false;
       }
-      if (typeFilter != null) {
-        if (pokemon.type1 !== typeFilter && pokemon.type2 !== typeFilter) {
-          return false;
-        }
+      if (
+        !matchesTypeFilter(
+          pokemon,
+          typeFilters,
+          singleTypeOnly,
+          dualOrderMode,
+        )
+      ) {
+        return false;
+      }
+      if (finalEvolutionOnly && !pokemon.is_final_evolution) {
+        return false;
       }
       const stats = getDisplayBaseStats(pokemon);
       for (const { key } of STAT_FILTERS) {
@@ -565,7 +741,15 @@ export function SelectPokemonScreen() {
       }
       return true;
     });
-  }, [species, nameQuery, typeFilter, statFilters]);
+  }, [
+    species,
+    nameQuery,
+    typeFilters,
+    singleTypeOnly,
+    dualOrderMode,
+    finalEvolutionOnly,
+    statFilters,
+  ]);
 
   const suggestions = useMemo(() => {
     const trimmed = nameQuery.trim();
@@ -586,7 +770,14 @@ export function SelectPokemonScreen() {
 
   useEffect(() => {
     setPage(0);
-  }, [nameQuery, typeFilter, statFilters]);
+  }, [
+    nameQuery,
+    typeFilters,
+    singleTypeOnly,
+    dualOrderMode,
+    finalEvolutionOnly,
+    statFilters,
+  ]);
 
   useEffect(() => {
     setPage((current) => Math.min(current, Math.max(0, totalPages - 1)));
@@ -594,9 +785,22 @@ export function SelectPokemonScreen() {
 
   const clearFilters = () => {
     setNameQuery("");
-    setTypeFilter(null);
+    setTypeFilters([]);
+    setSingleTypeOnly(false);
+    setDualOrderMode("any");
+    setFinalEvolutionOnly(true);
     setStatFilters(EMPTY_STAT_FILTERS);
     setSuggestOpen(false);
+  };
+
+  const handleToggleTypeFilter = (typeId: TypeId) => {
+    setTypeFilters((current) => {
+      const next = toggleTypeFilter(current, typeId);
+      if (next.length !== 1) {
+        setSingleTypeOnly(false);
+      }
+      return next;
+    });
   };
 
   const togglePokemon = (dexNo: number) => {
@@ -615,7 +819,20 @@ export function SelectPokemonScreen() {
     .map((dexNo) => species.find((pokemon) => pokemon.dex_no === dexNo))
     .filter((pokemon): pokemon is PokemonSpecies => Boolean(pokemon));
 
-  const leaveToMenu = () => {
+  const leaveBack = () => {
+    if (isOpponentSide) {
+      const sideA = getSide("a");
+      const party = sideA?.members.map((member) => member.dexNo).join(",") ?? "";
+      router.replace({
+        pathname: "/set",
+        params: {
+          ...params,
+          side: "a",
+          party,
+        },
+      });
+      return;
+    }
     router.replace({
       pathname: "/menu",
       params: {
@@ -630,12 +847,12 @@ export function SelectPokemonScreen() {
     });
   };
 
-  const requestBackToMenu = () => {
+  const requestLeave = () => {
     if (selectedDexNos.length > 0) {
       setLeaveConfirmOpen(true);
       return;
     }
-    leaveToMenu();
+    leaveBack();
   };
 
   return (
@@ -647,15 +864,23 @@ export function SelectPokemonScreen() {
             <View style={styles.header}>
               <Pressable
                 accessibilityRole="button"
-                onPress={requestBackToMenu}
+                onPress={requestLeave}
                 style={({ pressed }) => pressed && styles.pressed}
               >
-                <Text style={styles.backText}>メニューへ戻る</Text>
+                <Text style={styles.backText}>
+                  {isOpponentSide ? "自分のセットへ戻る" : "メニューへ戻る"}
+                </Text>
               </Pressable>
-              <Text style={styles.kicker}>編成</Text>
-              <Text style={styles.title}>ポケモンを選ぶ</Text>
+              <Text style={styles.kicker}>
+                {isOpponentSide ? "相手の編成" : "編成"}
+              </Text>
+              <Text style={styles.title}>
+                {isOpponentSide ? "相手のポケモンを選ぶ" : "ポケモンを選ぶ"}
+              </Text>
               <Text style={styles.lead}>
-                図鑑順に表示しています。6体まで選択できます（同一種族は1体まで）。
+                {isOpponentSide
+                  ? "サイドBの6体を選びます。同一種族は1体までです。"
+                  : "図鑑順に表示しています。6体まで選択できます（同一種族は1体まで）。"}
               </Text>
             </View>
 
@@ -681,25 +906,44 @@ export function SelectPokemonScreen() {
               <Text style={styles.partyTitle}>
                 パーティ {selectedDexNos.length}/{PARTY_SIZE}
               </Text>
+              <Text style={styles.partyHint}>
+                「解除」を押すとそのポケモンの選択を外せます。
+              </Text>
               <View style={styles.partySlots}>
                 {Array.from({ length: PARTY_SIZE }, (_, index) => {
                   const pokemon = selectedPokemon[index];
-                  return (
-                    <View key={index} style={styles.partySlot}>
-                      {pokemon ? (
-                        <>
-                          <PokemonSprite
-                            uri={pokemon.sprite_url}
-                            size={40}
-                            style={styles.partySpriteFrame}
-                          />
-                          <Text style={styles.partyName} numberOfLines={1}>
-                            {pokemon.name_ja}
-                          </Text>
-                        </>
-                      ) : (
+                  if (!pokemon) {
+                    return (
+                      <View key={index} style={styles.partySlot}>
                         <Text style={styles.partyEmpty}>{index + 1}</Text>
-                      )}
+                      </View>
+                    );
+                  }
+                  return (
+                    <View
+                      key={index}
+                      style={[styles.partySlot, styles.partySlotFilled]}
+                    >
+                      <PokemonSprite
+                        uri={pokemon.sprite_url}
+                        size={40}
+                        style={styles.partySpriteFrame}
+                      />
+                      <Text style={styles.partyName} numberOfLines={1}>
+                        {pokemon.name_ja}
+                      </Text>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`${pokemon.name_ja}を解除`}
+                        onPress={() => togglePokemon(pokemon.dex_no)}
+                        hitSlop={6}
+                        style={({ pressed }) => [
+                          styles.partyRemoveButton,
+                          pressed && styles.pressed,
+                        ]}
+                      >
+                        <Text style={styles.partyRemove}>解除</Text>
+                      </Pressable>
                     </View>
                   );
                 })}
@@ -717,8 +961,14 @@ export function SelectPokemonScreen() {
                 setNameQuery(pokemon.name_ja);
                 setSuggestOpen(false);
               }}
-              typeFilter={typeFilter}
-              onTypeFilterChange={setTypeFilter}
+              typeFilters={typeFilters}
+              onToggleTypeFilter={handleToggleTypeFilter}
+              singleTypeOnly={singleTypeOnly}
+              onSingleTypeOnlyChange={setSingleTypeOnly}
+              dualOrderMode={dualOrderMode}
+              onDualOrderModeChange={setDualOrderMode}
+              finalEvolutionOnly={finalEvolutionOnly}
+              onFinalEvolutionOnlyChange={setFinalEvolutionOnly}
               statFilters={statFilters}
               onStatFilterChange={(key, patch) =>
                 setStatFilters((current) => ({
@@ -773,6 +1023,7 @@ export function SelectPokemonScreen() {
                   pathname: "/set",
                   params: {
                     ...params,
+                    side,
                     party: selectedDexNos.join(","),
                   },
                 });
@@ -807,7 +1058,9 @@ export function SelectPokemonScreen() {
           <View style={styles.confirmSheet}>
             <Text style={styles.confirmTitle}>選択の破棄</Text>
             <Text style={styles.confirmBody}>
-              ポケモンが選択されています。このままメニューへ戻ると、選択内容は破棄されます。よろしいですか？
+              {isOpponentSide
+                ? "相手のポケモンが選択されています。このまま戻ると、選択内容は破棄されます。よろしいですか？"
+                : "ポケモンが選択されています。このままメニューへ戻ると、選択内容は破棄されます。よろしいですか？"}
             </Text>
             <View style={styles.confirmActions}>
               <Pressable
@@ -819,7 +1072,7 @@ export function SelectPokemonScreen() {
               <Pressable
                 onPress={() => {
                   setLeaveConfirmOpen(false);
-                  leaveToMenu();
+                  leaveBack();
                 }}
                 style={styles.confirmPrimary}
               >
@@ -926,6 +1179,11 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#1f6b4a",
   },
+  partyHint: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#5c564c",
+  },
   partySlots: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -944,6 +1202,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     minHeight: 72,
   },
+  partySlotFilled: {
+    borderColor: "#1f6b4a",
+    backgroundColor: "#eef7f1",
+  },
   partySpriteFrame: {
     backgroundColor: "transparent",
     borderRadius: 0,
@@ -952,6 +1214,20 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     color: "#1d1a16",
+  },
+  partyRemoveButton: {
+    marginTop: 2,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#1f6b4a",
+    backgroundColor: "#fffdf8",
+  },
+  partyRemove: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#1f6b4a",
   },
   partyEmpty: {
     fontSize: 18,
@@ -1153,6 +1429,63 @@ const styles = StyleSheet.create({
   },
   typeChipTextSelected: {
     color: "#ffffff",
+  },
+  typeChipBlocked: {
+    opacity: 0.35,
+  },
+  checkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "#1f6b4a",
+    backgroundColor: "#fffdf8",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxChecked: {
+    backgroundColor: "#1f6b4a",
+  },
+  checkboxMark: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 14,
+  },
+  checkLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1d1a16",
+  },
+  dualOrderRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  dualOrderChip: {
+    borderWidth: 1,
+    borderColor: "#cfc6b6",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "#fffdf8",
+  },
+  dualOrderChipSelected: {
+    borderColor: "#1f6b4a",
+    backgroundColor: "#eef7f1",
+  },
+  dualOrderChipText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#8a8276",
+  },
+  dualOrderChipTextSelected: {
+    color: "#1f6b4a",
   },
   statFilterRow: {
     flexDirection: "row",

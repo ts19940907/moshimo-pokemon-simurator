@@ -52,6 +52,7 @@ create table moshimo.pokemon (
   gender smallint not null default 1
     check (gender in (0, 1, 2, 3)),
   is_mega boolean not null default false,
+  is_final_evolution boolean not null default true,
   sprite_url text null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -68,6 +69,7 @@ create index pokemon_is_mega_idx on moshimo.pokemon (is_mega);
 create index pokemon_type1_idx on moshimo.pokemon (type1);
 create index pokemon_type2_idx on moshimo.pokemon (type2);
 create index pokemon_gender_idx on moshimo.pokemon (gender);
+create index pokemon_is_final_evolution_idx on moshimo.pokemon (is_final_evolution);
 
 comment on column moshimo.pokemon.generation_introduced is
   'Bitmask of generations where this row is selectable. Gen N = 2^(N-1). Create a new row only when stats/types/abilities differ across generations; otherwise one row covers all applicable gens (e.g. 511 = Gen1..9).';
@@ -81,6 +83,8 @@ comment on column moshimo.pokemon.is_mega is
   'True for Mega Evolution forms.';
 comment on column moshimo.pokemon.gender is
   '0=genderless, 1=male and female, 2=male only, 3=female only';
+comment on column moshimo.pokemon.is_final_evolution is
+  'True when this species has no further evolution within the generations this row covers (Gen1: no evolves-to within dex 1-151).';
 
 grant select on all tables in schema moshimo to anon, authenticated, service_role;
 grant usage, select on all sequences in schema moshimo to anon, authenticated, service_role;

@@ -2,6 +2,8 @@ import type { LevelCapMode } from "../match-setup/types";
 import type { Gender, PokemonSpecies } from "../pokemon/types";
 import { GENDER } from "../pokemon/types";
 
+export type PartySide = "a" | "b";
+
 export type BattleGender = "none" | "male" | "female";
 
 /** Gen1 DV / Stat Exp fields (Special is single). */

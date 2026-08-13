@@ -18,18 +18,20 @@ import {
   GEN1_STAT_LABELS,
   genderLabel,
   type PartyMemberBuild,
+  type PartySide,
 } from "../party/types";
 import { formatDexNo } from "../pokemon/catalog";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
 import { fetchMovesForPokemon } from "../pokemon/moveRepository";
 import { fetchPokemonSpecies } from "../pokemon/repository";
 import type { PokemonSpecies } from "../pokemon/types";
-import type { LevelCapMode } from "../match-setup/types";
+import type { LevelCapMode, OpponentType } from "../match-setup/types";
 import { SetPokemonDialog } from "./set/SetPokemonDialog";
 
 const grassland = require("../../assets/title/title-grassland.png");
 
 type MatchParams = {
+  side?: string;
   party?: string;
   rulesGeneration?: string;
   pokemonGeneration?: string;
@@ -40,6 +42,10 @@ type MatchParams = {
   levelCapMode?: string;
 };
 
+function parseSide(value: string | undefined): PartySide {
+  return value === "b" ? "b" : "a";
+}
+
 function summarizeStats(block: PartyMemberBuild["iv"]): string {
   return GEN1_STAT_KEYS.map(
     (key) => `${GEN1_STAT_LABELS[key]}${block[key]}`,
@@ -49,7 +55,18 @@ function summarizeStats(block: PartyMemberBuild["iv"]): string {
 export function SetPokemonScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<MatchParams>();
-  const { state, isDirty, initParty, updateMember, clearParty } = usePartySetup();
+  const {
+    editing,
+    isDirty,
+    initEditingParty,
+    updateMember,
+    commitEditingParty,
+    clearEditingParty,
+  } = usePartySetup();
+
+  const side = parseSide(params.side);
+  const isOpponentSide = side === "b";
+  const opponentType = (params.opponentType ?? "local_both") as OpponentType;
 
   const [speciesById, setSpeciesById] = useState<Record<string, PokemonSpecies>>(
     {},
@@ -57,6 +74,7 @@ export function SetPokemonScreen() {
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
+  const [movesRequiredOpen, setMovesRequiredOpen] = useState(false);
   const [moveNames, setMoveNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -99,7 +117,7 @@ export function SetPokemonScreen() {
         for (const row of picked) map[row.id] = row;
         setSpeciesById(map);
 
-        initParty(picked, levelCapMode, rulesGeneration);
+        initEditingParty(side, picked, levelCapMode, rulesGeneration);
         setFocusedId(picked[0]?.id ?? null);
       } catch (error) {
         if (!cancelled) {
@@ -116,9 +134,9 @@ export function SetPokemonScreen() {
     return () => {
       cancelled = true;
     };
-  }, [params.party, rulesGeneration, levelCapMode, initParty]);
+  }, [params.party, side, rulesGeneration, levelCapMode, initEditingParty]);
 
-  const members = state?.members ?? [];
+  const members = editing?.members ?? [];
   const focused = members.find((m) => m.speciesId === focusedId) ?? null;
   const focusedSpecies = focused ? speciesById[focused.speciesId] : null;
 
@@ -144,10 +162,20 @@ export function SetPokemonScreen() {
     };
   }, [focused?.speciesId, moveGeneration]);
 
-  const leaveToParty = () => {
-    clearParty();
+  const matchParams = useMemo(() => {
     const { party: _party, ...rest } = params;
-    router.replace({ pathname: "/party", params: rest });
+    return rest;
+  }, [params]);
+
+  const leaveToParty = () => {
+    clearEditingParty();
+    router.replace({
+      pathname: "/party",
+      params: {
+        ...matchParams,
+        side,
+      },
+    });
   };
 
   const requestBackToParty = () => {
@@ -157,6 +185,43 @@ export function SetPokemonScreen() {
     }
     leaveToParty();
   };
+
+  const continueAfterSet = () => {
+    const missingMoves = members.filter(
+      (member) => !member.moveIds.some((moveId) => Boolean(moveId)),
+    );
+    if (missingMoves.length > 0) {
+      setMovesRequiredOpen(true);
+      return;
+    }
+
+    commitEditingParty();
+    clearEditingParty();
+
+    if (opponentType === "local_both" && side === "a") {
+      router.push({
+        pathname: "/party",
+        params: {
+          ...matchParams,
+          side: "b",
+        },
+      });
+      return;
+    }
+
+    router.push({
+      pathname: "/select",
+      params: {
+        ...matchParams,
+        selectSide: "a",
+      },
+    });
+  };
+
+  const continueLabel =
+    opponentType === "local_both" && side === "a"
+      ? "相手の編成へ進む"
+      : "3体選出へ進む";
 
   return (
     <ImageBackground source={grassland} style={styles.background} resizeMode="cover">
@@ -170,8 +235,12 @@ export function SetPokemonScreen() {
             >
               <Text style={styles.backText}>編成へ戻る</Text>
             </Pressable>
-            <Text style={styles.kicker}>セット</Text>
-            <Text style={styles.title}>個体を設定する</Text>
+            <Text style={styles.kicker}>
+              {isOpponentSide ? "相手のセット" : "セット"}
+            </Text>
+            <Text style={styles.title}>
+              {isOpponentSide ? "相手の個体を設定する" : "個体を設定する"}
+            </Text>
             <Text style={styles.lead}>
               ポケモンを選んでフォーカスし、「設定する」からレベル・性別・個体値・努力値・技を編集します。
             </Text>
@@ -255,20 +324,13 @@ export function SetPokemonScreen() {
                 ) : null}
 
                 <Pressable
-                  onPress={() =>
-                    router.push({
-                      pathname: "/select",
-                      params: { ...params },
-                    })
-                  }
+                  onPress={continueAfterSet}
                   style={({ pressed }) => [
                     styles.secondaryButton,
                     pressed && styles.pressed,
                   ]}
                 >
-                  <Text style={styles.secondaryButtonText}>
-                    選出へ進む（準備中画面）
-                  </Text>
+                  <Text style={styles.secondaryButtonText}>{continueLabel}</Text>
                 </Pressable>
               </>
             ) : null}
@@ -287,6 +349,36 @@ export function SetPokemonScreen() {
           onSave={(build) => updateMember(build.speciesId, build)}
         />
       ) : null}
+
+      <Modal
+        visible={movesRequiredOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMovesRequiredOpen(false)}
+      >
+        <View style={styles.confirmBackdrop}>
+          <View style={styles.confirmSheet}>
+            <Text style={styles.confirmTitle}>技が未設定です</Text>
+            <Text style={styles.confirmBody}>
+              技を1つも設定していないポケモンがいます。すべてのポケモンに1つ以上の技を設定してから進んでください。
+              {"\n\n"}
+              未設定:{" "}
+              {members
+                .filter(
+                  (member) => !member.moveIds.some((moveId) => Boolean(moveId)),
+                )
+                .map((member) => member.nameJa)
+                .join("、")}
+            </Text>
+            <Pressable
+              onPress={() => setMovesRequiredOpen(false)}
+              style={styles.confirmPrimary}
+            >
+              <Text style={styles.confirmPrimaryText}>OK</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={leaveConfirmOpen}
@@ -416,6 +508,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: "center",
+    backgroundColor: "#eef7f1",
   },
   secondaryButtonText: { color: "#1f6b4a", fontWeight: "800" },
   confirmBackdrop: {

@@ -26,6 +26,7 @@ import type {
   VisibilityMode,
 } from "../match-setup/types";
 import { implementedGeneration } from "../match-setup/types";
+import { usePartySetup } from "../party/PartySetupContext";
 
 const grassland = require("../../assets/title/title-grassland.png");
 
@@ -140,6 +141,7 @@ function GenerationRadioGroup({ value, onChange }: GenerationRadioGroupProps) {
 
 export function MenuScreen() {
   const router = useRouter();
+  const { clearAllParties } = usePartySetup();
   const [rulesGeneration, setRulesGeneration] = useState<Generation>(
     defaultSetup.rulesGeneration,
   );
@@ -173,9 +175,11 @@ export function MenuScreen() {
   };
 
   const handleStart = () => {
+    clearAllParties();
     router.push({
       pathname: "/party",
       params: {
+        side: "a",
         rulesGeneration: String(rulesGeneration),
         pokemonGeneration: String(pokemonGeneration),
         moveGeneration: String(moveGeneration),

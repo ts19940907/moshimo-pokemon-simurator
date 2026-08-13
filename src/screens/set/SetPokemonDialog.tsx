@@ -10,9 +10,15 @@ import {
   View,
 } from "react-native";
 
-import type { Move } from "../../pokemon/moves";
+import type { Move, MoveDamageClass } from "../../pokemon/moves";
 import { fetchMovesForPokemon } from "../../pokemon/moveRepository";
-import { GENDER, type PokemonSpecies } from "../../pokemon/types";
+import {
+  TYPE_BY_ID,
+  TYPE_NONE,
+  GENDER,
+  type PokemonSpecies,
+  type TypeId,
+} from "../../pokemon/types";
 import { TYPE_COLORS, typeNameJa } from "../../pokemon/catalog";
 import {
   GEN1_STAT_KEYS,
@@ -34,10 +40,39 @@ type Props = {
   onSave: (build: PartyMemberBuild) => void;
 };
 
-const DAMAGE_CLASS_JA: Record<Move["damage_class"], string> = {
+const DAMAGE_CLASS_JA: Record<MoveDamageClass, string> = {
   physical: "物理",
   special: "特殊",
   status: "変化",
+};
+
+const DAMAGE_CLASS_OPTIONS: MoveDamageClass[] = [
+  "physical",
+  "special",
+  "status",
+];
+
+type NumCompareMode = "gte" | "lte";
+type NumCompareFilter = { value: string; mode: NumCompareMode };
+
+type MoveFiltersState = {
+  typeId: TypeId | null;
+  damageClasses: MoveDamageClass[];
+  power: NumCompareFilter;
+  accuracy: NumCompareFilter;
+  priority: NumCompareFilter;
+  pp: NumCompareFilter;
+};
+
+const EMPTY_NUM: NumCompareFilter = { value: "", mode: "gte" };
+
+const EMPTY_MOVE_FILTERS: MoveFiltersState = {
+  typeId: null,
+  damageClasses: [],
+  power: EMPTY_NUM,
+  accuracy: EMPTY_NUM,
+  priority: EMPTY_NUM,
+  pp: EMPTY_NUM,
 };
 
 function clamp(n: number, min: number, max: number) {
@@ -50,8 +85,102 @@ function parseIntOr(value: string, fallback: number) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function parseThreshold(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const n = Number(trimmed);
+  return Number.isFinite(n) ? n : null;
+}
+
+function matchesNumFilter(
+  actual: number | null,
+  filter: NumCompareFilter,
+): boolean {
+  const threshold = parseThreshold(filter.value);
+  if (threshold == null) return true;
+  if (actual == null) return false;
+  return filter.mode === "gte" ? actual >= threshold : actual <= threshold;
+}
+
+function matchesMoveFilters(move: Move, filters: MoveFiltersState): boolean {
+  if (filters.typeId != null && move.type_id !== filters.typeId) {
+    return false;
+  }
+  if (
+    filters.damageClasses.length > 0 &&
+    !filters.damageClasses.includes(move.damage_class)
+  ) {
+    return false;
+  }
+  if (!matchesNumFilter(move.power, filters.power)) return false;
+  if (!matchesNumFilter(move.accuracy, filters.accuracy)) return false;
+  if (!matchesNumFilter(move.priority, filters.priority)) return false;
+  if (!matchesNumFilter(move.pp, filters.pp)) return false;
+  return true;
+}
+
 function formatMoveStat(value: number | null, empty = "—") {
   return value == null ? empty : String(value);
+}
+
+function NumFilterField({
+  label,
+  filter,
+  onChange,
+}: {
+  label: string;
+  filter: NumCompareFilter;
+  onChange: (patch: Partial<NumCompareFilter>) => void;
+}) {
+  return (
+    <View style={styles.numFilterField}>
+      <Text style={styles.numFilterLabel}>{label}</Text>
+      <View style={styles.numModeRow}>
+        <Pressable
+          onPress={() => onChange({ mode: "gte" })}
+          style={[
+            styles.numModeChip,
+            filter.mode === "gte" && styles.numModeChipSelected,
+          ]}
+        >
+          <Text
+            style={[
+              styles.numModeChipText,
+              filter.mode === "gte" && styles.numModeChipTextSelected,
+            ]}
+          >
+            以上
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => onChange({ mode: "lte" })}
+          style={[
+            styles.numModeChip,
+            filter.mode === "lte" && styles.numModeChipSelected,
+          ]}
+        >
+          <Text
+            style={[
+              styles.numModeChipText,
+              filter.mode === "lte" && styles.numModeChipTextSelected,
+            ]}
+          >
+            以下
+          </Text>
+        </Pressable>
+      </View>
+      <TextInput
+        value={filter.value}
+        onChangeText={(value) =>
+          onChange({ value: value.replace(/[^\d-]/g, "") })
+        }
+        keyboardType="numbers-and-punctuation"
+        placeholder="—"
+        placeholderTextColor="#9a9286"
+        style={styles.numFilterInput}
+      />
+    </View>
+  );
 }
 
 function MoveDetailCard({
@@ -100,6 +229,157 @@ function MoveDetailCard({
   );
 }
 
+function MoveFiltersPanel({
+  moves,
+  filters,
+  onChange,
+  onClear,
+}: {
+  moves: Move[];
+  filters: MoveFiltersState;
+  onChange: (next: MoveFiltersState) => void;
+  onClear: () => void;
+}) {
+  const typeOptions = useMemo(() => {
+    const ids = [...new Set(moves.map((move) => move.type_id))]
+      .filter((id) => id !== TYPE_NONE)
+      .sort((a, b) => a - b);
+    return ids.map((id) => ({
+      id,
+      nameJa: TYPE_BY_ID[id]?.nameJa ?? `タイプ${id}`,
+    }));
+  }, [moves]);
+
+  const hasFilters =
+    filters.typeId != null ||
+    filters.damageClasses.length > 0 ||
+    parseThreshold(filters.power.value) != null ||
+    parseThreshold(filters.accuracy.value) != null ||
+    parseThreshold(filters.priority.value) != null ||
+    parseThreshold(filters.pp.value) != null;
+
+  const filteredCount = moves.filter((move) =>
+    matchesMoveFilters(move, filters),
+  ).length;
+
+  return (
+    <View style={styles.moveFilterBox}>
+      <View style={styles.moveFilterHeader}>
+        <Text style={styles.moveFilterTitle}>技の絞り込み</Text>
+        {hasFilters ? (
+          <Pressable onPress={onClear}>
+            <Text style={styles.moveFilterClear}>クリア</Text>
+          </Pressable>
+        ) : null}
+      </View>
+
+      <Text style={styles.moveFilterLabel}>タイプ</Text>
+      <View style={styles.rowWrap}>
+        {typeOptions.map((type) => {
+          const selected = filters.typeId === type.id;
+          return (
+            <Pressable
+              key={type.id}
+              onPress={() =>
+                onChange({
+                  ...filters,
+                  typeId: selected ? null : type.id,
+                })
+              }
+              style={[
+                styles.typeChip,
+                {
+                  backgroundColor: selected
+                    ? (TYPE_COLORS[type.nameJa] ?? "#888")
+                    : "#fffdf8",
+                  borderColor: TYPE_COLORS[type.nameJa] ?? "#888",
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.typeChipText,
+                  selected && styles.typeChipTextSelected,
+                ]}
+              >
+                {type.nameJa}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Text style={styles.moveFilterLabel}>種別</Text>
+      <View style={styles.rowWrap}>
+        {DAMAGE_CLASS_OPTIONS.map((damageClass) => {
+          const selected = filters.damageClasses.includes(damageClass);
+          return (
+            <Pressable
+              key={damageClass}
+              onPress={() =>
+                onChange({
+                  ...filters,
+                  damageClasses: selected
+                    ? filters.damageClasses.filter((v) => v !== damageClass)
+                    : [...filters.damageClasses, damageClass],
+                })
+              }
+              style={[styles.chip, selected && styles.chipSelected]}
+            >
+              <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                {DAMAGE_CLASS_JA[damageClass]}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Text style={styles.moveFilterLabel}>数値条件</Text>
+      <View style={styles.numFilterRow}>
+        <NumFilterField
+          label="威力"
+          filter={filters.power}
+          onChange={(patch) =>
+            onChange({ ...filters, power: { ...filters.power, ...patch } })
+          }
+        />
+        <NumFilterField
+          label="命中"
+          filter={filters.accuracy}
+          onChange={(patch) =>
+            onChange({
+              ...filters,
+              accuracy: { ...filters.accuracy, ...patch },
+            })
+          }
+        />
+        <NumFilterField
+          label="優先度"
+          filter={filters.priority}
+          onChange={(patch) =>
+            onChange({
+              ...filters,
+              priority: { ...filters.priority, ...patch },
+            })
+          }
+        />
+        <NumFilterField
+          label="PP"
+          filter={filters.pp}
+          onChange={(patch) =>
+            onChange({ ...filters, pp: { ...filters.pp, ...patch } })
+          }
+        />
+      </View>
+
+      <Text style={styles.moveFilterResult}>
+        {filteredCount}/{moves.length}件
+        {hasFilters ? "（絞り込み中）" : ""}
+      </Text>
+    </View>
+  );
+}
+
 export function SetPokemonDialog({
   visible,
   member,
@@ -114,6 +394,8 @@ export function SetPokemonDialog({
   const [loadingMoves, setLoadingMoves] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pickingSlot, setPickingSlot] = useState<number | null>(null);
+  const [moveFilters, setMoveFilters] =
+    useState<MoveFiltersState>(EMPTY_MOVE_FILTERS);
 
   const maxLevel = maxLevelForCap(levelCapMode);
   const genderLocked = species.gender !== GENDER.BOTH;
@@ -123,6 +405,7 @@ export function SetPokemonDialog({
     setDraft(member);
     setErrorMessage(null);
     setPickingSlot(null);
+    setMoveFilters(EMPTY_MOVE_FILTERS);
   }, [visible, member]);
 
   useEffect(() => {
@@ -148,6 +431,22 @@ export function SetPokemonDialog({
       cancelled = true;
     };
   }, [visible, member.speciesId, moveGeneration]);
+
+  const filteredMoves = useMemo(
+    () => moves.filter((move) => matchesMoveFilters(move, moveFilters)),
+    [moves, moveFilters],
+  );
+
+  const openPicker = (index: number) => {
+    setPickingSlot((current) => {
+      if (current === index) {
+        setMoveFilters(EMPTY_MOVE_FILTERS);
+        return null;
+      }
+      setMoveFilters(EMPTY_MOVE_FILTERS);
+      return index;
+    });
+  };
 
   const genderOptions = useMemo(() => {
     if (species.gender === GENDER.NONE) return ["none"] as BattleGender[];
@@ -271,14 +570,14 @@ export function SetPokemonDialog({
                     <MoveDetailCard
                       move={selectedMove}
                       selected
-                      onPress={() => setPickingSlot(picking ? null : index)}
+                      onPress={() => openPicker(index)}
                     />
                   ) : (
                     <Text style={styles.moveEmpty}>未選択</Text>
                   )}
                   <View style={styles.rowWrap}>
                     <Pressable
-                      onPress={() => setPickingSlot(picking ? null : index)}
+                      onPress={() => openPicker(index)}
                       style={[styles.chip, picking && styles.chipSelected]}
                     >
                       <Text
@@ -294,6 +593,7 @@ export function SetPokemonDialog({
                       onPress={() => {
                         setMoveAt(index, null);
                         setPickingSlot(null);
+                        setMoveFilters(EMPTY_MOVE_FILTERS);
                       }}
                       style={styles.chip}
                     >
@@ -302,17 +602,30 @@ export function SetPokemonDialog({
                   </View>
                   {picking ? (
                     <View style={styles.moveList}>
-                      {moves.map((move) => (
-                        <MoveDetailCard
-                          key={`${index}-${move.id}`}
-                          move={move}
-                          selected={moveId === move.id}
-                          onPress={() => {
-                            setMoveAt(index, move.id);
-                            setPickingSlot(null);
-                          }}
-                        />
-                      ))}
+                      <MoveFiltersPanel
+                        moves={moves}
+                        filters={moveFilters}
+                        onChange={setMoveFilters}
+                        onClear={() => setMoveFilters(EMPTY_MOVE_FILTERS)}
+                      />
+                      {filteredMoves.length === 0 ? (
+                        <Text style={styles.moveEmpty}>
+                          条件に合う技がありません。
+                        </Text>
+                      ) : (
+                        filteredMoves.map((move) => (
+                          <MoveDetailCard
+                            key={`${index}-${move.id}`}
+                            move={move}
+                            selected={moveId === move.id}
+                            onPress={() => {
+                              setMoveAt(index, move.id);
+                              setPickingSlot(null);
+                              setMoveFilters(EMPTY_MOVE_FILTERS);
+                            }}
+                          />
+                        ))
+                      )}
                     </View>
                   ) : null}
                 </View>
@@ -410,6 +723,75 @@ const styles = StyleSheet.create({
   moveLabel: { fontSize: 12, fontWeight: "700", color: "#5c564c" },
   moveEmpty: { fontSize: 12, color: "#8a8276" },
   moveList: { gap: 8 },
+  moveFilterBox: {
+    backgroundColor: "#f7f3ea",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e5dccb",
+    padding: 10,
+    gap: 8,
+  },
+  moveFilterHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  moveFilterTitle: { fontSize: 12, fontWeight: "800", color: "#1d1a16" },
+  moveFilterClear: { fontSize: 12, fontWeight: "800", color: "#1f6b4a" },
+  moveFilterLabel: { fontSize: 11, fontWeight: "800", color: "#5c564c" },
+  moveFilterResult: { fontSize: 11, fontWeight: "700", color: "#5c564c" },
+  typeChip: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  typeChipText: { fontSize: 11, fontWeight: "800", color: "#5c564c" },
+  typeChipTextSelected: { color: "#ffffff" },
+  numFilterRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  numFilterField: {
+    width: "22%",
+    minWidth: 72,
+    flexGrow: 1,
+    gap: 4,
+  },
+  numFilterLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#8a8276",
+  },
+  numModeRow: { flexDirection: "row", gap: 4 },
+  numModeChip: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#cfc6b6",
+    borderRadius: 6,
+    paddingVertical: 3,
+    alignItems: "center",
+    backgroundColor: "#fffdf8",
+  },
+  numModeChipSelected: {
+    borderColor: "#1f6b4a",
+    backgroundColor: "#eef7f1",
+  },
+  numModeChipText: { fontSize: 10, fontWeight: "700", color: "#8a8276" },
+  numModeChipTextSelected: { color: "#1f6b4a" },
+  numFilterInput: {
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    borderRadius: 8,
+    backgroundColor: "#fffdf8",
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1d1a16",
+    textAlign: "center",
+  },
   moveCard: {
     borderWidth: 1,
     borderColor: "#ddd4c4",

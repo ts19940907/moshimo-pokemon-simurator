@@ -72,6 +72,21 @@ for (const dex of [29, 30, 31, 113, 115, 124]) {
   GENDER_BY_DEX[dex] = 3;
 }
 
+/**
+ * Gen1 species that still evolve into another Gen1 species (dex 1-151).
+ * Later-gen evolutions (Crobat, Magnezone, etc.) do not count for Gen1 finality.
+ */
+const GEN1_NON_FINAL_DEX = new Set([
+  1, 2, 4, 5, 7, 8, 10, 11, 13, 14, 16, 17, 19, 21, 23, 25, 27, 29, 30, 32, 33,
+  35, 37, 39, 41, 43, 44, 46, 48, 50, 52, 54, 56, 58, 60, 61, 63, 64, 66, 67,
+  69, 70, 72, 74, 75, 77, 79, 81, 84, 86, 88, 90, 92, 93, 96, 98, 100, 102,
+  104, 109, 111, 116, 118, 120, 129, 133, 138, 140, 147, 148,
+]);
+
+function isFinalEvolutionGen1(dexNo) {
+  return !GEN1_NON_FINAL_DEX.has(dexNo);
+}
+
 function abilityUuid(id) {
   return `00000000-0000-4000-8000-${String(id).padStart(12, "0")}`;
 }
@@ -172,6 +187,7 @@ async function main() {
       ability2_id: e.ability2_id,
       hidden_ability_id: e.hidden_ability_id,
       gender: GENDER_BY_DEX[row.dex_no] ?? 1,
+      is_final_evolution: isFinalEvolutionGen1(row.dex_no),
     };
     const buff = GEN6_PHYSICAL_BUFFS[row.dex_no];
     const fairy = GEN1_TYPES_PRE_FAIRY[row.dex_no];
@@ -217,7 +233,7 @@ async function main() {
   ].join("\n");
 
   const cols =
-    "dex_no, region_type, name_ja, name_en, category, generation_introduced, type1, type2, base_hp, base_attack, base_defense, base_special, base_sp_attack, base_sp_defense, base_speed, ability1_id, ability2_id, hidden_ability_id, gender, is_mega, sprite_url";
+    "dex_no, region_type, name_ja, name_en, category, generation_introduced, type1, type2, base_hp, base_attack, base_defense, base_special, base_sp_attack, base_sp_defense, base_speed, ability1_id, ability2_id, hidden_ability_id, gender, is_mega, is_final_evolution, sprite_url";
 
   const pokemonSql = [
     "-- Gen1 species seed. Split on Gen6 physical buffs and/or Fairy type changes.",
@@ -245,6 +261,7 @@ async function main() {
           p.hidden_ability_id,
           p.gender,
           p.is_mega,
+          p.is_final_evolution,
           p.sprite_url,
         ].map(sqlStr);
         return `(${vals.join(", ")})`;

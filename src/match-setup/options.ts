@@ -53,8 +53,7 @@ export const opponentOptions: {
   {
     value: "ai",
     title: "AIと対戦",
-    description: "準備中です。選出は裏で同時に行われ、初手だけが見えます。",
-    disabled: true,
+    description: "自分の編成後に3体選出へ進みます。AIの選出は裏で同時に行われ、初手だけが見えます。",
   },
 ];
 

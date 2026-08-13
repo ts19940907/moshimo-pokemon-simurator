@@ -9,6 +9,7 @@ App tables live in the **`moshimo`** schema (not `public`), to keep them separat
 - Migration (unique by generation): `supabase/migrations/20260813120000_pokemon_unique_by_generation.sql`
 - Migration (gender): `supabase/migrations/20260813133000_add_pokemon_gender.sql`
 - Migration (moves): `supabase/migrations/20260813140000_create_moves.sql`
+- Migration (final evolution): `supabase/migrations/20260813150000_add_pokemon_final_evolution.sql`
 - Ability seed: `supabase/seed/abilities.sql`
 - Gen1 pokemon seed: `supabase/seed/gen1_pokemon.sql`
 - Combined pokemon reseed: `supabase/seed/gen1_all.sql`（abilities → pokemon の順）

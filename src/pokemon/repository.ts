@@ -28,6 +28,7 @@ export async function fetchPokemonSpecies(): Promise<PokemonSpecies[]> {
         "hidden_ability_id",
         "gender",
         "is_mega",
+        "is_final_evolution",
         "sprite_url",
       ].join(","),
     )

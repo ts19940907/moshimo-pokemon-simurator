@@ -8,6 +8,7 @@ import {
 
 export const PAGE_SIZE = 10;
 export const PARTY_SIZE = 6;
+export const BATTLE_PARTY_SIZE = 3;
 
 export function isUsableInGeneration(
   pokemon: PokemonSpecies,

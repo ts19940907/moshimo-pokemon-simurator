@@ -20,7 +20,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 2,
@@ -43,7 +44,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/2.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 3,
@@ -66,7 +68,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/3.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 4,
@@ -89,7 +92,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/4.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 5,
@@ -112,7 +116,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/5.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 6,
@@ -135,7 +140,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/6.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 7,
@@ -158,7 +164,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/7.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 8,
@@ -181,7 +188,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/8.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 9,
@@ -204,7 +212,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/9.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 10,
@@ -227,7 +236,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 11,
@@ -250,7 +260,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/11.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 12,
@@ -273,7 +284,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/12.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 13,
@@ -296,7 +308,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/13.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 14,
@@ -319,7 +332,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/14.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 15,
@@ -342,7 +356,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/15.png",
     "generation_introduced": 31,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 15,
@@ -365,7 +380,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/15.png",
     "generation_introduced": 480,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 16,
@@ -388,7 +404,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/16.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 17,
@@ -411,7 +428,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/17.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 18,
@@ -434,7 +452,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/18.png",
     "generation_introduced": 31,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 18,
@@ -457,7 +476,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/18.png",
     "generation_introduced": 480,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 19,
@@ -480,7 +500,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/19.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 20,
@@ -503,7 +524,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/20.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 21,
@@ -526,7 +548,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/21.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 22,
@@ -549,7 +572,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/22.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 23,
@@ -572,7 +596,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/23.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 24,
@@ -595,7 +620,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/24.png",
     "generation_introduced": 31,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 24,
@@ -618,7 +644,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/24.png",
     "generation_introduced": 480,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 25,
@@ -641,7 +668,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png",
     "generation_introduced": 31,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 25,
@@ -664,7 +692,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png",
     "generation_introduced": 480,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 26,
@@ -687,7 +716,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/26.png",
     "generation_introduced": 31,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 26,
@@ -710,7 +740,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/26.png",
     "generation_introduced": 480,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 27,
@@ -733,7 +764,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/27.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 28,
@@ -756,7 +788,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/28.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 29,
@@ -779,7 +812,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/29.png",
     "generation_introduced": 511,
-    "gender": 3
+    "gender": 3,
+    "is_final_evolution": false
   },
   {
     "dex_no": 30,
@@ -802,7 +836,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/30.png",
     "generation_introduced": 511,
-    "gender": 3
+    "gender": 3,
+    "is_final_evolution": false
   },
   {
     "dex_no": 31,
@@ -825,7 +860,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/31.png",
     "generation_introduced": 31,
-    "gender": 3
+    "gender": 3,
+    "is_final_evolution": true
   },
   {
     "dex_no": 31,
@@ -848,7 +884,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/31.png",
     "generation_introduced": 480,
-    "gender": 3
+    "gender": 3,
+    "is_final_evolution": true
   },
   {
     "dex_no": 32,
@@ -871,7 +908,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/32.png",
     "generation_introduced": 511,
-    "gender": 2
+    "gender": 2,
+    "is_final_evolution": false
   },
   {
     "dex_no": 33,
@@ -894,7 +932,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/33.png",
     "generation_introduced": 511,
-    "gender": 2
+    "gender": 2,
+    "is_final_evolution": false
   },
   {
     "dex_no": 34,
@@ -917,7 +956,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/34.png",
     "generation_introduced": 31,
-    "gender": 2
+    "gender": 2,
+    "is_final_evolution": true
   },
   {
     "dex_no": 34,
@@ -940,7 +980,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/34.png",
     "generation_introduced": 480,
-    "gender": 2
+    "gender": 2,
+    "is_final_evolution": true
   },
   {
     "dex_no": 35,
@@ -963,7 +1004,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/35.png",
     "generation_introduced": 31,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 35,
@@ -986,7 +1028,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/35.png",
     "generation_introduced": 480,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 36,
@@ -1009,7 +1052,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/36.png",
     "generation_introduced": 31,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 36,
@@ -1032,7 +1076,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/36.png",
     "generation_introduced": 480,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 37,
@@ -1055,7 +1100,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/37.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 38,
@@ -1078,7 +1124,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/38.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 39,
@@ -1101,7 +1148,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/39.png",
     "generation_introduced": 31,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 39,
@@ -1124,7 +1172,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/39.png",
     "generation_introduced": 480,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 40,
@@ -1147,7 +1196,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/40.png",
     "generation_introduced": 31,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 40,
@@ -1170,7 +1220,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/40.png",
     "generation_introduced": 480,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 41,
@@ -1193,7 +1244,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/41.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 42,
@@ -1216,7 +1268,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/42.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 43,
@@ -1239,7 +1292,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/43.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 44,
@@ -1262,7 +1316,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/44.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 45,
@@ -1285,7 +1340,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/45.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 46,
@@ -1308,7 +1364,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/46.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 47,
@@ -1331,7 +1388,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/47.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 48,
@@ -1354,7 +1412,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/48.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 49,
@@ -1377,7 +1436,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/49.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 50,
@@ -1400,7 +1460,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/50.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 51,
@@ -1423,7 +1484,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/51.png",
     "generation_introduced": 31,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 51,
@@ -1446,7 +1508,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/51.png",
     "generation_introduced": 480,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 52,
@@ -1469,7 +1532,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/52.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 53,
@@ -1492,7 +1556,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/53.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 54,
@@ -1515,7 +1580,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/54.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 55,
@@ -1538,7 +1604,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/55.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 56,
@@ -1561,7 +1628,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/56.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 57,
@@ -1584,7 +1652,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/57.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 58,
@@ -1607,7 +1676,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/58.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 59,
@@ -1630,7 +1700,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/59.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 60,
@@ -1653,7 +1724,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/60.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 61,
@@ -1676,7 +1748,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/61.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 62,
@@ -1699,7 +1772,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/62.png",
     "generation_introduced": 31,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 62,
@@ -1722,7 +1796,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/62.png",
     "generation_introduced": 480,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 63,
@@ -1745,7 +1820,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/63.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 64,
@@ -1768,7 +1844,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/64.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 65,
@@ -1791,7 +1868,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/65.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 66,
@@ -1814,7 +1892,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/66.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 67,
@@ -1837,7 +1916,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/67.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 68,
@@ -1860,7 +1940,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/68.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 69,
@@ -1883,7 +1964,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/69.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 70,
@@ -1906,7 +1988,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/70.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 71,
@@ -1929,7 +2012,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/71.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 72,
@@ -1952,7 +2036,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/72.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 73,
@@ -1975,7 +2060,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/73.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 74,
@@ -1998,7 +2084,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/74.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 75,
@@ -2021,7 +2108,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/75.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 76,
@@ -2044,7 +2132,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/76.png",
     "generation_introduced": 31,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 76,
@@ -2067,7 +2156,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/76.png",
     "generation_introduced": 480,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 77,
@@ -2090,7 +2180,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/77.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 78,
@@ -2113,7 +2204,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/78.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 79,
@@ -2136,7 +2228,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/79.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 80,
@@ -2159,7 +2252,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/80.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 81,
@@ -2182,7 +2276,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/81.png",
     "generation_introduced": 511,
-    "gender": 0
+    "gender": 0,
+    "is_final_evolution": false
   },
   {
     "dex_no": 82,
@@ -2205,7 +2300,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/82.png",
     "generation_introduced": 511,
-    "gender": 0
+    "gender": 0,
+    "is_final_evolution": true
   },
   {
     "dex_no": 83,
@@ -2228,7 +2324,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/83.png",
     "generation_introduced": 31,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 83,
@@ -2251,7 +2348,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/83.png",
     "generation_introduced": 480,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 84,
@@ -2274,7 +2372,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/84.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 85,
@@ -2297,7 +2396,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/85.png",
     "generation_introduced": 31,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 85,
@@ -2320,7 +2420,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/85.png",
     "generation_introduced": 480,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 86,
@@ -2343,7 +2444,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/86.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 87,
@@ -2366,7 +2468,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/87.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 88,
@@ -2389,7 +2492,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/88.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 89,
@@ -2412,7 +2516,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/89.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 90,
@@ -2435,7 +2540,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/90.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 91,
@@ -2458,7 +2564,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/91.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 92,
@@ -2481,7 +2588,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/92.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 93,
@@ -2504,7 +2612,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/93.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 94,
@@ -2527,7 +2636,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/94.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 95,
@@ -2550,7 +2660,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/95.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 96,
@@ -2573,7 +2684,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/96.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 97,
@@ -2596,7 +2708,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/97.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 98,
@@ -2619,7 +2732,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/98.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 99,
@@ -2642,7 +2756,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/99.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 100,
@@ -2665,7 +2780,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/100.png",
     "generation_introduced": 511,
-    "gender": 0
+    "gender": 0,
+    "is_final_evolution": false
   },
   {
     "dex_no": 101,
@@ -2688,7 +2804,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/101.png",
     "generation_introduced": 31,
-    "gender": 0
+    "gender": 0,
+    "is_final_evolution": true
   },
   {
     "dex_no": 101,
@@ -2711,7 +2828,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/101.png",
     "generation_introduced": 480,
-    "gender": 0
+    "gender": 0,
+    "is_final_evolution": true
   },
   {
     "dex_no": 102,
@@ -2734,7 +2852,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/102.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 103,
@@ -2757,7 +2876,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/103.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 104,
@@ -2780,7 +2900,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/104.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 105,
@@ -2803,7 +2924,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/105.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 106,
@@ -2826,7 +2948,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/106.png",
     "generation_introduced": 511,
-    "gender": 2
+    "gender": 2,
+    "is_final_evolution": true
   },
   {
     "dex_no": 107,
@@ -2849,7 +2972,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/107.png",
     "generation_introduced": 511,
-    "gender": 2
+    "gender": 2,
+    "is_final_evolution": true
   },
   {
     "dex_no": 108,
@@ -2872,7 +2996,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/108.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 109,
@@ -2895,7 +3020,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/109.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 110,
@@ -2918,7 +3044,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/110.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 111,
@@ -2941,7 +3068,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/111.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 112,
@@ -2964,7 +3092,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/112.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 113,
@@ -2987,7 +3116,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/113.png",
     "generation_introduced": 511,
-    "gender": 3
+    "gender": 3,
+    "is_final_evolution": true
   },
   {
     "dex_no": 114,
@@ -3010,7 +3140,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/114.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 115,
@@ -3033,7 +3164,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/115.png",
     "generation_introduced": 511,
-    "gender": 3
+    "gender": 3,
+    "is_final_evolution": true
   },
   {
     "dex_no": 116,
@@ -3056,7 +3188,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/116.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 117,
@@ -3079,7 +3212,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/117.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 118,
@@ -3102,7 +3236,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/118.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 119,
@@ -3125,7 +3260,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/119.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 120,
@@ -3148,7 +3284,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/120.png",
     "generation_introduced": 511,
-    "gender": 0
+    "gender": 0,
+    "is_final_evolution": false
   },
   {
     "dex_no": 121,
@@ -3171,7 +3308,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/121.png",
     "generation_introduced": 511,
-    "gender": 0
+    "gender": 0,
+    "is_final_evolution": true
   },
   {
     "dex_no": 122,
@@ -3194,7 +3332,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/122.png",
     "generation_introduced": 31,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 122,
@@ -3217,7 +3356,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/122.png",
     "generation_introduced": 480,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 123,
@@ -3240,7 +3380,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/123.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 124,
@@ -3263,7 +3404,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/124.png",
     "generation_introduced": 511,
-    "gender": 3
+    "gender": 3,
+    "is_final_evolution": true
   },
   {
     "dex_no": 125,
@@ -3286,7 +3428,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/125.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 126,
@@ -3309,7 +3452,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/126.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 127,
@@ -3332,7 +3476,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/127.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 128,
@@ -3355,7 +3500,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/128.png",
     "generation_introduced": 511,
-    "gender": 2
+    "gender": 2,
+    "is_final_evolution": true
   },
   {
     "dex_no": 129,
@@ -3378,7 +3524,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/129.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 130,
@@ -3401,7 +3548,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/130.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 131,
@@ -3424,7 +3572,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/131.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 132,
@@ -3447,7 +3596,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/132.png",
     "generation_introduced": 511,
-    "gender": 0
+    "gender": 0,
+    "is_final_evolution": true
   },
   {
     "dex_no": 133,
@@ -3470,7 +3620,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/133.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 134,
@@ -3493,7 +3644,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/134.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 135,
@@ -3516,7 +3668,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/135.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 136,
@@ -3539,7 +3692,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/136.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 137,
@@ -3562,7 +3716,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/137.png",
     "generation_introduced": 511,
-    "gender": 0
+    "gender": 0,
+    "is_final_evolution": true
   },
   {
     "dex_no": 138,
@@ -3585,7 +3740,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/138.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 139,
@@ -3608,7 +3764,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/139.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 140,
@@ -3631,7 +3788,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/140.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 141,
@@ -3654,7 +3812,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/141.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 142,
@@ -3677,7 +3836,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/142.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 143,
@@ -3700,7 +3860,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/143.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 144,
@@ -3723,7 +3884,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/144.png",
     "generation_introduced": 511,
-    "gender": 0
+    "gender": 0,
+    "is_final_evolution": true
   },
   {
     "dex_no": 145,
@@ -3746,7 +3908,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/145.png",
     "generation_introduced": 511,
-    "gender": 0
+    "gender": 0,
+    "is_final_evolution": true
   },
   {
     "dex_no": 146,
@@ -3769,7 +3932,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/146.png",
     "generation_introduced": 511,
-    "gender": 0
+    "gender": 0,
+    "is_final_evolution": true
   },
   {
     "dex_no": 147,
@@ -3792,7 +3956,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/147.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 148,
@@ -3815,7 +3980,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/148.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": false
   },
   {
     "dex_no": 149,
@@ -3838,7 +4004,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/149.png",
     "generation_introduced": 511,
-    "gender": 1
+    "gender": 1,
+    "is_final_evolution": true
   },
   {
     "dex_no": 150,
@@ -3861,7 +4028,8 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/150.png",
     "generation_introduced": 511,
-    "gender": 0
+    "gender": 0,
+    "is_final_evolution": true
   },
   {
     "dex_no": 151,
@@ -3884,6 +4052,7 @@
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/151.png",
     "generation_introduced": 511,
-    "gender": 0
+    "gender": 0,
+    "is_final_evolution": true
   }
 ]
