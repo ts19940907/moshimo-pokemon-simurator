@@ -7,9 +7,12 @@ App tables live in the **`moshimo`** schema (not `public`), to keep them separat
 - Migration (create): `supabase/migrations/20260813000000_create_pokemon.sql`
 - Migration (move from public): `supabase/migrations/20260813000100_move_pokemon_to_moshimo_schema.sql`
 - Migration (unique by generation): `supabase/migrations/20260813120000_pokemon_unique_by_generation.sql`
+- Migration (gender): `supabase/migrations/20260813133000_add_pokemon_gender.sql`
+- Migration (moves): `supabase/migrations/20260813140000_create_moves.sql`
 - Ability seed: `supabase/seed/abilities.sql`
 - Gen1 pokemon seed: `supabase/seed/gen1_pokemon.sql`
-- Combined reseed: `supabase/seed/gen1_all.sql`（abilities → pokemon の順）
+- Combined pokemon reseed: `supabase/seed/gen1_all.sql`（abilities → pokemon の順）
+- Gen1 moves + junction: `supabase/seed/gen1_moves_all.sql`（moves → pokemon_moves の順）
 
 ## Client
 
@@ -76,5 +79,14 @@ where generation_introduced & (1 << (N - 1)) <> 0;
 | 18 | フェアリー | Fairy |
 
 `pokemon.type1` は 1..18、`pokemon.type2` は 0（単タイプ）または 1..18。
+
+### gender
+
+| 値 | 意味 |
+|---:|------|
+| 0 | 性別なし |
+| 1 | オスメスあり |
+| 2 | オスのみ |
+| 3 | メスのみ |
 
 `pokemon.id` / `abilities.id` は UUID。

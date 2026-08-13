@@ -1,5 +1,6 @@
 import type {
   Generation,
+  LevelCapMode,
   OpponentType,
   RestrictionMode,
   VisibilityMode,
@@ -71,5 +72,22 @@ export const visibilityOptions: {
     value: "opponent_hidden",
     title: "相手非公開",
     description: "相手の技は出るまで見えません。実戦に近い確認向きです。",
+  },
+];
+
+export const levelCapOptions: {
+  value: LevelCapMode;
+  title: string;
+  description: string;
+}[] = [
+  {
+    value: "max_50",
+    title: "レベル50まで",
+    description: "編成・対戦で設定できるレベルは50が上限です。",
+  },
+  {
+    value: "unlimited",
+    title: "レベル無制限",
+    description: "レベル上限はありません（ゲームと同様に100まで想定）。",
   },
 ];

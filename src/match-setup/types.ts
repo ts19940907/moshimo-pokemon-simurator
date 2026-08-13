@@ -20,6 +20,10 @@ export const visibilityModes = ["full", "opponent_hidden"] as const;
 
 export type VisibilityMode = (typeof visibilityModes)[number];
 
+export const levelCapModes = ["max_50", "unlimited"] as const;
+
+export type LevelCapMode = (typeof levelCapModes)[number];
+
 export type MatchSetup = {
   rulesGeneration: Generation;
   pokemonGeneration: Generation;
@@ -27,4 +31,5 @@ export type MatchSetup = {
   restrictionMode: RestrictionMode;
   opponentType: OpponentType;
   visibilityMode: VisibilityMode;
+  levelCapMode: LevelCapMode;
 };

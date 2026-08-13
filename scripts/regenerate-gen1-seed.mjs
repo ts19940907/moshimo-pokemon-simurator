@@ -58,6 +58,20 @@ const GEN1_5_SPA = {
   40: 50,
 };
 
+/** 0=none, 1=both, 2=male only, 3=female only */
+const GENDER_BY_DEX = Object.fromEntries(
+  Array.from({ length: 151 }, (_, i) => [i + 1, 1]),
+);
+for (const dex of [81, 82, 100, 101, 120, 121, 132, 137, 144, 145, 146, 150, 151]) {
+  GENDER_BY_DEX[dex] = 0;
+}
+for (const dex of [32, 33, 34, 106, 107, 128]) {
+  GENDER_BY_DEX[dex] = 2;
+}
+for (const dex of [29, 30, 31, 113, 115, 124]) {
+  GENDER_BY_DEX[dex] = 3;
+}
+
 function abilityUuid(id) {
   return `00000000-0000-4000-8000-${String(id).padStart(12, "0")}`;
 }
@@ -157,6 +171,7 @@ async function main() {
       ability1_id: e.ability1_id,
       ability2_id: e.ability2_id,
       hidden_ability_id: e.hidden_ability_id,
+      gender: GENDER_BY_DEX[row.dex_no] ?? 1,
     };
     const buff = GEN6_PHYSICAL_BUFFS[row.dex_no];
     const fairy = GEN1_TYPES_PRE_FAIRY[row.dex_no];
@@ -202,7 +217,7 @@ async function main() {
   ].join("\n");
 
   const cols =
-    "dex_no, region_type, name_ja, name_en, category, generation_introduced, type1, type2, base_hp, base_attack, base_defense, base_special, base_sp_attack, base_sp_defense, base_speed, ability1_id, ability2_id, hidden_ability_id, is_mega, sprite_url";
+    "dex_no, region_type, name_ja, name_en, category, generation_introduced, type1, type2, base_hp, base_attack, base_defense, base_special, base_sp_attack, base_sp_defense, base_speed, ability1_id, ability2_id, hidden_ability_id, gender, is_mega, sprite_url";
 
   const pokemonSql = [
     "-- Gen1 species seed. Split on Gen6 physical buffs and/or Fairy type changes.",
@@ -228,6 +243,7 @@ async function main() {
           p.ability1_id,
           p.ability2_id,
           p.hidden_ability_id,
+          p.gender,
           p.is_mega,
           p.sprite_url,
         ].map(sqlStr);

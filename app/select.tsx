@@ -17,6 +17,7 @@ export default function SelectPlaceholderScreen() {
     restrictionMode?: string;
     opponentType?: string;
     visibilityMode?: string;
+    levelCapMode?: string;
   }>();
   const partyIds = (params.party ?? "")
     .split(",")

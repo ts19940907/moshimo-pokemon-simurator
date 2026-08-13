@@ -19,7 +19,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000034",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 2,
@@ -41,7 +42,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000034",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/2.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 3,
@@ -63,7 +65,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000034",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/3.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 4,
@@ -85,7 +88,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000094",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/4.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 5,
@@ -107,7 +111,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000094",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/5.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 6,
@@ -129,7 +134,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000094",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/6.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 7,
@@ -151,7 +157,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000044",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/7.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 8,
@@ -173,7 +180,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000044",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/8.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 9,
@@ -195,7 +203,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000044",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/9.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 10,
@@ -217,7 +226,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000050",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 11,
@@ -239,7 +249,8 @@
     "hidden_ability_id": null,
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/11.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 12,
@@ -261,7 +272,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000110",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/12.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 13,
@@ -283,7 +295,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000050",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/13.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 14,
@@ -305,7 +318,8 @@
     "hidden_ability_id": null,
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/14.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 15,
@@ -327,7 +341,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000097",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/15.png",
-    "generation_introduced": 31
+    "generation_introduced": 31,
+    "gender": 1
   },
   {
     "dex_no": 15,
@@ -349,7 +364,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000097",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/15.png",
-    "generation_introduced": 480
+    "generation_introduced": 480,
+    "gender": 1
   },
   {
     "dex_no": 16,
@@ -371,7 +387,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000145",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/16.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 17,
@@ -393,7 +410,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000145",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/17.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 18,
@@ -415,7 +433,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000145",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/18.png",
-    "generation_introduced": 31
+    "generation_introduced": 31,
+    "gender": 1
   },
   {
     "dex_no": 18,
@@ -437,7 +456,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000145",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/18.png",
-    "generation_introduced": 480
+    "generation_introduced": 480,
+    "gender": 1
   },
   {
     "dex_no": 19,
@@ -459,7 +479,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000055",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/19.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 20,
@@ -481,7 +502,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000055",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/20.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 21,
@@ -503,7 +525,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000097",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/21.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 22,
@@ -525,7 +548,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000097",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/22.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 23,
@@ -547,7 +571,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000127",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/23.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 24,
@@ -569,7 +594,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000127",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/24.png",
-    "generation_introduced": 31
+    "generation_introduced": 31,
+    "gender": 1
   },
   {
     "dex_no": 24,
@@ -591,7 +617,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000127",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/24.png",
-    "generation_introduced": 480
+    "generation_introduced": 480,
+    "gender": 1
   },
   {
     "dex_no": 25,
@@ -613,7 +640,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000031",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png",
-    "generation_introduced": 31
+    "generation_introduced": 31,
+    "gender": 1
   },
   {
     "dex_no": 25,
@@ -635,7 +663,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000031",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png",
-    "generation_introduced": 480
+    "generation_introduced": 480,
+    "gender": 1
   },
   {
     "dex_no": 26,
@@ -657,7 +686,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000031",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/26.png",
-    "generation_introduced": 31
+    "generation_introduced": 31,
+    "gender": 1
   },
   {
     "dex_no": 26,
@@ -679,7 +709,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000031",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/26.png",
-    "generation_introduced": 480
+    "generation_introduced": 480,
+    "gender": 1
   },
   {
     "dex_no": 27,
@@ -701,7 +732,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000146",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/27.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 28,
@@ -723,7 +755,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000146",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/28.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 29,
@@ -745,7 +778,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000055",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/29.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 3
   },
   {
     "dex_no": 30,
@@ -767,7 +801,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000055",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/30.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 3
   },
   {
     "dex_no": 31,
@@ -789,7 +824,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000125",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/31.png",
-    "generation_introduced": 31
+    "generation_introduced": 31,
+    "gender": 3
   },
   {
     "dex_no": 31,
@@ -811,7 +847,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000125",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/31.png",
-    "generation_introduced": 480
+    "generation_introduced": 480,
+    "gender": 3
   },
   {
     "dex_no": 32,
@@ -833,7 +870,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000055",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/32.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 2
   },
   {
     "dex_no": 33,
@@ -855,7 +893,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000055",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/33.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 2
   },
   {
     "dex_no": 34,
@@ -877,7 +916,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000125",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/34.png",
-    "generation_introduced": 31
+    "generation_introduced": 31,
+    "gender": 2
   },
   {
     "dex_no": 34,
@@ -899,7 +939,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000125",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/34.png",
-    "generation_introduced": 480
+    "generation_introduced": 480,
+    "gender": 2
   },
   {
     "dex_no": 35,
@@ -921,7 +962,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000132",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/35.png",
-    "generation_introduced": 31
+    "generation_introduced": 31,
+    "gender": 1
   },
   {
     "dex_no": 35,
@@ -943,7 +985,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000132",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/35.png",
-    "generation_introduced": 480
+    "generation_introduced": 480,
+    "gender": 1
   },
   {
     "dex_no": 36,
@@ -965,7 +1008,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000109",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/36.png",
-    "generation_introduced": 31
+    "generation_introduced": 31,
+    "gender": 1
   },
   {
     "dex_no": 36,
@@ -987,7 +1031,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000109",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/36.png",
-    "generation_introduced": 480
+    "generation_introduced": 480,
+    "gender": 1
   },
   {
     "dex_no": 37,
@@ -1009,7 +1054,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000070",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/37.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 38,
@@ -1031,7 +1077,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000070",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/38.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 39,
@@ -1053,7 +1100,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000132",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/39.png",
-    "generation_introduced": 31
+    "generation_introduced": 31,
+    "gender": 1
   },
   {
     "dex_no": 39,
@@ -1075,7 +1123,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000132",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/39.png",
-    "generation_introduced": 480
+    "generation_introduced": 480,
+    "gender": 1
   },
   {
     "dex_no": 40,
@@ -1097,7 +1146,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000119",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/40.png",
-    "generation_introduced": 31
+    "generation_introduced": 31,
+    "gender": 1
   },
   {
     "dex_no": 40,
@@ -1119,7 +1169,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000119",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/40.png",
-    "generation_introduced": 480
+    "generation_introduced": 480,
+    "gender": 1
   },
   {
     "dex_no": 41,
@@ -1141,7 +1192,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000151",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/41.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 42,
@@ -1163,7 +1215,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000151",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/42.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 43,
@@ -1185,7 +1238,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000050",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/43.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 44,
@@ -1207,7 +1261,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000001",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/44.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 45,
@@ -1229,7 +1284,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000027",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/45.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 46,
@@ -1251,7 +1307,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000006",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/46.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 47,
@@ -1273,7 +1330,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000006",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/47.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 48,
@@ -1295,7 +1353,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000050",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/48.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 49,
@@ -1317,7 +1376,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000147",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/49.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 50,
@@ -1339,7 +1399,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000159",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/50.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 51,
@@ -1361,7 +1422,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000159",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/51.png",
-    "generation_introduced": 31
+    "generation_introduced": 31,
+    "gender": 1
   },
   {
     "dex_no": 51,
@@ -1383,7 +1445,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000159",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/51.png",
-    "generation_introduced": 480
+    "generation_introduced": 480,
+    "gender": 1
   },
   {
     "dex_no": 52,
@@ -1405,7 +1468,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000127",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/52.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 53,
@@ -1427,7 +1491,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000127",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/53.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 54,
@@ -1449,7 +1514,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000033",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/54.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 55,
@@ -1471,7 +1537,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000033",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/55.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 56,
@@ -1493,7 +1560,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000128",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/56.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 57,
@@ -1515,7 +1583,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000128",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/57.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 58,
@@ -1537,7 +1606,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000154",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/58.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 59,
@@ -1559,7 +1629,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000154",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/59.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 60,
@@ -1581,7 +1652,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000033",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/60.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 61,
@@ -1603,7 +1675,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000033",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/61.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 62,
@@ -1625,7 +1698,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000033",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/62.png",
-    "generation_introduced": 31
+    "generation_introduced": 31,
+    "gender": 1
   },
   {
     "dex_no": 62,
@@ -1647,7 +1721,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000033",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/62.png",
-    "generation_introduced": 480
+    "generation_introduced": 480,
+    "gender": 1
   },
   {
     "dex_no": 63,
@@ -1669,7 +1744,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000098",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/63.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 64,
@@ -1691,7 +1767,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000098",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/64.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 65,
@@ -1713,7 +1790,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000098",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/65.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 66,
@@ -1735,7 +1813,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000080",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/66.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 67,
@@ -1757,7 +1836,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000080",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/67.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 68,
@@ -1779,7 +1859,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000080",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/68.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 69,
@@ -1801,7 +1882,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000082",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/69.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 70,
@@ -1823,7 +1905,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000082",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/70.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 71,
@@ -1845,7 +1928,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000082",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/71.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 72,
@@ -1867,7 +1951,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000044",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/72.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 73,
@@ -1889,7 +1974,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000044",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/73.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 74,
@@ -1911,7 +1997,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000008",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/74.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 75,
@@ -1933,7 +2020,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000008",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/75.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 76,
@@ -1955,7 +2043,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000008",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/76.png",
-    "generation_introduced": 31
+    "generation_introduced": 31,
+    "gender": 1
   },
   {
     "dex_no": 76,
@@ -1977,7 +2066,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000008",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/76.png",
-    "generation_introduced": 480
+    "generation_introduced": 480,
+    "gender": 1
   },
   {
     "dex_no": 77,
@@ -1999,7 +2089,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000049",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/77.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 78,
@@ -2021,7 +2112,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000049",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/78.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 79,
@@ -2043,7 +2135,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000144",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/79.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 80,
@@ -2065,7 +2158,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000144",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/80.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 81,
@@ -2087,7 +2181,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000148",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/81.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 0
   },
   {
     "dex_no": 82,
@@ -2109,7 +2204,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000148",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/82.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 0
   },
   {
     "dex_no": 83,
@@ -2131,7 +2227,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000128",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/83.png",
-    "generation_introduced": 31
+    "generation_introduced": 31,
+    "gender": 1
   },
   {
     "dex_no": 83,
@@ -2153,7 +2250,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000128",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/83.png",
-    "generation_introduced": 480
+    "generation_introduced": 480,
+    "gender": 1
   },
   {
     "dex_no": 84,
@@ -2175,7 +2273,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000077",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/84.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 85,
@@ -2197,7 +2296,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000077",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/85.png",
-    "generation_introduced": 31
+    "generation_introduced": 31,
+    "gender": 1
   },
   {
     "dex_no": 85,
@@ -2219,7 +2319,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000077",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/85.png",
-    "generation_introduced": 480
+    "generation_introduced": 480,
+    "gender": 1
   },
   {
     "dex_no": 86,
@@ -2241,7 +2342,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000115",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/86.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 87,
@@ -2263,7 +2365,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000115",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/87.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 88,
@@ -2285,7 +2388,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000143",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/88.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 89,
@@ -2307,7 +2411,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000143",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/89.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 90,
@@ -2329,7 +2434,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000142",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/90.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 91,
@@ -2351,7 +2457,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000142",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/91.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 92,
@@ -2373,7 +2480,8 @@
     "hidden_ability_id": null,
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/92.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 93,
@@ -2395,7 +2503,8 @@
     "hidden_ability_id": null,
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/93.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 94,
@@ -2417,7 +2526,8 @@
     "hidden_ability_id": null,
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/94.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 95,
@@ -2439,7 +2549,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000133",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/95.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 96,
@@ -2461,7 +2572,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000039",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/96.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 97,
@@ -2483,7 +2595,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000039",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/97.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 98,
@@ -2505,7 +2618,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000125",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/98.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 99,
@@ -2527,7 +2641,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000125",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/99.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 100,
@@ -2549,7 +2664,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000106",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/100.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 0
   },
   {
     "dex_no": 101,
@@ -2571,7 +2687,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000106",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/101.png",
-    "generation_introduced": 31
+    "generation_introduced": 31,
+    "gender": 0
   },
   {
     "dex_no": 101,
@@ -2593,7 +2710,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000106",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/101.png",
-    "generation_introduced": 480
+    "generation_introduced": 480,
+    "gender": 0
   },
   {
     "dex_no": 102,
@@ -2615,7 +2733,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000139",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/102.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 103,
@@ -2637,7 +2756,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000139",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/103.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 104,
@@ -2659,7 +2779,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000004",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/104.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 105,
@@ -2681,7 +2802,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000004",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/105.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 106,
@@ -2703,7 +2825,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000084",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/106.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 2
   },
   {
     "dex_no": 107,
@@ -2725,7 +2848,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000039",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/107.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 2
   },
   {
     "dex_no": 108,
@@ -2747,7 +2871,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000013",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/108.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 109,
@@ -2769,7 +2894,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000001",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/109.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 110,
@@ -2791,7 +2917,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000001",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/110.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 111,
@@ -2813,7 +2940,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000120",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/111.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 112,
@@ -2835,7 +2963,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000120",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/112.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 113,
@@ -2857,7 +2986,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000131",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/113.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 3
   },
   {
     "dex_no": 114,
@@ -2879,7 +3009,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000144",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/114.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 115,
@@ -2901,7 +3032,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000039",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/115.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 3
   },
   {
     "dex_no": 116,
@@ -2923,7 +3055,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000006",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/116.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 117,
@@ -2945,7 +3078,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000006",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/117.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 118,
@@ -2967,7 +3101,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000031",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/118.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 119,
@@ -2989,7 +3124,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000031",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/119.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 120,
@@ -3011,7 +3147,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000148",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/120.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 0
   },
   {
     "dex_no": 121,
@@ -3033,7 +3170,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000148",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/121.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 0
   },
   {
     "dex_no": 122,
@@ -3055,7 +3193,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000101",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/122.png",
-    "generation_introduced": 31
+    "generation_introduced": 31,
+    "gender": 1
   },
   {
     "dex_no": 122,
@@ -3077,7 +3216,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000101",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/122.png",
-    "generation_introduced": 480
+    "generation_introduced": 480,
+    "gender": 1
   },
   {
     "dex_no": 123,
@@ -3099,7 +3239,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000080",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/123.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 124,
@@ -3121,7 +3262,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000087",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/124.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 3
   },
   {
     "dex_no": 125,
@@ -3143,7 +3285,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000072",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/125.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 126,
@@ -3165,7 +3308,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000072",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/126.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 127,
@@ -3187,7 +3331,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000153",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/127.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 128,
@@ -3209,7 +3354,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000125",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/128.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 2
   },
   {
     "dex_no": 129,
@@ -3231,7 +3377,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000155",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/129.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 130,
@@ -3253,7 +3400,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000153",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/130.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 131,
@@ -3275,7 +3423,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000093",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/131.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 132,
@@ -3297,7 +3446,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000150",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/132.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 0
   },
   {
     "dex_no": 133,
@@ -3319,7 +3469,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000107",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/133.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 134,
@@ -3341,7 +3492,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000093",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/134.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 135,
@@ -3363,7 +3515,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000095",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/135.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 136,
@@ -3385,7 +3538,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000062",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/136.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 137,
@@ -3407,7 +3561,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000148",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/137.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 0
   },
   {
     "dex_no": 138,
@@ -3429,7 +3584,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000133",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/138.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 139,
@@ -3451,7 +3607,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000133",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/139.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 140,
@@ -3473,7 +3630,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000133",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/140.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 141,
@@ -3495,7 +3653,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000133",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/141.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 142,
@@ -3517,7 +3676,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000127",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/142.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 143,
@@ -3539,7 +3699,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000082",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/143.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 144,
@@ -3561,7 +3722,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000081",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/144.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 0
   },
   {
     "dex_no": 145,
@@ -3583,7 +3745,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000009",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/145.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 0
   },
   {
     "dex_no": 146,
@@ -3605,7 +3768,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000049",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/146.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 0
   },
   {
     "dex_no": 147,
@@ -3627,7 +3791,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000063",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/147.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 148,
@@ -3649,7 +3814,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000063",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/148.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 149,
@@ -3671,7 +3837,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000136",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/149.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 1
   },
   {
     "dex_no": 150,
@@ -3693,7 +3860,8 @@
     "hidden_ability_id": "00000000-0000-4000-8000-000000000127",
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/150.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 0
   },
   {
     "dex_no": 151,
@@ -3715,6 +3883,7 @@
     "hidden_ability_id": null,
     "is_mega": false,
     "sprite_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/151.png",
-    "generation_introduced": 511
+    "generation_introduced": 511,
+    "gender": 0
   }
 ]

@@ -16,6 +16,15 @@ export type PokemonCategory =
 /** 0 = none (type2 only). 1..18 = type master ids. */
 export type TypeId = number;
 
+export const GENDER = {
+  NONE: 0,
+  BOTH: 1,
+  MALE_ONLY: 2,
+  FEMALE_ONLY: 3,
+} as const;
+
+export type Gender = (typeof GENDER)[keyof typeof GENDER];
+
 export type PokemonSpecies = {
   id: string;
   dex_no: number;
@@ -38,6 +47,8 @@ export type PokemonSpecies = {
   ability1_id: string | null;
   ability2_id: string | null;
   hidden_ability_id: string | null;
+  /** 0=none, 1=both, 2=male only, 3=female only */
+  gender: Gender;
   is_mega: boolean;
   sprite_url: string | null;
 };

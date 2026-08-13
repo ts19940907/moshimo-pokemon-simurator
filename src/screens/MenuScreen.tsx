@@ -12,12 +12,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   generationOptions,
+  levelCapOptions,
   opponentOptions,
   restrictionOptions,
   visibilityOptions,
 } from "../match-setup/options";
 import type {
   Generation,
+  LevelCapMode,
   MatchSetup,
   OpponentType,
   RestrictionMode,
@@ -34,6 +36,7 @@ const defaultSetup: MatchSetup = {
   restrictionMode: "standard",
   opponentType: "local_both",
   visibilityMode: "full",
+  levelCapMode: "max_50",
 };
 
 type OptionCardProps = {
@@ -155,6 +158,9 @@ export function MenuScreen() {
   const [visibilityMode, setVisibilityMode] = useState<VisibilityMode>(
     defaultSetup.visibilityMode,
   );
+  const [levelCapMode, setLevelCapMode] = useState<LevelCapMode>(
+    defaultSetup.levelCapMode,
+  );
 
   const isLocalBoth = opponentType === "local_both";
   const resolvedVisibility = isLocalBoth ? visibilityMode : "opponent_hidden";
@@ -176,6 +182,7 @@ export function MenuScreen() {
         restrictionMode,
         opponentType,
         visibilityMode: resolvedVisibility,
+        levelCapMode,
       },
     });
   };
@@ -242,6 +249,19 @@ export function MenuScreen() {
             </View>
 
             <View style={styles.section}>
+              <Text style={styles.sectionTitle}>レベル</Text>
+              {levelCapOptions.map((option) => (
+                <OptionCard
+                  key={option.value}
+                  title={option.title}
+                  description={option.description}
+                  selected={levelCapMode === option.value}
+                  onPress={() => setLevelCapMode(option.value)}
+                />
+              ))}
+            </View>
+
+            <View style={styles.section}>
               <Text style={styles.sectionTitle}>対戦相手</Text>
               {opponentOptions.map((option) => (
                 <OptionCard
@@ -278,7 +298,8 @@ export function MenuScreen() {
                 {labelOf(moveGeneration, generationOptions)}
               </Text>
               <Text style={styles.summaryLine}>
-                {labelOf(restrictionMode, restrictionOptions)}
+                {labelOf(restrictionMode, restrictionOptions)} ／{" "}
+                {labelOf(levelCapMode, levelCapOptions)}
               </Text>
               <Text style={styles.summaryLine}>
                 {labelOf(opponentType, opponentOptions)} ／{" "}

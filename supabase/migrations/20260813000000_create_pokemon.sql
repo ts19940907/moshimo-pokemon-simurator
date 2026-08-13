@@ -49,6 +49,8 @@ create table moshimo.pokemon (
   ability1_id uuid null references moshimo.abilities (id),
   ability2_id uuid null references moshimo.abilities (id),
   hidden_ability_id uuid null references moshimo.abilities (id),
+  gender smallint not null default 1
+    check (gender in (0, 1, 2, 3)),
   is_mega boolean not null default false,
   sprite_url text null,
   created_at timestamptz not null default now(),
@@ -65,6 +67,7 @@ create index pokemon_generation_introduced_idx on moshimo.pokemon (generation_in
 create index pokemon_is_mega_idx on moshimo.pokemon (is_mega);
 create index pokemon_type1_idx on moshimo.pokemon (type1);
 create index pokemon_type2_idx on moshimo.pokemon (type2);
+create index pokemon_gender_idx on moshimo.pokemon (gender);
 
 comment on column moshimo.pokemon.generation_introduced is
   'Bitmask of generations where this row is selectable. Gen N = 2^(N-1). Create a new row only when stats/types/abilities differ across generations; otherwise one row covers all applicable gens (e.g. 511 = Gen1..9).';
@@ -76,6 +79,8 @@ comment on column moshimo.pokemon.base_special is
   'Gen1 Special. Null for rows that only use Sp.Atk/Sp.Def.';
 comment on column moshimo.pokemon.is_mega is
   'True for Mega Evolution forms.';
+comment on column moshimo.pokemon.gender is
+  '0=genderless, 1=male and female, 2=male only, 3=female only';
 
 grant select on all tables in schema moshimo to anon, authenticated, service_role;
 grant usage, select on all sequences in schema moshimo to anon, authenticated, service_role;
