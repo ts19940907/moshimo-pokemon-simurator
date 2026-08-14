@@ -1,6 +1,11 @@
 import type { PartySide } from "../party/types";
 import type { Move, MoveEffectMeta } from "../pokemon/moves";
 import { EMPTY_EFFECT_META } from "../pokemon/moves";
+import {
+  applyDamageRoll,
+  damageBeforeRandom,
+  fixedDamageRange,
+} from "./calcDamage";
 import { GEN1_MOVE_POOL, pickMetronomeMove } from "./gen1MovePool";
 import { gen1TypeEffectiveness } from "./gen1TypeChart";
 import {
@@ -92,11 +97,6 @@ function rollsCrit(attacker: BattleFighter, move: Move): boolean {
   return randInt(0, 255) < threshold;
 }
 
-function stab(moveType: number, species: BattleFighter["species"]): number {
-  if (moveType === species.type1 || moveType === species.type2) return 1.5;
-  return 1;
-}
-
 function noteHpDamage(
   target: BattleFighter,
   dealt: number,
@@ -152,52 +152,28 @@ function calcDamage(
   crit: boolean,
   defenderField: SideFieldEffects,
 ): number {
-  const power = move.power ?? 0;
-  if (power <= 0) return 0;
-
-  const isPhysical = move.damage_class === "physical";
-  const atkStat = isPhysical ? attacker.stats.attack : attacker.stats.special;
-  const defStat = isPhysical ? defender.stats.defense : defender.stats.special;
-  const atkStage = isPhysical
-    ? attacker.stages.attack
-    : attacker.stages.special;
-  const defStage = isPhysical
-    ? defender.stages.defense
-    : defender.stages.special;
-
-  let A = stagedStat(atkStat, atkStage, { crit });
-  let D = stagedStat(defStat, defStage, { crit });
-  if (attacker.status === "burn" && isPhysical) A = Math.max(1, Math.floor(A / 2));
-
-  const level = crit ? attacker.member.level * 2 : attacker.member.level;
-  const typeEff = gen1TypeEffectiveness(
-    move.type_id,
-    defender.species.type1,
-    defender.species.type2,
+  const { damage: before } = damageBeforeRandom(
+    {
+      attackerLevel: attacker.member.level,
+      attackerSpecies: attacker.species,
+      attackerStats: attacker.stats,
+      attackerAttackStage: attacker.stages.attack,
+      attackerSpecialStage: attacker.stages.special,
+      defenderSpecies: defender.species,
+      defenderStats: defender.stats,
+      defenderDefenseStage: defender.stages.defense,
+      defenderSpecialStage: defender.stages.special,
+    },
+    move,
+    {
+      crit,
+      attackerBurn: attacker.status === "burn",
+      defenderReflect: defenderField.reflect,
+      defenderLightScreen: defenderField.lightScreen,
+    },
   );
-  if (typeEff === 0) return 0;
-
-  let damage = Math.floor(
-    Math.floor(
-      (Math.floor((2 * level) / 5 + 2) * power * A) / Math.max(1, D),
-    ) /
-      50 +
-      2,
-  );
-  damage = Math.floor(damage * stab(move.type_id, attacker.species));
-  damage = Math.floor(damage * typeEff);
-  // Gen1 Reflect / Light Screen: half damage if not a crit
-  if (!crit) {
-    if (isPhysical && defenderField.reflect) {
-      damage = Math.max(1, Math.floor(damage / 2));
-    }
-    if (!isPhysical && move.damage_class === "special" && defenderField.lightScreen) {
-      damage = Math.max(1, Math.floor(damage / 2));
-    }
-  }
-  const rand = randInt(217, 255);
-  damage = Math.floor((damage * rand) / 255);
-  return Math.max(1, damage);
+  if (before <= 0) return 0;
+  return applyDamageRoll(before, randInt(217, 255));
 }
 
 function fixedDamage(
@@ -205,24 +181,14 @@ function fixedDamage(
   defender: BattleFighter,
   move: Move,
 ): number | null {
-  switch (move.pokeapi_id) {
-    case 49: // Sonic Boom
-      return 20;
-    case 82: // Dragon Rage
-      return 40;
-    case 69: // Seismic Toss
-    case 101: // Night Shade
-      return attacker.member.level;
-    case 162: // Super Fang
-      return Math.max(1, Math.floor(defender.currentHp / 2));
-    case 149: {
-      // Psywave Gen1: 1..1.5*level
-      const max = Math.floor((attacker.member.level * 3) / 2);
-      return Math.max(1, randInt(1, Math.max(1, max)));
-    }
-    default:
-      return null;
-  }
+  const range = fixedDamageRange(
+    move,
+    attacker.member.level,
+    defender.currentHp,
+  );
+  if (!range) return null;
+  if (range.min === range.max) return range.min;
+  return randInt(range.min, range.max);
 }
 
 function canStatus(target: BattleFighter, ailment: string): boolean {

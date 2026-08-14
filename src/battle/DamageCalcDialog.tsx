@@ -1,0 +1,2379 @@
+import { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+
+import type { GenerationFilterOptions } from "../match-setup/generationFilter";
+import type { LevelCapMode } from "../match-setup/types";
+import { calcGen1Stats } from "../party/gen1Stats";
+import {
+  createDefaultBuild,
+  GEN1_STAT_LABELS,
+  maxLevelForCap,
+  type Gen1StatBlock,
+  type PartyMemberBuild,
+} from "../party/types";
+import {
+  formatDexNo,
+  getDisplayBaseStats,
+  PAGE_SIZE,
+  PARTY_SIZE,
+  TYPE_COLORS,
+  typeNameJa,
+} from "../pokemon/catalog";
+import type { Move, MoveDamageClass } from "../pokemon/moves";
+import { fetchMovesForPokemon } from "../pokemon/moveRepository";
+import { PokemonSprite } from "../pokemon/PokemonSprite";
+import {
+  TYPE_BY_ID,
+  TYPE_NONE,
+  type PokemonSpecies,
+  type TypeId,
+} from "../pokemon/types";
+import {
+  calcDamageRange,
+  type DamageRangeResult,
+} from "./calcDamage";
+
+type PickSide = "attacker" | "defender";
+
+type SideDraft = {
+  species: PokemonSpecies | null;
+  build: PartyMemberBuild | null;
+  attackStage: number;
+  defenseStage: number;
+  specialStage: number;
+};
+
+type Props = {
+  visible: boolean;
+  speciesPool: PokemonSpecies[];
+  levelCapMode: LevelCapMode;
+  moveGenerationOptions: GenerationFilterOptions;
+  /** Current party builds keyed by species id. */
+  partyBuildsBySpeciesId: Record<string, PartyMemberBuild>;
+  /** Dex numbers already in the party. */
+  partyDexNos: number[];
+  onClose: () => void;
+  /** Add a new member or overwrite an existing party build. */
+  onApplyToParty: (build: PartyMemberBuild) => void;
+};
+
+type StatKey = "hp" | "attack" | "defense" | "special" | "speed";
+type StatCompareMode = "gte" | "lte";
+type StatFilterEntry = { value: string; mode: StatCompareMode };
+type StatFiltersState = Record<StatKey, StatFilterEntry>;
+type DualTypeOrderMode = "any" | "exact";
+
+const MAX_TYPE_FILTERS = 2;
+
+const STAT_FILTERS: { key: StatKey; label: string }[] = [
+  { key: "hp", label: "HP" },
+  { key: "attack", label: "こうげき" },
+  { key: "defense", label: "ぼうぎょ" },
+  { key: "special", label: "とくしゅ" },
+  { key: "speed", label: "すばやさ" },
+];
+
+const EMPTY_STAT_FILTERS: StatFiltersState = {
+  hp: { value: "", mode: "gte" },
+  attack: { value: "", mode: "gte" },
+  defense: { value: "", mode: "gte" },
+  special: { value: "", mode: "gte" },
+  speed: { value: "", mode: "gte" },
+};
+
+const TYPE_OPTIONS = Object.entries(TYPE_BY_ID)
+  .filter(([id]) => Number(id) > 0)
+  .map(([id, type]) => ({
+    id: Number(id) as TypeId,
+    nameJa: type.nameJa,
+  }));
+
+const DAMAGE_CLASS_JA: Record<MoveDamageClass, string> = {
+  physical: "物理",
+  special: "特殊",
+  status: "変化",
+};
+
+/** Fixed-damage pokeapi ids (Sonic Boom, Dragon Rage, …). */
+const FIXED_MOVE_IDS = new Set([49, 82, 69, 101, 162, 149]);
+
+function emptySide(): SideDraft {
+  return {
+    species: null,
+    build: null,
+    attackStage: 0,
+    defenseStage: 0,
+    specialStage: 0,
+  };
+}
+
+function partyBuildsEqual(a: PartyMemberBuild, b: PartyMemberBuild): boolean {
+  if (
+    a.speciesId !== b.speciesId ||
+    a.level !== b.level ||
+    a.gender !== b.gender
+  ) {
+    return false;
+  }
+  for (const key of [
+    "hp",
+    "attack",
+    "defense",
+    "special",
+    "speed",
+  ] as const) {
+    if (a.iv[key] !== b.iv[key] || a.statExp[key] !== b.statExp[key]) {
+      return false;
+    }
+  }
+  for (let i = 0; i < 4; i += 1) {
+    if (a.moveIds[i] !== b.moveIds[i]) return false;
+  }
+  return true;
+}
+
+/** Payload written when adding/updating the attacker in the party. */
+function makeAttackerApplyBuild(
+  draft: PartyMemberBuild,
+  moveId: string | null,
+  existing: PartyMemberBuild | null,
+): PartyMemberBuild {
+  if (!existing) {
+    return {
+      ...draft,
+      moveIds: [moveId, null, null, null],
+    };
+  }
+  let moveIds = [...existing.moveIds] as PartyMemberBuild["moveIds"];
+  if (moveId && !moveIds.includes(moveId)) {
+    const rest = moveIds.filter(
+      (id): id is string => Boolean(id) && id !== moveId,
+    );
+    moveIds = [moveId, rest[0] ?? null, rest[1] ?? null, rest[2] ?? null];
+  }
+  return {
+    ...draft,
+    speciesId: existing.speciesId,
+    dexNo: existing.dexNo,
+    nameJa: existing.nameJa,
+    moveIds,
+  };
+}
+
+/** Payload written when adding/updating the defender in the party. */
+function makeDefenderApplyBuild(
+  draft: PartyMemberBuild,
+  existing: PartyMemberBuild | null,
+): PartyMemberBuild {
+  if (!existing) {
+    return { ...draft };
+  }
+  return {
+    ...draft,
+    speciesId: existing.speciesId,
+    dexNo: existing.dexNo,
+    nameJa: existing.nameJa,
+    // Damage calc does not edit defender moves — keep party moves.
+    moveIds: existing.moveIds,
+  };
+}
+
+type PartyApplyAction = {
+  mode: "add" | "update" | "disabled";
+  label: string;
+  reason: string | null;
+  applyBuild: PartyMemberBuild | null;
+};
+
+function clamp(n: number, min: number, max: number) {
+  if (!Number.isFinite(n)) return min;
+  return Math.min(max, Math.max(min, n));
+}
+
+function parseIntOr(value: string, fallback: number) {
+  const n = Number.parseInt(value, 10);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clampStage(n: number) {
+  return clamp(n, -6, 6);
+}
+
+function matchesNameQuery(pokemon: PokemonSpecies, query: string): boolean {
+  const trimmed = query.trim();
+  if (!trimmed) return true;
+  const lower = trimmed.toLowerCase();
+  return (
+    pokemon.name_ja.includes(trimmed) ||
+    pokemon.name_en.toLowerCase().includes(lower) ||
+    String(pokemon.dex_no).includes(trimmed) ||
+    formatDexNo(pokemon.dex_no).toLowerCase().includes(lower)
+  );
+}
+
+function parseStatThreshold(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const n = Number(trimmed);
+  return Number.isFinite(n) ? n : null;
+}
+
+function matchesStatFilter(
+  statValue: number,
+  filter: StatFilterEntry,
+): boolean {
+  const threshold = parseStatThreshold(filter.value);
+  if (threshold == null) return true;
+  return filter.mode === "gte" ? statValue >= threshold : statValue <= threshold;
+}
+
+function matchesTypeFilter(
+  pokemon: PokemonSpecies,
+  typeFilters: TypeId[],
+  singleTypeOnly: boolean,
+  dualOrderMode: DualTypeOrderMode,
+): boolean {
+  if (typeFilters.length === 0) return true;
+  if (typeFilters.length === 1) {
+    const typeId = typeFilters[0];
+    if (singleTypeOnly) {
+      return pokemon.type1 === typeId && pokemon.type2 === TYPE_NONE;
+    }
+    return pokemon.type1 === typeId || pokemon.type2 === typeId;
+  }
+  const [first, second] = typeFilters;
+  if (dualOrderMode === "exact") {
+    return pokemon.type1 === first && pokemon.type2 === second;
+  }
+  const hasFirst = pokemon.type1 === first || pokemon.type2 === first;
+  const hasSecond = pokemon.type1 === second || pokemon.type2 === second;
+  return (
+    pokemon.type2 !== TYPE_NONE &&
+    hasFirst &&
+    hasSecond &&
+    first !== second
+  );
+}
+
+function toggleTypeFilter(current: TypeId[], typeId: TypeId): TypeId[] {
+  if (current.includes(typeId)) {
+    return current.filter((id) => id !== typeId);
+  }
+  if (current.length >= MAX_TYPE_FILTERS) return current;
+  return [...current, typeId];
+}
+
+function typeEffLabel(mult: number): string {
+  if (mult === 0) return "こうかがなかった";
+  if (mult === 0.25) return "効果はいまひとつ（1/4）";
+  if (mult === 0.5) return "効果はいまひとつ（1/2）";
+  if (mult === 2) return "効果はばつぐん（2倍）";
+  if (mult === 4) return "効果はばつぐん（4倍）";
+  return "効果はふつう";
+}
+
+function StageStepper({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (next: number) => void;
+}) {
+  return (
+    <View style={styles.stageRow}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <View style={styles.stageControls}>
+        <Pressable
+          onPress={() => onChange(clampStage(value - 1))}
+          style={styles.stageBtn}
+        >
+          <Text style={styles.stageBtnText}>−</Text>
+        </Pressable>
+        <Text style={styles.stageValue}>
+          {value > 0 ? `+${value}` : String(value)}
+        </Text>
+        <Pressable
+          onPress={() => onChange(clampStage(value + 1))}
+          style={styles.stageBtn}
+        >
+          <Text style={styles.stageBtnText}>＋</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function StatField({
+  label,
+  value,
+  onChangeText,
+}: {
+  label: string;
+  value: number;
+  onChangeText: (text: string) => void;
+}) {
+  return (
+    <View style={styles.statField}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <TextInput
+        style={styles.statInput}
+        keyboardType="number-pad"
+        value={String(value)}
+        onChangeText={onChangeText}
+      />
+    </View>
+  );
+}
+
+function CheckRow({
+  label,
+  checked,
+  onToggle,
+}: {
+  label: string;
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+      onPress={onToggle}
+      style={styles.checkRow}
+    >
+      <View style={[styles.checkbox, checked && styles.checkboxOn]}>
+        {checked ? <Text style={styles.checkboxMark}>✓</Text> : null}
+      </View>
+      <Text style={styles.checkLabel}>{label}</Text>
+    </Pressable>
+  );
+}
+
+export function DamageCalcDialog({
+  visible,
+  speciesPool,
+  levelCapMode,
+  moveGenerationOptions,
+  partyBuildsBySpeciesId,
+  partyDexNos,
+  onClose,
+  onApplyToParty,
+}: Props) {
+  const maxLevel = maxLevelForCap(levelCapMode);
+  const [attacker, setAttacker] = useState<SideDraft>(emptySide);
+  const [defender, setDefender] = useState<SideDraft>(emptySide);
+  const [moveId, setMoveId] = useState<string | null>(null);
+  const [moves, setMoves] = useState<Move[]>([]);
+  const [loadingMoves, setLoadingMoves] = useState(false);
+  const [moveError, setMoveError] = useState<string | null>(null);
+  const [pickingMove, setPickingMove] = useState(false);
+  const [crit, setCrit] = useState(false);
+  const [attackerBurn, setAttackerBurn] = useState(false);
+  const [reflect, setReflect] = useState(false);
+  const [lightScreen, setLightScreen] = useState(false);
+
+  const [pickingSide, setPickingSide] = useState<PickSide | null>(null);
+  const [pendingSpecies, setPendingSpecies] = useState<PokemonSpecies | null>(
+    null,
+  );
+  const [importConfirmOpen, setImportConfirmOpen] = useState(false);
+  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+  const [updateConfirmSide, setUpdateConfirmSide] = useState<PickSide | null>(
+    null,
+  );
+
+  const [nameQuery, setNameQuery] = useState("");
+  const [typeFilters, setTypeFilters] = useState<TypeId[]>([]);
+  const [singleTypeOnly, setSingleTypeOnly] = useState(false);
+  const [dualOrderMode, setDualOrderMode] =
+    useState<DualTypeOrderMode>("any");
+  const [finalEvolutionOnly, setFinalEvolutionOnly] = useState(true);
+  const [statFilters, setStatFilters] =
+    useState<StatFiltersState>(EMPTY_STAT_FILTERS);
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [page, setPage] = useState(0);
+
+  const isDirty =
+    attacker.species != null ||
+    defender.species != null ||
+    moveId != null ||
+    crit ||
+    attackerBurn ||
+    reflect ||
+    lightScreen ||
+    attacker.attackStage !== 0 ||
+    attacker.specialStage !== 0 ||
+    defender.defenseStage !== 0 ||
+    defender.specialStage !== 0;
+
+  const resetAll = () => {
+    setAttacker(emptySide());
+    setDefender(emptySide());
+    setMoveId(null);
+    setMoves([]);
+    setMoveError(null);
+    setPickingMove(false);
+    setCrit(false);
+    setAttackerBurn(false);
+    setReflect(false);
+    setLightScreen(false);
+    setPickingSide(null);
+    setPendingSpecies(null);
+  };
+
+  const clearPickerFilters = () => {
+    setNameQuery("");
+    setTypeFilters([]);
+    setSingleTypeOnly(false);
+    setDualOrderMode("any");
+    setFinalEvolutionOnly(true);
+    setStatFilters(EMPTY_STAT_FILTERS);
+    setSuggestOpen(false);
+    setPage(0);
+  };
+
+  const openPicker = (side: PickSide) => {
+    clearPickerFilters();
+    setPickingSide(side);
+  };
+
+  useEffect(() => {
+    if (!visible) {
+      resetAll();
+      clearPickerFilters();
+      setDiscardConfirmOpen(false);
+      setClearConfirmOpen(false);
+      setImportConfirmOpen(false);
+      setUpdateConfirmSide(null);
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    const species = attacker.species;
+    if (!species) {
+      setMoves([]);
+      setMoveId(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoadingMoves(true);
+        setMoveError(null);
+        const rows = await fetchMovesForPokemon(
+          species.id,
+          moveGenerationOptions,
+        );
+        if (cancelled) return;
+        setMoves(rows);
+      } catch (error) {
+        if (!cancelled) {
+          setMoves([]);
+          setMoveError(
+            error instanceof Error
+              ? error.message
+              : "技一覧の取得に失敗しました。",
+          );
+        }
+      } finally {
+        if (!cancelled) setLoadingMoves(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [attacker.species, moveGenerationOptions]);
+
+  const filteredSpecies = useMemo(() => {
+    return speciesPool.filter((pokemon) => {
+      if (!matchesNameQuery(pokemon, nameQuery)) return false;
+      if (
+        !matchesTypeFilter(
+          pokemon,
+          typeFilters,
+          singleTypeOnly,
+          dualOrderMode,
+        )
+      ) {
+        return false;
+      }
+      if (finalEvolutionOnly && !pokemon.is_final_evolution) return false;
+      const stats = getDisplayBaseStats(pokemon);
+      for (const { key } of STAT_FILTERS) {
+        if (!matchesStatFilter(stats[key], statFilters[key])) return false;
+      }
+      return true;
+    });
+  }, [
+    speciesPool,
+    nameQuery,
+    typeFilters,
+    singleTypeOnly,
+    dualOrderMode,
+    finalEvolutionOnly,
+    statFilters,
+  ]);
+
+  const suggestions = useMemo(() => {
+    const trimmed = nameQuery.trim();
+    if (!suggestOpen || trimmed.length < 1) return [];
+    return speciesPool
+      .filter((pokemon) => matchesNameQuery(pokemon, trimmed))
+      .slice(0, 8);
+  }, [speciesPool, nameQuery, suggestOpen]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredSpecies.length / PAGE_SIZE));
+  const pageItems = filteredSpecies.slice(
+    page * PAGE_SIZE,
+    page * PAGE_SIZE + PAGE_SIZE,
+  );
+
+  useEffect(() => {
+    setPage(0);
+  }, [
+    nameQuery,
+    typeFilters,
+    singleTypeOnly,
+    dualOrderMode,
+    finalEvolutionOnly,
+    statFilters,
+  ]);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, Math.max(0, totalPages - 1)));
+  }, [totalPages]);
+
+  const applySpecies = (
+    side: PickSide,
+    pokemon: PokemonSpecies,
+    importBuild: boolean,
+  ) => {
+    const existing = partyBuildsBySpeciesId[pokemon.id];
+    const build =
+      importBuild && existing
+        ? { ...existing, moveIds: [...existing.moveIds] as PartyMemberBuild["moveIds"] }
+        : createDefaultBuild(pokemon, levelCapMode);
+
+    if (side === "attacker") {
+      setAttacker({
+        species: pokemon,
+        build,
+        attackStage: 0,
+        defenseStage: 0,
+        specialStage: 0,
+      });
+      if (importBuild && existing) {
+        const firstMove = existing.moveIds.find((id) => Boolean(id)) ?? null;
+        setMoveId(firstMove);
+      } else {
+        setMoveId(null);
+      }
+      setPickingMove(false);
+    } else {
+      setDefender({
+        species: pokemon,
+        build,
+        attackStage: 0,
+        defenseStage: 0,
+        specialStage: 0,
+      });
+    }
+    setPickingSide(null);
+    setPendingSpecies(null);
+    setImportConfirmOpen(false);
+  };
+
+  const handlePickSpecies = (pokemon: PokemonSpecies) => {
+    if (!pickingSide) return;
+    const existing = partyBuildsBySpeciesId[pokemon.id];
+    if (existing) {
+      setPendingSpecies(pokemon);
+      setImportConfirmOpen(true);
+      return;
+    }
+    applySpecies(pickingSide, pokemon, false);
+  };
+
+  const patchBuild = (
+    side: PickSide,
+    patch: (current: PartyMemberBuild) => PartyMemberBuild,
+  ) => {
+    const setter = side === "attacker" ? setAttacker : setDefender;
+    setter((current) => {
+      if (!current.build) return current;
+      return { ...current, build: patch(current.build) };
+    });
+  };
+
+  const patchIv = (
+    side: PickSide,
+    key: keyof Gen1StatBlock,
+    text: string,
+    max: number,
+  ) => {
+    patchBuild(side, (build) => ({
+      ...build,
+      iv: {
+        ...build.iv,
+        [key]: clamp(parseIntOr(text, build.iv[key]), 0, max),
+      },
+    }));
+  };
+
+  const patchStatExp = (
+    side: PickSide,
+    key: keyof Gen1StatBlock,
+    text: string,
+  ) => {
+    patchBuild(side, (build) => ({
+      ...build,
+      statExp: {
+        ...build.statExp,
+        [key]: clamp(parseIntOr(text, build.statExp[key]), 0, 65535),
+      },
+    }));
+  };
+
+  const selectedMove = moves.find((m) => m.id === moveId) ?? null;
+  const isPhysicalMove = selectedMove?.damage_class === "physical";
+  const isSpecialMove = selectedMove?.damage_class === "special";
+  const showAttackerStats = Boolean(
+    attacker.species && attacker.build && selectedMove,
+  );
+  const showDefenderStats = Boolean(
+    defender.species && defender.build && selectedMove,
+  );
+
+  const damageResult: DamageRangeResult | null = useMemo(() => {
+    if (!attacker.species || !attacker.build || !defender.species || !defender.build) {
+      return null;
+    }
+    if (!selectedMove) return null;
+    const atkStats = calcGen1Stats(attacker.species, attacker.build);
+    const defStats = calcGen1Stats(defender.species, defender.build);
+    return calcDamageRange(
+      {
+        attackerLevel: attacker.build.level,
+        attackerSpecies: attacker.species,
+        attackerStats: atkStats,
+        attackerAttackStage: attacker.attackStage,
+        attackerSpecialStage: attacker.specialStage,
+        defenderSpecies: defender.species,
+        defenderStats: defStats,
+        defenderDefenseStage: defender.defenseStage,
+        defenderSpecialStage: defender.specialStage,
+        defenderCurrentHp: defStats.hp,
+      },
+      selectedMove,
+      {
+        crit,
+        attackerBurn,
+        defenderReflect: reflect,
+        defenderLightScreen: lightScreen,
+      },
+    );
+  }, [
+    attacker,
+    defender,
+    selectedMove,
+    crit,
+    attackerBurn,
+    reflect,
+    lightScreen,
+  ]);
+
+  const partyFull = partyDexNos.length >= PARTY_SIZE;
+
+  const attackerPartyAction = useMemo((): PartyApplyAction => {
+    const labelAdd = "このポケモンをパーティに入れる";
+    const labelUpdate = "変更した値を反映";
+    if (!attacker.species || !attacker.build) {
+      return {
+        mode: "disabled",
+        label: labelAdd,
+        reason: "ポケモン未選択",
+        applyBuild: null,
+      };
+    }
+    const existing = partyBuildsBySpeciesId[attacker.species.id] ?? null;
+    const inParty = partyDexNos.includes(attacker.species.dex_no);
+    const applyBuild = makeAttackerApplyBuild(
+      attacker.build,
+      moveId,
+      inParty ? existing : null,
+    );
+
+    if (!inParty) {
+      if (partyFull) {
+        return {
+          mode: "disabled",
+          label: labelAdd,
+          reason: "パーティが6体です",
+          applyBuild: null,
+        };
+      }
+      return {
+        mode: "add",
+        label: labelAdd,
+        reason: null,
+        applyBuild,
+      };
+    }
+
+    if (!existing || partyBuildsEqual(existing, applyBuild)) {
+      return {
+        mode: "disabled",
+        label: labelAdd,
+        reason: "パーティと同じ内容です",
+        applyBuild: null,
+      };
+    }
+
+    return {
+      mode: "update",
+      label: labelUpdate,
+      reason: null,
+      applyBuild,
+    };
+  }, [
+    attacker.species,
+    attacker.build,
+    moveId,
+    partyBuildsBySpeciesId,
+    partyDexNos,
+    partyFull,
+  ]);
+
+  const defenderPartyAction = useMemo((): PartyApplyAction => {
+    const labelAdd = "このポケモンをパーティに入れる";
+    const labelUpdate = "変更した値を反映";
+    if (!defender.species || !defender.build) {
+      return {
+        mode: "disabled",
+        label: labelAdd,
+        reason: "ポケモン未選択",
+        applyBuild: null,
+      };
+    }
+    const existing = partyBuildsBySpeciesId[defender.species.id] ?? null;
+    const inParty = partyDexNos.includes(defender.species.dex_no);
+    const applyBuild = makeDefenderApplyBuild(
+      defender.build,
+      inParty ? existing : null,
+    );
+
+    if (!inParty) {
+      if (partyFull) {
+        return {
+          mode: "disabled",
+          label: labelAdd,
+          reason: "パーティが6体です",
+          applyBuild: null,
+        };
+      }
+      return {
+        mode: "add",
+        label: labelAdd,
+        reason: null,
+        applyBuild,
+      };
+    }
+
+    if (!existing || partyBuildsEqual(existing, applyBuild)) {
+      return {
+        mode: "disabled",
+        label: labelAdd,
+        reason: "パーティと同じ内容です",
+        applyBuild: null,
+      };
+    }
+
+    return {
+      mode: "update",
+      label: labelUpdate,
+      reason: null,
+      applyBuild,
+    };
+  }, [
+    defender.species,
+    defender.build,
+    partyBuildsBySpeciesId,
+    partyDexNos,
+    partyFull,
+  ]);
+
+  const handleAttackerPartyPress = () => {
+    if (attackerPartyAction.mode === "add" && attackerPartyAction.applyBuild) {
+      onApplyToParty(attackerPartyAction.applyBuild);
+      return;
+    }
+    if (attackerPartyAction.mode === "update") {
+      setUpdateConfirmSide("attacker");
+    }
+  };
+
+  const handleDefenderPartyPress = () => {
+    if (defenderPartyAction.mode === "add" && defenderPartyAction.applyBuild) {
+      onApplyToParty(defenderPartyAction.applyBuild);
+      return;
+    }
+    if (defenderPartyAction.mode === "update") {
+      setUpdateConfirmSide("defender");
+    }
+  };
+
+  const confirmUpdateParty = () => {
+    const action =
+      updateConfirmSide === "attacker"
+        ? attackerPartyAction
+        : updateConfirmSide === "defender"
+          ? defenderPartyAction
+          : null;
+    if (action?.mode === "update" && action.applyBuild) {
+      onApplyToParty(action.applyBuild);
+    }
+    setUpdateConfirmSide(null);
+  };
+
+  const requestClose = () => {
+    if (pickingSide) {
+      setPickingSide(null);
+      return;
+    }
+    if (isDirty) {
+      setDiscardConfirmOpen(true);
+      return;
+    }
+    onClose();
+  };
+
+  const attackerStats =
+    attacker.species && attacker.build
+      ? calcGen1Stats(attacker.species, attacker.build)
+      : null;
+  const defenderStats =
+    defender.species && defender.build
+      ? calcGen1Stats(defender.species, defender.build)
+      : null;
+
+  const damagingMoves = moves.filter(
+    (m) => (m.power ?? 0) > 0 || FIXED_MOVE_IDS.has(m.pokeapi_id),
+  );
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={requestClose}
+    >
+      <View style={styles.backdrop}>
+        <View style={styles.sheet}>
+          <View style={styles.headerRow}>
+            <Text style={styles.title}>ダメージ計算</Text>
+            <View style={styles.headerActions}>
+              <Pressable
+                onPress={() => {
+                  if (isDirty) setClearConfirmOpen(true);
+                  else resetAll();
+                }}
+                style={({ pressed }) => pressed && styles.pressed}
+              >
+                <Text style={styles.headerLink}>クリア</Text>
+              </Pressable>
+              <Pressable
+                onPress={requestClose}
+                style={({ pressed }) => pressed && styles.pressed}
+              >
+                <Text style={styles.headerLink}>閉じる</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          {pickingSide ? (
+            <ScrollView
+              style={styles.body}
+              contentContainerStyle={styles.bodyContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Text style={styles.pickTitle}>
+                {pickingSide === "attacker"
+                  ? "攻撃するポケモンを選ぶ"
+                  : "攻撃を受けるポケモンを選ぶ"}
+              </Text>
+              <Pressable
+                onPress={() => setPickingSide(null)}
+                style={styles.backPick}
+              >
+                <Text style={styles.backPickText}>← 計算画面へ戻る</Text>
+              </Pressable>
+
+              <View style={styles.filterBox}>
+                <View style={styles.filterHeader}>
+                  <Text style={styles.filterTitle}>絞り込み</Text>
+                  <Pressable onPress={clearPickerFilters}>
+                    <Text style={styles.filterClear}>クリア</Text>
+                  </Pressable>
+                </View>
+                <TextInput
+                  value={nameQuery}
+                  onChangeText={(value) => {
+                    setNameQuery(value);
+                    setSuggestOpen(true);
+                  }}
+                  placeholder="名前・図鑑番号で検索"
+                  placeholderTextColor="#9a9286"
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                  style={styles.searchInput}
+                />
+                {suggestions.length > 0 ? (
+                  <View style={styles.suggestList}>
+                    {suggestions.map((pokemon) => (
+                      <Pressable
+                        key={`${pokemon.dex_no}-${pokemon.region_type}`}
+                        onPress={() => {
+                          setNameQuery(pokemon.name_ja);
+                          setSuggestOpen(false);
+                        }}
+                        style={styles.suggestItem}
+                      >
+                        <Text style={styles.suggestDex}>
+                          {formatDexNo(pokemon.dex_no)}
+                        </Text>
+                        <Text style={styles.suggestName}>{pokemon.name_ja}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+
+                <Text style={styles.filterLabel}>
+                  タイプ（最大2つ・選んだ順がタイプ1→タイプ2）
+                </Text>
+                <View style={styles.typeChipRow}>
+                  {TYPE_OPTIONS.map((type) => {
+                    const selectedIndex = typeFilters.indexOf(type.id);
+                    const selected = selectedIndex >= 0;
+                    const blocked =
+                      !selected && typeFilters.length >= MAX_TYPE_FILTERS;
+                    return (
+                      <Pressable
+                        key={type.id}
+                        disabled={blocked}
+                        onPress={() =>
+                          setTypeFilters((current) => {
+                            const next = toggleTypeFilter(current, type.id);
+                            if (next.length !== 1) setSingleTypeOnly(false);
+                            return next;
+                          })
+                        }
+                        style={[
+                          styles.typeChip,
+                          {
+                            backgroundColor: selected
+                              ? (TYPE_COLORS[type.nameJa] ?? "#888")
+                              : "#fffdf8",
+                            borderColor: TYPE_COLORS[type.nameJa] ?? "#888",
+                          },
+                          blocked && styles.typeChipBlocked,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.typeChipText,
+                            selected && styles.typeChipTextSelected,
+                          ]}
+                        >
+                          {selected
+                            ? `${selectedIndex + 1}.${type.nameJa}`
+                            : type.nameJa}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                {typeFilters.length === 1 ? (
+                  <CheckRow
+                    label="単タイプのみ"
+                    checked={singleTypeOnly}
+                    onToggle={() => setSingleTypeOnly((v) => !v)}
+                  />
+                ) : null}
+                {typeFilters.length === 2 ? (
+                  <CheckRow
+                    label="タイプ順どおり（タイプ1→タイプ2）"
+                    checked={dualOrderMode === "exact"}
+                    onToggle={() =>
+                      setDualOrderMode((m) =>
+                        m === "exact" ? "any" : "exact",
+                      )
+                    }
+                  />
+                ) : null}
+                <CheckRow
+                  label="最終進化のみ"
+                  checked={finalEvolutionOnly}
+                  onToggle={() => setFinalEvolutionOnly((v) => !v)}
+                />
+
+                <Text style={styles.filterLabel}>種族値</Text>
+                {STAT_FILTERS.map(({ key, label }) => (
+                  <View key={key} style={styles.statFilterRow}>
+                    <Text style={styles.statFilterLabel}>{label}</Text>
+                    <View style={styles.statModeRow}>
+                      {(["gte", "lte"] as const).map((mode) => (
+                        <Pressable
+                          key={mode}
+                          onPress={() =>
+                            setStatFilters((current) => ({
+                              ...current,
+                              [key]: { ...current[key], mode },
+                            }))
+                          }
+                          style={[
+                            styles.statModeChip,
+                            statFilters[key].mode === mode &&
+                              styles.statModeChipSelected,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.statModeChipText,
+                              statFilters[key].mode === mode &&
+                                styles.statModeChipTextSelected,
+                            ]}
+                          >
+                            {mode === "gte" ? "以上" : "以下"}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                    <TextInput
+                      value={statFilters[key].value}
+                      onChangeText={(value) =>
+                        setStatFilters((current) => ({
+                          ...current,
+                          [key]: {
+                            ...current[key],
+                            value: value.replace(/[^\d]/g, ""),
+                          },
+                        }))
+                      }
+                      keyboardType="number-pad"
+                      placeholder="—"
+                      placeholderTextColor="#9a9286"
+                      style={styles.statFilterInput}
+                    />
+                  </View>
+                ))}
+                <Text style={styles.filterResult}>
+                  {filteredSpecies.length}体
+                </Text>
+              </View>
+
+              <View style={styles.pager}>
+                <Pressable
+                  disabled={page <= 0}
+                  onPress={() => setPage((p) => Math.max(0, p - 1))}
+                  style={[styles.pageBtn, page <= 0 && styles.pageBtnDisabled]}
+                >
+                  <Text style={styles.pageBtnText}>前へ</Text>
+                </Pressable>
+                <Text style={styles.pageLabel}>
+                  {page + 1} / {totalPages}
+                </Text>
+                <Pressable
+                  disabled={page >= totalPages - 1}
+                  onPress={() =>
+                    setPage((p) => Math.min(totalPages - 1, p + 1))
+                  }
+                  style={[
+                    styles.pageBtn,
+                    page >= totalPages - 1 && styles.pageBtnDisabled,
+                  ]}
+                >
+                  <Text style={styles.pageBtnText}>次へ</Text>
+                </Pressable>
+              </View>
+
+              <View style={styles.pickList}>
+                {pageItems.map((pokemon) => {
+                  const inParty = partyDexNos.includes(pokemon.dex_no);
+                  return (
+                    <Pressable
+                      key={`${pokemon.dex_no}-${pokemon.region_type}-${pokemon.is_mega}`}
+                      onPress={() => handlePickSpecies(pokemon)}
+                      style={({ pressed }) => [
+                        styles.pickCard,
+                        inParty && styles.pickCardInParty,
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <PokemonSprite uri={pokemon.sprite_url} size={56} />
+                      <View style={styles.pickCardBody}>
+                        <Text style={styles.pickDex}>
+                          {formatDexNo(pokemon.dex_no)}
+                        </Text>
+                        <Text style={styles.pickName}>{pokemon.name_ja}</Text>
+                        {inParty ? (
+                          <Text style={styles.inPartyBadge}>選出中</Text>
+                        ) : null}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          ) : (
+            <ScrollView
+              style={styles.body}
+              contentContainerStyle={styles.bodyContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.columns}>
+                <View style={styles.column}>
+                  <Text style={styles.columnTitle}>攻撃側</Text>
+                  <Pressable
+                    onPress={() => openPicker("attacker")}
+                    style={styles.selectPokemonBtn}
+                  >
+                    {attacker.species ? (
+                      <View style={styles.selectedPokemon}>
+                        <PokemonSprite
+                          uri={attacker.species.sprite_url}
+                          size={48}
+                        />
+                        <Text style={styles.selectedName}>
+                          {attacker.species.name_ja}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.selectPokemonText}>
+                        ポケモンを選ぶ
+                      </Text>
+                    )}
+                  </Pressable>
+
+                  {attacker.build && attacker.species ? (
+                    <>
+                      <Text style={styles.section}>技（1つ）</Text>
+                      {loadingMoves ? (
+                        <ActivityIndicator color="#1f6b4a" />
+                      ) : null}
+                      {moveError ? (
+                        <Text style={styles.errorText}>{moveError}</Text>
+                      ) : null}
+                      {selectedMove ? (
+                        <View style={styles.moveSelected}>
+                          <Text style={styles.moveName}>
+                            {selectedMove.name_ja}
+                          </Text>
+                          <Text style={styles.moveMeta}>
+                            {typeNameJa(selectedMove.type_id)} ／{" "}
+                            {DAMAGE_CLASS_JA[selectedMove.damage_class]} ／ 威力
+                            {selectedMove.power ?? "—"}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text style={styles.muted}>未選択</Text>
+                      )}
+                      <Pressable
+                        onPress={() => setPickingMove((v) => !v)}
+                        style={styles.chip}
+                      >
+                        <Text style={styles.chipText}>
+                          {pickingMove ? "候補を閉じる" : "候補から選ぶ"}
+                        </Text>
+                      </Pressable>
+                      {pickingMove ? (
+                        <ScrollView
+                          style={styles.moveList}
+                          nestedScrollEnabled
+                          keyboardShouldPersistTaps="handled"
+                        >
+                          {damagingMoves.length === 0 ? (
+                            <Text style={styles.muted}>
+                              ダメージ技がありません。
+                            </Text>
+                          ) : (
+                            damagingMoves.map((move) => (
+                              <Pressable
+                                key={move.id}
+                                onPress={() => {
+                                  setMoveId(move.id);
+                                  setPickingMove(false);
+                                }}
+                                style={[
+                                  styles.moveItem,
+                                  move.id === moveId && styles.moveItemSelected,
+                                ]}
+                              >
+                                <Text style={styles.moveName}>
+                                  {move.name_ja}
+                                </Text>
+                                <Text style={styles.moveMeta}>
+                                  {typeNameJa(move.type_id)} ／{" "}
+                                  {DAMAGE_CLASS_JA[move.damage_class]} ／ 威力
+                                  {move.power ?? "—"}
+                                </Text>
+                              </Pressable>
+                            ))
+                          )}
+                        </ScrollView>
+                      ) : null}
+
+                      {showAttackerStats && !pickingMove ? (
+                        <>
+                          <Text style={styles.section}>
+                            レベル（1〜{maxLevel}）
+                          </Text>
+                          <TextInput
+                            style={styles.levelInput}
+                            keyboardType="number-pad"
+                            value={String(attacker.build.level)}
+                            onChangeText={(text) =>
+                              patchBuild("attacker", (b) => ({
+                                ...b,
+                                level: clamp(
+                                  parseIntOr(text, b.level),
+                                  1,
+                                  maxLevel,
+                                ),
+                              }))
+                            }
+                          />
+
+                          {isPhysicalMove || isSpecialMove ? (
+                            <>
+                              <Text style={styles.section}>個体値（0〜15）</Text>
+                              {isPhysicalMove ? (
+                                <StatField
+                                  label={GEN1_STAT_LABELS.attack}
+                                  value={attacker.build.iv.attack}
+                                  onChangeText={(t) =>
+                                    patchIv("attacker", "attack", t, 15)
+                                  }
+                                />
+                              ) : (
+                                <StatField
+                                  label={GEN1_STAT_LABELS.special}
+                                  value={attacker.build.iv.special}
+                                  onChangeText={(t) =>
+                                    patchIv("attacker", "special", t, 15)
+                                  }
+                                />
+                              )}
+
+                              <Text style={styles.section}>
+                                努力値（0〜65535）
+                              </Text>
+                              {isPhysicalMove ? (
+                                <StatField
+                                  label={GEN1_STAT_LABELS.attack}
+                                  value={attacker.build.statExp.attack}
+                                  onChangeText={(t) =>
+                                    patchStatExp("attacker", "attack", t)
+                                  }
+                                />
+                              ) : (
+                                <StatField
+                                  label={GEN1_STAT_LABELS.special}
+                                  value={attacker.build.statExp.special}
+                                  onChangeText={(t) =>
+                                    patchStatExp("attacker", "special", t)
+                                  }
+                                />
+                              )}
+
+                              {attackerStats ? (
+                                <>
+                                  <Text style={styles.section}>実数値</Text>
+                                  <Text style={styles.computed}>
+                                    {isPhysicalMove
+                                      ? `こうげき ${attackerStats.attack}`
+                                      : `とくしゅ ${attackerStats.special}`}
+                                  </Text>
+                                </>
+                              ) : null}
+
+                              <Text style={styles.section}>ランク</Text>
+                              {isPhysicalMove ? (
+                                <StageStepper
+                                  label="こうげき"
+                                  value={attacker.attackStage}
+                                  onChange={(v) =>
+                                    setAttacker((c) => ({
+                                      ...c,
+                                      attackStage: v,
+                                    }))
+                                  }
+                                />
+                              ) : (
+                                <StageStepper
+                                  label="とくしゅ"
+                                  value={attacker.specialStage}
+                                  onChange={(v) =>
+                                    setAttacker((c) => ({
+                                      ...c,
+                                      specialStage: v,
+                                    }))
+                                  }
+                                />
+                              )}
+                            </>
+                          ) : (
+                            <Text style={styles.muted}>
+                              固定ダメージ技のため攻撃能力の設定は不要です。
+                            </Text>
+                          )}
+
+                          {isPhysicalMove ? (
+                            <CheckRow
+                              label="やけど"
+                              checked={attackerBurn}
+                              onToggle={() => setAttackerBurn((v) => !v)}
+                            />
+                          ) : null}
+                        </>
+                      ) : null}
+
+                      {!pickingMove ? (
+                        <>
+                          <Pressable
+                            disabled={attackerPartyAction.mode === "disabled"}
+                            onPress={handleAttackerPartyPress}
+                            style={[
+                              styles.addPartyBtn,
+                              attackerPartyAction.mode === "disabled" &&
+                                styles.addPartyBtnDisabled,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.addPartyBtnText,
+                                attackerPartyAction.mode === "disabled" &&
+                                  styles.addPartyBtnTextDisabled,
+                              ]}
+                            >
+                              {attackerPartyAction.label}
+                            </Text>
+                          </Pressable>
+                          {attackerPartyAction.reason ? (
+                            <Text style={styles.disabledHint}>
+                              {attackerPartyAction.reason}
+                            </Text>
+                          ) : null}
+                        </>
+                      ) : null}
+                    </>
+                  ) : null}
+                </View>
+
+                <View style={styles.column}>
+                  <Text style={styles.columnTitle}>防御側</Text>
+                  <Pressable
+                    onPress={() => openPicker("defender")}
+                    style={styles.selectPokemonBtn}
+                  >
+                    {defender.species ? (
+                      <View style={styles.selectedPokemon}>
+                        <PokemonSprite
+                          uri={defender.species.sprite_url}
+                          size={48}
+                        />
+                        <Text style={styles.selectedName}>
+                          {defender.species.name_ja}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.selectPokemonText}>
+                        ポケモンを選ぶ
+                      </Text>
+                    )}
+                  </Pressable>
+
+                  {defender.build && defender.species && !selectedMove ? (
+                    <Text style={styles.muted}>
+                      攻撃側の技を選ぶと、耐久の設定が表示されます。
+                    </Text>
+                  ) : null}
+
+                  {showDefenderStats ? (
+                    <>
+                      <Text style={styles.section}>
+                        レベル（1〜{maxLevel}）
+                      </Text>
+                      <TextInput
+                        style={styles.levelInput}
+                        keyboardType="number-pad"
+                        value={String(defender.build!.level)}
+                        onChangeText={(text) =>
+                          patchBuild("defender", (b) => ({
+                            ...b,
+                            level: clamp(
+                              parseIntOr(text, b.level),
+                              1,
+                              maxLevel,
+                            ),
+                          }))
+                        }
+                      />
+
+                      <Text style={styles.section}>個体値（0〜15）</Text>
+                      <StatField
+                        label={GEN1_STAT_LABELS.hp}
+                        value={defender.build!.iv.hp}
+                        onChangeText={(t) => patchIv("defender", "hp", t, 15)}
+                      />
+                      {isPhysicalMove ? (
+                        <StatField
+                          label={GEN1_STAT_LABELS.defense}
+                          value={defender.build!.iv.defense}
+                          onChangeText={(t) =>
+                            patchIv("defender", "defense", t, 15)
+                          }
+                        />
+                      ) : null}
+                      {isSpecialMove ? (
+                        <StatField
+                          label={GEN1_STAT_LABELS.special}
+                          value={defender.build!.iv.special}
+                          onChangeText={(t) =>
+                            patchIv("defender", "special", t, 15)
+                          }
+                        />
+                      ) : null}
+
+                      <Text style={styles.section}>努力値（0〜65535）</Text>
+                      <StatField
+                        label={GEN1_STAT_LABELS.hp}
+                        value={defender.build!.statExp.hp}
+                        onChangeText={(t) =>
+                          patchStatExp("defender", "hp", t)
+                        }
+                      />
+                      {isPhysicalMove ? (
+                        <StatField
+                          label={GEN1_STAT_LABELS.defense}
+                          value={defender.build!.statExp.defense}
+                          onChangeText={(t) =>
+                            patchStatExp("defender", "defense", t)
+                          }
+                        />
+                      ) : null}
+                      {isSpecialMove ? (
+                        <StatField
+                          label={GEN1_STAT_LABELS.special}
+                          value={defender.build!.statExp.special}
+                          onChangeText={(t) =>
+                            patchStatExp("defender", "special", t)
+                          }
+                        />
+                      ) : null}
+
+                      {defenderStats ? (
+                        <>
+                          <Text style={styles.section}>実数値</Text>
+                          <Text style={styles.computed}>
+                            HP {defenderStats.hp}
+                            {isPhysicalMove
+                              ? ` ／ ぼうぎょ ${defenderStats.defense}`
+                              : ""}
+                            {isSpecialMove
+                              ? ` ／ とくしゅ ${defenderStats.special}`
+                              : ""}
+                          </Text>
+                        </>
+                      ) : null}
+
+                      {isPhysicalMove || isSpecialMove ? (
+                        <>
+                          <Text style={styles.section}>ランク</Text>
+                          {isPhysicalMove ? (
+                            <StageStepper
+                              label="ぼうぎょ"
+                              value={defender.defenseStage}
+                              onChange={(v) =>
+                                setDefender((c) => ({
+                                  ...c,
+                                  defenseStage: v,
+                                }))
+                              }
+                            />
+                          ) : (
+                            <StageStepper
+                              label="とくしゅ"
+                              value={defender.specialStage}
+                              onChange={(v) =>
+                                setDefender((c) => ({
+                                  ...c,
+                                  specialStage: v,
+                                }))
+                              }
+                            />
+                          )}
+                        </>
+                      ) : null}
+
+                      <Text style={styles.section}>場の効果</Text>
+                      {isPhysicalMove ? (
+                        <CheckRow
+                          label="リフレクター"
+                          checked={reflect}
+                          onToggle={() => setReflect((v) => !v)}
+                        />
+                      ) : null}
+                      {isSpecialMove ? (
+                        <CheckRow
+                          label="ひかりのかべ"
+                          checked={lightScreen}
+                          onToggle={() => setLightScreen((v) => !v)}
+                        />
+                      ) : null}
+                      {!isPhysicalMove && !isSpecialMove ? (
+                        <Text style={styles.muted}>
+                          固定ダメージ技のため場の効果は影響しません。
+                        </Text>
+                      ) : null}
+
+                      <Pressable
+                        disabled={defenderPartyAction.mode === "disabled"}
+                        onPress={handleDefenderPartyPress}
+                        style={[
+                          styles.addPartyBtn,
+                          defenderPartyAction.mode === "disabled" &&
+                            styles.addPartyBtnDisabled,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.addPartyBtnText,
+                            defenderPartyAction.mode === "disabled" &&
+                              styles.addPartyBtnTextDisabled,
+                          ]}
+                        >
+                          {defenderPartyAction.label}
+                        </Text>
+                      </Pressable>
+                      {defenderPartyAction.reason ? (
+                        <Text style={styles.disabledHint}>
+                          {defenderPartyAction.reason}
+                        </Text>
+                      ) : null}
+                    </>
+                  ) : defender.build && defender.species ? (
+                    <>
+                      <Pressable
+                        disabled={defenderPartyAction.mode === "disabled"}
+                        onPress={handleDefenderPartyPress}
+                        style={[
+                          styles.addPartyBtn,
+                          defenderPartyAction.mode === "disabled" &&
+                            styles.addPartyBtnDisabled,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.addPartyBtnText,
+                            defenderPartyAction.mode === "disabled" &&
+                              styles.addPartyBtnTextDisabled,
+                          ]}
+                        >
+                          {defenderPartyAction.label}
+                        </Text>
+                      </Pressable>
+                      {defenderPartyAction.reason ? (
+                        <Text style={styles.disabledHint}>
+                          {defenderPartyAction.reason}
+                        </Text>
+                      ) : null}
+                    </>
+                  ) : null}
+                </View>
+              </View>
+
+              <View style={styles.resultBox}>
+                <Text style={styles.columnTitle}>ダメージ結果</Text>
+                <CheckRow
+                  label="急所"
+                  checked={crit}
+                  onToggle={() => setCrit((v) => !v)}
+                />
+                {!attacker.species || !defender.species || !selectedMove ? (
+                  <Text style={styles.muted}>
+                    攻撃側・防御側・技をすべて選ぶと結果が表示されます。
+                  </Text>
+                ) : damageResult?.immune ? (
+                  <Text style={styles.resultImmune}>こうかがなかった…</Text>
+                ) : damageResult && damageResult.max <= 0 ? (
+                  <Text style={styles.muted}>ダメージはありません。</Text>
+                ) : damageResult ? (
+                  <>
+                    <Text style={styles.resultRange}>
+                      {damageResult.min} 〜 {damageResult.max}
+                    </Text>
+                    <Text style={styles.resultPercent}>
+                      （最大HPの {damageResult.minPercent}% 〜{" "}
+                      {damageResult.maxPercent}%）
+                    </Text>
+                    {damageResult.koLabel ? (
+                      <Text style={styles.resultKo}>{damageResult.koLabel}</Text>
+                    ) : null}
+                    <Text style={styles.resultMeta}>
+                      {typeEffLabel(damageResult.typeEffectiveness)}
+                      {damageResult.isFixed ? " ／ 固定ダメージ" : ""}
+                      {crit ? " ／ 急所" : ""}
+                    </Text>
+                  </>
+                ) : null}
+              </View>
+            </ScrollView>
+          )}
+        </View>
+      </View>
+
+      <Modal
+        visible={importConfirmOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setImportConfirmOpen(false)}
+      >
+        <View style={styles.confirmBackdrop}>
+          <View style={styles.confirmSheet}>
+            <Text style={styles.confirmTitle}>選出中の設定を読み込みますか？</Text>
+            <Text style={styles.confirmBody}>
+              {pendingSpecies?.name_ja ?? "このポケモン"}
+              はパーティに選出済みです。レベル・個体値・努力値
+              {pickingSide === "attacker" ? "・技" : ""}
+              を反映しますか？
+            </Text>
+            <View style={styles.confirmRow}>
+              <Pressable
+                onPress={() => {
+                  if (pendingSpecies && pickingSide) {
+                    applySpecies(pickingSide, pendingSpecies, false);
+                  }
+                }}
+                style={styles.confirmSecondary}
+              >
+                <Text style={styles.confirmSecondaryText}>しない</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  if (pendingSpecies && pickingSide) {
+                    applySpecies(pickingSide, pendingSpecies, true);
+                  }
+                }}
+                style={styles.confirmPrimary}
+              >
+                <Text style={styles.confirmPrimaryText}>読み込む</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={updateConfirmSide != null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setUpdateConfirmSide(null)}
+      >
+        <View style={styles.confirmBackdrop}>
+          <View style={styles.confirmSheet}>
+            <Text style={styles.confirmTitle}>パーティの設定を更新しますか？</Text>
+            <Text style={styles.confirmBody}>
+              {(updateConfirmSide === "attacker"
+                ? attacker.species?.name_ja
+                : defender.species?.name_ja) ?? "このポケモン"}
+              のパーティ設定を、ダメージ計算で変更した内容で上書きします。よろしいですか？
+            </Text>
+            <View style={styles.confirmRow}>
+              <Pressable
+                onPress={() => setUpdateConfirmSide(null)}
+                style={styles.confirmSecondary}
+              >
+                <Text style={styles.confirmSecondaryText}>キャンセル</Text>
+              </Pressable>
+              <Pressable
+                onPress={confirmUpdateParty}
+                style={styles.confirmPrimary}
+              >
+                <Text style={styles.confirmPrimaryText}>更新する</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={discardConfirmOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDiscardConfirmOpen(false)}
+      >
+        <View style={styles.confirmBackdrop}>
+          <View style={styles.confirmSheet}>
+            <Text style={styles.confirmTitle}>入力を破棄しますか？</Text>
+            <Text style={styles.confirmBody}>
+              閉じるとダメージ計算の設定は破棄されます。
+            </Text>
+            <View style={styles.confirmRow}>
+              <Pressable
+                onPress={() => setDiscardConfirmOpen(false)}
+                style={styles.confirmSecondary}
+              >
+                <Text style={styles.confirmSecondaryText}>キャンセル</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setDiscardConfirmOpen(false);
+                  resetAll();
+                  onClose();
+                }}
+                style={styles.confirmPrimary}
+              >
+                <Text style={styles.confirmPrimaryText}>破棄して閉じる</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={clearConfirmOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setClearConfirmOpen(false)}
+      >
+        <View style={styles.confirmBackdrop}>
+          <View style={styles.confirmSheet}>
+            <Text style={styles.confirmTitle}>設定をクリアしますか？</Text>
+            <Text style={styles.confirmBody}>
+              攻撃側・防御側・技・補正の入力をすべてリセットします。
+            </Text>
+            <View style={styles.confirmRow}>
+              <Pressable
+                onPress={() => setClearConfirmOpen(false)}
+                style={styles.confirmSecondary}
+              >
+                <Text style={styles.confirmSecondaryText}>キャンセル</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setClearConfirmOpen(false);
+                  resetAll();
+                }}
+                style={styles.confirmPrimary}
+              >
+                <Text style={styles.confirmPrimaryText}>クリア</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(28, 36, 24, 0.55)",
+    justifyContent: "center",
+    padding: 12,
+  },
+  sheet: {
+    backgroundColor: "#fffdf8",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    maxHeight: "92%",
+    overflow: "hidden",
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee6d8",
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#1d1a16",
+  },
+  headerActions: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  headerLink: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1f6b4a",
+  },
+  body: {
+    maxHeight: 640,
+  },
+  bodyContent: {
+    padding: 14,
+    gap: 12,
+    paddingBottom: 28,
+  },
+  columns: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  column: {
+    flexGrow: 1,
+    flexBasis: 280,
+    minWidth: 260,
+    gap: 8,
+    backgroundColor: "#f7f3ea",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5dccb",
+    padding: 12,
+  },
+  columnTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#1f6b4a",
+  },
+  selectPokemonBtn: {
+    borderWidth: 1,
+    borderColor: "#cfc6b6",
+    borderRadius: 10,
+    backgroundColor: "#fffdf8",
+    padding: 10,
+    minHeight: 56,
+    justifyContent: "center",
+  },
+  selectPokemonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#8a8276",
+    textAlign: "center",
+  },
+  selectedPokemon: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  selectedName: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#1d1a16",
+  },
+  section: {
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#5c564c",
+  },
+  levelInput: {
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    borderRadius: 8,
+    backgroundColor: "#fffdf8",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1d1a16",
+  },
+  statField: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  fieldLabel: {
+    width: 72,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#5c564c",
+  },
+  statInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    borderRadius: 8,
+    backgroundColor: "#fffdf8",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1d1a16",
+  },
+  computed: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#1d1a16",
+  },
+  stageRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  stageControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  stageBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#cfc6b6",
+    backgroundColor: "#fffdf8",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stageBtnText: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#1f6b4a",
+  },
+  stageValue: {
+    minWidth: 36,
+    textAlign: "center",
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#1d1a16",
+  },
+  checkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 4,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: "#9a9286",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fffdf8",
+  },
+  checkboxOn: {
+    borderColor: "#1f6b4a",
+    backgroundColor: "#eef7f1",
+  },
+  checkboxMark: {
+    fontSize: 12,
+    fontWeight: "900",
+    color: "#1f6b4a",
+  },
+  checkLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1d1a16",
+  },
+  chip: {
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: "#cfc6b6",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "#fffdf8",
+  },
+  chipText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#1f6b4a",
+  },
+  moveSelected: {
+    gap: 2,
+  },
+  moveList: {
+    gap: 6,
+    maxHeight: 220,
+    overflow: "hidden",
+    zIndex: 2,
+    elevation: 2,
+  },
+  moveItem: {
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    borderRadius: 8,
+    padding: 8,
+    backgroundColor: "#fffdf8",
+    marginBottom: 6,
+  },
+  moveItemSelected: {
+    borderColor: "#1f6b4a",
+    backgroundColor: "#eef7f1",
+  },
+  moveName: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#1d1a16",
+  },
+  moveMeta: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#8a8276",
+  },
+  muted: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#8a8276",
+  },
+  errorText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#a33b2a",
+  },
+  addPartyBtn: {
+    marginTop: 8,
+    backgroundColor: "#1f6b4a",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: "center",
+  },
+  addPartyBtnDisabled: {
+    backgroundColor: "#cfc6b6",
+  },
+  addPartyBtnText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#fffdf8",
+  },
+  addPartyBtnTextDisabled: {
+    color: "#f5f0e6",
+  },
+  disabledHint: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#8a8276",
+  },
+  resultBox: {
+    gap: 8,
+    backgroundColor: "#eef7f1",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#b7d4c4",
+    padding: 14,
+  },
+  resultRange: {
+    fontSize: 28,
+    fontWeight: "900",
+    color: "#1d1a16",
+  },
+  resultPercent: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1f6b4a",
+  },
+  resultKo: {
+    fontSize: 20,
+    fontWeight: "900",
+    color: "#1d1a16",
+  },
+  resultMeta: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#5c564c",
+  },
+  resultImmune: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#8a8276",
+  },
+  pickTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#1d1a16",
+  },
+  backPick: {
+    alignSelf: "flex-start",
+  },
+  backPickText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1f6b4a",
+  },
+  filterBox: {
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#e5dccb",
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: "#f7f3ea",
+  },
+  filterHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  filterTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#1d1a16",
+  },
+  filterClear: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#1f6b4a",
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    borderRadius: 8,
+    backgroundColor: "#fffdf8",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: "#1d1a16",
+  },
+  suggestList: {
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: "#fffdf8",
+  },
+  suggestItem: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee6d8",
+  },
+  suggestDex: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#8a8276",
+  },
+  suggestName: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1d1a16",
+  },
+  filterLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#5c564c",
+  },
+  typeChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  typeChip: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  typeChipBlocked: {
+    opacity: 0.35,
+  },
+  typeChipText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#1d1a16",
+  },
+  typeChipTextSelected: {
+    color: "#fff",
+  },
+  statFilterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  statFilterLabel: {
+    width: 56,
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#5c564c",
+  },
+  statModeRow: {
+    flexDirection: "row",
+    gap: 4,
+  },
+  statModeChip: {
+    borderWidth: 1,
+    borderColor: "#cfc6b6",
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    backgroundColor: "#fffdf8",
+  },
+  statModeChipSelected: {
+    borderColor: "#1f6b4a",
+    backgroundColor: "#eef7f1",
+  },
+  statModeChipText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#8a8276",
+  },
+  statModeChipTextSelected: {
+    color: "#1f6b4a",
+  },
+  statFilterInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    borderRadius: 8,
+    backgroundColor: "#fffdf8",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#1d1a16",
+    textAlign: "center",
+  },
+  filterResult: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#5c564c",
+  },
+  pager: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  pageBtn: {
+    borderWidth: 1,
+    borderColor: "#cfc6b6",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "#fffdf8",
+  },
+  pageBtnDisabled: {
+    opacity: 0.4,
+  },
+  pageBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#1f6b4a",
+  },
+  pageLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#5c564c",
+  },
+  pickList: {
+    gap: 8,
+  },
+  pickCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    borderRadius: 12,
+    padding: 10,
+    backgroundColor: "#fffdf8",
+  },
+  pickCardInParty: {
+    borderColor: "#1f6b4a",
+    backgroundColor: "#eef7f1",
+  },
+  pickCardBody: {
+    flex: 1,
+    gap: 2,
+  },
+  pickDex: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#8a8276",
+  },
+  pickName: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#1d1a16",
+  },
+  inPartyBadge: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#1f6b4a",
+  },
+  pressed: {
+    opacity: 0.75,
+  },
+  confirmBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(28, 36, 24, 0.55)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  confirmSheet: {
+    width: "50%",
+    maxWidth: 420,
+    minWidth: 280,
+    backgroundColor: "#fffdf8",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    padding: 18,
+    gap: 12,
+  },
+  confirmTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#1d1a16",
+  },
+  confirmBody: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#5c564c",
+    lineHeight: 20,
+  },
+  confirmRow: {
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "flex-end",
+  },
+  confirmSecondary: {
+    borderWidth: 1,
+    borderColor: "#cfc6b6",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: "#fffdf8",
+  },
+  confirmSecondaryText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#5c564c",
+  },
+  confirmPrimary: {
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: "#1f6b4a",
+  },
+  confirmPrimaryText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#fffdf8",
+  },
+});

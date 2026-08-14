@@ -46,6 +46,7 @@ import {
 } from "../pokemon/types";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
 import { SetPokemonDialog } from "./set/SetPokemonDialog";
+import { DamageCalcDialog } from "../battle/DamageCalcDialog";
 import { Gen1TypeChartDialog } from "../battle/Gen1TypeChartDialog";
 
 const grassland = require("../../assets/title/title-grassland.png");
@@ -696,6 +697,7 @@ export function SelectPokemonScreen() {
   const [movesRequiredOpen, setMovesRequiredOpen] = useState(false);
   const [partyRequiredOpen, setPartyRequiredOpen] = useState(false);
   const [typeChartOpen, setTypeChartOpen] = useState(false);
+  const [damageCalcOpen, setDamageCalcOpen] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [nameQuery, setNameQuery] = useState("");
   const [typeFilters, setTypeFilters] = useState<TypeId[]>([]);
@@ -1178,6 +1180,20 @@ export function SelectPokemonScreen() {
               </View>
             </View>
 
+            <View style={styles.toolButtonRow}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setDamageCalcOpen(true)}
+                style={({ pressed }) => [
+                  styles.toolButton,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.toolButtonText}>ダメージ計算</Text>
+              </Pressable>
+              {/* すばやさ比較ボタンは後続で横並びに追加予定 */}
+            </View>
+
             <SpeciesFilters
               nameQuery={nameQuery}
               onNameQueryChange={(value) => {
@@ -1288,6 +1304,27 @@ export function SelectPokemonScreen() {
       <Gen1TypeChartDialog
         visible={typeChartOpen}
         onClose={() => setTypeChartOpen(false)}
+      />
+
+      <DamageCalcDialog
+        visible={damageCalcOpen}
+        speciesPool={species}
+        levelCapMode={levelCapMode}
+        moveGenerationOptions={moveGenerationOptions}
+        partyBuildsBySpeciesId={buildsBySpeciesId}
+        partyDexNos={selectedDexNos}
+        onClose={() => setDamageCalcOpen(false)}
+        onApplyToParty={(build) => {
+          const alreadyInParty = selectedDexNos.includes(build.dexNo);
+          if (!alreadyInParty) {
+            if (selectedDexNos.length >= PARTY_SIZE) return;
+            setSelectedDexNos((current) => [...current, build.dexNo]);
+          }
+          setBuildsBySpeciesId((current) => ({
+            ...current,
+            [build.speciesId]: build,
+          }));
+        }}
       />
 
       <Modal
@@ -1483,6 +1520,22 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     gap: 10,
+  },
+  toolButtonRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  toolButton: {
+    backgroundColor: "#1f6b4a",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  toolButtonText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#fffdf8",
   },
   partyTitle: {
     fontSize: 13,
