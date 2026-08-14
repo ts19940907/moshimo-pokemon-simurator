@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   ImageBackground,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,9 +12,10 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { OpponentType } from "../match-setup/types";
+import { useBattleSession } from "../battle/BattleSessionContext";
 import { usePartySetup } from "../party/PartySetupContext";
-import type { PartyMemberBuild, PartySide } from "../party/types";
-import { BATTLE_PARTY_SIZE, formatDexNo, PARTY_SIZE } from "../pokemon/catalog";
+import type { PartyMemberBuild } from "../party/types";
+import { BATTLE_PARTY_SIZE, formatDexNo } from "../pokemon/catalog";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
 import { fetchPokemonSpecies } from "../pokemon/repository";
 import type { PokemonSpecies } from "../pokemon/types";
@@ -37,10 +37,6 @@ type MatchParams = {
   levelCapMode?: string;
 };
 
-function parseSide(value: string | undefined): PartySide {
-  return value === "b" ? "b" : "a";
-}
-
 function PartyColumn({
   title,
   members,
@@ -61,7 +57,10 @@ function PartyColumn({
   tone: "own" | "opponent";
 }) {
   const full = pickedIds.length >= BATTLE_PARTY_SIZE;
-  const slots = Array.from({ length: PARTY_SIZE }, (_, index) => members[index] ?? null);
+  const slots = Array.from(
+    { length: Math.max(members.length, BATTLE_PARTY_SIZE) },
+    (_, index) => members[index] ?? null,
+  );
   const isOwn = tone === "own";
 
   return (
@@ -177,29 +176,21 @@ function PartyColumn({
 export function SelectBattlePokemonScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<MatchParams>();
-  const { sideA, sideB, getSide } = usePartySetup();
+  const { sideA, sideB } = usePartySetup();
+  const { startBattle } = useBattleSession();
   const opponentType = (params.opponentType ?? "local_both") as OpponentType;
   const isLocalBoth = opponentType === "local_both";
 
-  const [selectSide, setSelectSide] = useState<PartySide>(
-    parseSide(params.selectSide),
-  );
-  const [pickedIds, setPickedIds] = useState<string[]>([]);
   const [picksA, setPicksA] = useState<string[]>([]);
-  const [handoffOpen, setHandoffOpen] = useState(false);
-  const [doneOpen, setDoneOpen] = useState(false);
+  const [picksB, setPicksB] = useState<string[]>([]);
   const [speciesById, setSpeciesById] = useState<Record<string, PokemonSpecies>>(
     {},
   );
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const activeParty = getSide(selectSide);
-  const members = activeParty?.members ?? [];
-  const opponentSide: PartySide = selectSide === "a" ? "b" : "a";
-  const opponentMembers = getSide(opponentSide)?.members ?? [];
-  const ownTitle = selectSide === "a" ? "自分の6体" : "サイドBの6体";
-  const sideLabel = selectSide === "a" ? "サイドA（自分）" : "サイドB（相手）";
+  const membersA = sideA?.members ?? [];
+  const membersB = sideB?.members ?? [];
 
   useEffect(() => {
     let cancelled = false;
@@ -237,49 +228,56 @@ export function SelectBattlePokemonScreen() {
     };
   }, [sideA, sideB, isLocalBoth]);
 
-  const togglePick = (speciesId: string) => {
-    setPickedIds((current) => {
+  const togglePick = (side: "a" | "b", speciesId: string) => {
+    const setter = side === "a" ? setPicksA : setPicksB;
+    setter((current) => {
       if (current.includes(speciesId)) {
         return current.filter((id) => id !== speciesId);
       }
-      if (current.length >= BATTLE_PARTY_SIZE) {
-        return current;
-      }
+      if (current.length >= BATTLE_PARTY_SIZE) return current;
       return [...current, speciesId];
     });
   };
 
-  const backToSet = () => {
-    const targetSide: PartySide = isLocalBoth ? "b" : "a";
-    const party = getSide(targetSide);
-    const partyParam =
-      party?.members.map((member) => member.dexNo).join(",") ?? "";
+  const backToParty = () => {
+    const targetSide = isLocalBoth ? "b" : "a";
     router.replace({
-      pathname: "/set",
+      pathname: "/party",
       params: {
         ...params,
         side: targetSide,
-        party: partyParam,
       },
     });
   };
 
+  const bothReady =
+    picksA.length === BATTLE_PARTY_SIZE &&
+    (!isLocalBoth || picksB.length === BATTLE_PARTY_SIZE);
+
   const confirmSelection = () => {
-    if (pickedIds.length !== BATTLE_PARTY_SIZE) return;
-
-    if (isLocalBoth && selectSide === "a") {
-      setPicksA(pickedIds);
-      setHandoffOpen(true);
-      return;
-    }
-
-    setDoneOpen(true);
+    if (!bothReady) return;
+    startBattle(
+      {
+        a: picksA,
+        b: isLocalBoth ? picksB : [],
+      },
+      "a",
+    );
+    router.replace({
+      pathname: "/battle",
+      params: { ...params },
+    });
   };
 
-  const startSideBSelect = () => {
-    setHandoffOpen(false);
-    setSelectSide("b");
-    setPickedIds([]);
+  const pickSummary = (ids: string[], members: PartyMemberBuild[]) => {
+    if (ids.length === 0) return "";
+    return `（${ids
+      .map((id, index) => {
+        const member = members.find((m) => m.speciesId === id);
+        const label = member?.nameJa ?? "?";
+        return index === 0 ? `初手:${label}` : `${index + 1}:${label}`;
+      })
+      .join(" / ")}）`;
   };
 
   return (
@@ -289,17 +287,17 @@ export function SelectBattlePokemonScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.panel}>
             <Pressable
-              onPress={backToSet}
+              onPress={backToParty}
               style={({ pressed }) => pressed && styles.pressed}
             >
-              <Text style={styles.backText}>セットへ戻る</Text>
+              <Text style={styles.backText}>編成へ戻る</Text>
             </Pressable>
             <Text style={styles.kicker}>選出</Text>
             <Text style={styles.title}>3体を選出する</Text>
             <Text style={styles.lead}>
               {isLocalBoth
-                ? `${sideLabel}の選出です。左右で6体を見比べ、左側から3体を選んでください。選んだ順が並びで、先頭が初手です。`
-                : "左右で6体を見比べ、左側から3体を選んでください。選んだ順が並びで、先頭が初手です。AIの選出は裏で進行しています。"}
+                ? "同一画面で両サイドが3体ずつ選びます。選んだ順が並びで、先頭が初手です（フル公開）。"
+                : "左側から3体を選んでください。選んだ順が並びで、先頭が初手です。AIの選出は裏で進行しています。"}
             </Text>
 
             {loading ? (
@@ -315,59 +313,63 @@ export function SelectBattlePokemonScreen() {
             {!loading && !errorMessage ? (
               <>
                 <Text style={styles.pickStatus}>
-                  選出 {pickedIds.length}/{BATTLE_PARTY_SIZE}
-                  {pickedIds.length > 0
-                    ? `（${pickedIds
-                        .map((id, index) => {
-                          const member = members.find((m) => m.speciesId === id);
-                          const label = member?.nameJa ?? "?";
-                          return index === 0 ? `初手:${label}` : `${index + 1}:${label}`;
-                        })
-                        .join(" / ")}）`
-                    : ""}
+                  サイドA {picksA.length}/{BATTLE_PARTY_SIZE}
+                  {pickSummary(picksA, membersA)}
                 </Text>
+                {isLocalBoth ? (
+                  <Text style={styles.pickStatus}>
+                    サイドB {picksB.length}/{BATTLE_PARTY_SIZE}
+                    {pickSummary(picksB, membersB)}
+                  </Text>
+                ) : null}
 
                 <View style={styles.columns}>
                   <PartyColumn
-                    title={ownTitle}
-                    members={members}
+                    title={`サイドA（${membersA.length}体）`}
+                    members={membersA}
                     speciesById={speciesById}
-                    emptyText="自分のパーティがありません。"
+                    emptyText="サイドAのパーティがありません。"
                     selectable
-                    pickedIds={pickedIds}
-                    onToggle={togglePick}
+                    pickedIds={picksA}
+                    onToggle={(id) => togglePick("a", id)}
                     tone="own"
                   />
                   <PartyColumn
-                    title="相手の6体"
-                    members={opponentMembers}
+                    title={
+                      isLocalBoth
+                        ? `サイドB（${membersB.length}体）`
+                        : "相手のパーティ"
+                    }
+                    members={isLocalBoth ? membersB : []}
                     speciesById={speciesById}
                     emptyText={
                       isLocalBoth
-                        ? "相手のパーティがありません。"
+                        ? "サイドBのパーティがありません。"
                         : "AIのパーティは準備中です。"
                     }
-                    selectable={false}
-                    pickedIds={[]}
+                    selectable={isLocalBoth}
+                    pickedIds={isLocalBoth ? picksB : []}
+                    onToggle={
+                      isLocalBoth ? (id) => togglePick("b", id) : undefined
+                    }
                     tone="opponent"
                   />
                 </View>
 
                 <Pressable
-                  disabled={pickedIds.length !== BATTLE_PARTY_SIZE}
+                  disabled={!bothReady}
                   onPress={confirmSelection}
                   style={[
                     styles.primaryButton,
-                    pickedIds.length !== BATTLE_PARTY_SIZE &&
-                      styles.primaryButtonDisabled,
+                    !bothReady && styles.primaryButtonDisabled,
                   ]}
                 >
                   <Text style={styles.primaryButtonText}>
-                    {pickedIds.length === BATTLE_PARTY_SIZE
-                      ? isLocalBoth && selectSide === "a"
-                        ? "サイドBの選出へ"
-                        : "選出を確定"
-                      : `あと${BATTLE_PARTY_SIZE - pickedIds.length}体選んでください`}
+                    {bothReady
+                      ? "選出を確定"
+                      : isLocalBoth
+                        ? `A ${picksA.length}/${BATTLE_PARTY_SIZE} ／ B ${picksB.length}/${BATTLE_PARTY_SIZE}`
+                        : `あと${BATTLE_PARTY_SIZE - picksA.length}体選んでください`}
                   </Text>
                 </Pressable>
               </>
@@ -375,49 +377,6 @@ export function SelectBattlePokemonScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
-
-      <Modal
-        visible={handoffOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setHandoffOpen(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>サイド交代</Text>
-            <Text style={styles.modalBody}>
-              サイドAの選出を隠しました。端末を渡して、サイドBの3体選出を行ってください。
-            </Text>
-            <Pressable onPress={startSideBSelect} style={styles.primaryButton}>
-              <Text style={styles.primaryButtonText}>サイドBの選出を開始</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={doneOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setDoneOpen(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>選出完了</Text>
-            <Text style={styles.modalBody}>
-              {isLocalBoth
-                ? `サイドA ${picksA.length}体・サイドB ${pickedIds.length}体の選出が完了しました。対戦画面はこれから用意します。`
-                : "自分の選出が完了しました。対戦画面はこれから用意します。"}
-            </Text>
-            <Pressable
-              onPress={() => setDoneOpen(false)}
-              style={styles.secondaryButton}
-            >
-              <Text style={styles.secondaryButtonText}>閉じる</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
     </ImageBackground>
   );
 }

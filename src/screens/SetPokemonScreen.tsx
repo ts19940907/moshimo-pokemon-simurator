@@ -20,6 +20,7 @@ import {
   type PartyMemberBuild,
   type PartySide,
 } from "../party/types";
+import { calcGen1Stats, summarizeGen1Stats } from "../party/gen1Stats";
 import { formatDexNo } from "../pokemon/catalog";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
 import { fetchMovesForPokemon } from "../pokemon/moveRepository";
@@ -31,6 +32,7 @@ import {
   pokemonGenerationFilterFromParams,
 } from "../match-setup/params";
 import { SetPokemonDialog } from "./set/SetPokemonDialog";
+import { Gen1TypeChartDialog } from "../battle/Gen1TypeChartDialog";
 
 const grassland = require("../../assets/title/title-grassland.png");
 
@@ -80,6 +82,7 @@ export function SetPokemonScreen() {
   );
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [typeChartOpen, setTypeChartOpen] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [movesRequiredOpen, setMovesRequiredOpen] = useState(false);
   const [moveNames, setMoveNames] = useState<Record<string, string>>({});
@@ -276,6 +279,17 @@ export function SetPokemonScreen() {
             <Text style={styles.lead}>
               ポケモンを選んでフォーカスし、「設定する」からレベル・性別・個体値・努力値・技を編集します。
             </Text>
+            <Pressable
+              onPress={() => setTypeChartOpen(true)}
+              style={({ pressed }) => [
+                styles.typeChartButton,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.typeChartButtonText}>
+                初代タイプ相性表を見る
+              </Text>
+            </Pressable>
 
             {loading ? (
               <View style={styles.stateBox}>
@@ -334,6 +348,12 @@ export function SetPokemonScreen() {
                     <Text style={styles.blockBody}>
                       {summarizeStats(focused.statExp)}
                     </Text>
+                    <Text style={styles.blockTitle}>実数値</Text>
+                    <Text style={styles.blockBody}>
+                      {summarizeGen1Stats(
+                        calcGen1Stats(focusedSpecies, focused),
+                      )}
+                    </Text>
                     <Text style={styles.blockTitle}>技</Text>
                     <Text style={styles.blockBody}>
                       {focused.moveIds
@@ -381,6 +401,11 @@ export function SetPokemonScreen() {
           onSave={(build) => updateMember(build.speciesId, build)}
         />
       ) : null}
+
+      <Gen1TypeChartDialog
+        visible={typeChartOpen}
+        onClose={() => setTypeChartOpen(false)}
+      />
 
       <Modal
         visible={movesRequiredOpen}
@@ -487,6 +512,20 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 26, fontWeight: "800", color: "#1d1a16" },
   lead: { fontSize: 14, lineHeight: 20, color: "#5c564c" },
+  typeChartButton: {
+    alignSelf: "flex-start",
+    backgroundColor: "#efe8dc",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  typeChartButtonText: {
+    color: "#1f6b4a",
+    fontSize: 13,
+    fontWeight: "800",
+  },
   stateBox: { alignItems: "center", gap: 8, paddingVertical: 20 },
   stateText: { color: "#5c564c" },
   errorText: { color: "#a33", fontWeight: "700" },

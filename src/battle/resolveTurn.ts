@@ -1,0 +1,1510 @@
+import type { PartySide } from "../party/types";
+import type { Move, MoveEffectMeta } from "../pokemon/moves";
+import { EMPTY_EFFECT_META } from "../pokemon/moves";
+import { GEN1_MOVE_POOL, pickMetronomeMove } from "./gen1MovePool";
+import { gen1TypeEffectiveness } from "./gen1TypeChart";
+import {
+  createStages,
+  createVolatiles,
+  stagedStat,
+  type BattleAction,
+  type BattleFieldState,
+  type BattleFighter,
+  type BattleStatus,
+  type SideFieldEffects,
+  type TurnLogLine,
+  type TurnStep,
+} from "./types";
+
+type ExecCtx = {
+  forceSwitchSide: PartySide | null;
+};
+
+function metaOf(move: Move): MoveEffectMeta {
+  const base = move.effect_meta ?? EMPTY_EFFECT_META;
+  // Prefer seeded Gen1 meta when DB row is missing multi-hit / turn fields
+  if (
+    (base.min_hits == null || base.max_hits == null) &&
+    move.pokeapi_id > 0
+  ) {
+    const seeded = GEN1_MOVE_POOL.find((m) => m.pokeapi_id === move.pokeapi_id);
+    if (seeded?.effect_meta) {
+      return {
+        ...EMPTY_EFFECT_META,
+        ...seeded.effect_meta,
+        ...base,
+        min_hits: base.min_hits ?? seeded.effect_meta.min_hits,
+        max_hits: base.max_hits ?? seeded.effect_meta.max_hits,
+        min_turns: base.min_turns ?? seeded.effect_meta.min_turns,
+        max_turns: base.max_turns ?? seeded.effect_meta.max_turns,
+        stat_changes: base.stat_changes?.length
+          ? base.stat_changes
+          : seeded.effect_meta.stat_changes ?? [],
+      };
+    }
+  }
+  return base;
+}
+
+function randInt(min: number, max: number): number {
+  return min + Math.floor(Math.random() * (max - min + 1));
+}
+
+function chance(percent: number): boolean {
+  if (percent <= 0) return false;
+  return randInt(1, 100) <= percent;
+}
+
+function rollHits(meta: MoveEffectMeta): number {
+  if (meta.min_hits == null || meta.max_hits == null) return 1;
+  if (meta.min_hits === meta.max_hits) return meta.min_hits;
+  // Gen1 multi-hit distribution approx: 2,3 = 37.5%; 4,5 = 12.5% when 2-5
+  if (meta.min_hits === 2 && meta.max_hits === 5) {
+    const r = randInt(0, 7);
+    if (r < 3) return 2;
+    if (r < 6) return 3;
+    if (r < 7) return 4;
+    return 5;
+  }
+  return randInt(meta.min_hits, meta.max_hits);
+}
+
+function rollTrapTurns(meta: MoveEffectMeta): number {
+  const min = meta.min_turns ?? 2;
+  const max = meta.max_turns ?? 5;
+  if (min === 2 && max === 5) {
+    const r = randInt(0, 7);
+    if (r < 3) return 2;
+    if (r < 6) return 3;
+    if (r < 7) return 4;
+    return 5;
+  }
+  return randInt(min, max);
+}
+
+/** Gen1 crit: high-crit moves use /64, else /512; Focus Energy quarters (cart glitch). */
+function rollsCrit(attacker: BattleFighter, move: Move): boolean {
+  const baseSpeed = attacker.species.base_speed;
+  const highCrit = (metaOf(move).crit_rate ?? 0) > 0;
+  let denom = highCrit ? 64 : 512;
+  if (attacker.volatiles.focusEnergy) denom *= 4;
+  const threshold = Math.min(255, Math.floor((baseSpeed * 100) / denom));
+  return randInt(0, 255) < threshold;
+}
+
+function stab(moveType: number, species: BattleFighter["species"]): number {
+  if (moveType === species.type1 || moveType === species.type2) return 1.5;
+  return 1;
+}
+
+function noteHpDamage(
+  target: BattleFighter,
+  dealt: number,
+  move: Move | undefined,
+  logs?: TurnLogLine[],
+): void {
+  if (dealt <= 0) return;
+  if (target.volatiles.bideTurnsLeft > 0) {
+    target.volatiles.bideDamage += dealt;
+  }
+  if (target.volatiles.rageActive) {
+    const before = target.stages.attack;
+    if (before < 6) {
+      target.stages.attack = before + 1;
+      logs?.push(
+        `${target.member.nameJa}の　いかりで　こうげきが　上がった！`,
+      );
+    }
+  }
+  // Gen1 Counter: store damage from physical moves (Attack/Defense category).
+  // Cartridge limited to Normal/Fighting; we accept all physical damage_class.
+  if (move && move.damage_class === "physical") {
+    target.volatiles.physicalDamageTakenThisTurn += dealt;
+  }
+}
+
+function applyDamage(
+  target: BattleFighter,
+  amount: number,
+  opts?: { move?: Move; logs?: TurnLogLine[] },
+): { dealt: number; brokeSub: boolean } {
+  if (amount <= 0) return { dealt: 0, brokeSub: false };
+  if (target.volatiles.substituteHp > 0) {
+    const sub = target.volatiles.substituteHp;
+    if (amount >= sub) {
+      target.volatiles.substituteHp = 0;
+      return { dealt: sub, brokeSub: true };
+    }
+    target.volatiles.substituteHp = sub - amount;
+    return { dealt: amount, brokeSub: false };
+  }
+  const before = target.currentHp;
+  target.currentHp = Math.max(0, target.currentHp - amount);
+  const dealt = before - target.currentHp;
+  noteHpDamage(target, dealt, opts?.move, opts?.logs);
+  return { dealt, brokeSub: false };
+}
+
+function calcDamage(
+  attacker: BattleFighter,
+  defender: BattleFighter,
+  move: Move,
+  crit: boolean,
+  defenderField: SideFieldEffects,
+): number {
+  const power = move.power ?? 0;
+  if (power <= 0) return 0;
+
+  const isPhysical = move.damage_class === "physical";
+  const atkStat = isPhysical ? attacker.stats.attack : attacker.stats.special;
+  const defStat = isPhysical ? defender.stats.defense : defender.stats.special;
+  const atkStage = isPhysical
+    ? attacker.stages.attack
+    : attacker.stages.special;
+  const defStage = isPhysical
+    ? defender.stages.defense
+    : defender.stages.special;
+
+  let A = stagedStat(atkStat, atkStage, { crit });
+  let D = stagedStat(defStat, defStage, { crit });
+  if (attacker.status === "burn" && isPhysical) A = Math.max(1, Math.floor(A / 2));
+
+  const level = crit ? attacker.member.level * 2 : attacker.member.level;
+  const typeEff = gen1TypeEffectiveness(
+    move.type_id,
+    defender.species.type1,
+    defender.species.type2,
+  );
+  if (typeEff === 0) return 0;
+
+  let damage = Math.floor(
+    Math.floor(
+      (Math.floor((2 * level) / 5 + 2) * power * A) / Math.max(1, D),
+    ) /
+      50 +
+      2,
+  );
+  damage = Math.floor(damage * stab(move.type_id, attacker.species));
+  damage = Math.floor(damage * typeEff);
+  // Gen1 Reflect / Light Screen: half damage if not a crit
+  if (!crit) {
+    if (isPhysical && defenderField.reflect) {
+      damage = Math.max(1, Math.floor(damage / 2));
+    }
+    if (!isPhysical && move.damage_class === "special" && defenderField.lightScreen) {
+      damage = Math.max(1, Math.floor(damage / 2));
+    }
+  }
+  const rand = randInt(217, 255);
+  damage = Math.floor((damage * rand) / 255);
+  return Math.max(1, damage);
+}
+
+function fixedDamage(
+  attacker: BattleFighter,
+  defender: BattleFighter,
+  move: Move,
+): number | null {
+  switch (move.pokeapi_id) {
+    case 49: // Sonic Boom
+      return 20;
+    case 82: // Dragon Rage
+      return 40;
+    case 69: // Seismic Toss
+    case 101: // Night Shade
+      return attacker.member.level;
+    case 162: // Super Fang
+      return Math.max(1, Math.floor(defender.currentHp / 2));
+    case 149: {
+      // Psywave Gen1: 1..1.5*level
+      const max = Math.floor((attacker.member.level * 3) / 2);
+      return Math.max(1, randInt(1, Math.max(1, max)));
+    }
+    default:
+      return null;
+  }
+}
+
+function canStatus(target: BattleFighter, ailment: string): boolean {
+  if (target.status) return false;
+  if (ailment === "paralysis" && target.species.type1 === 4) return false;
+  if (ailment === "burn" && target.species.type1 === 2) return false;
+  if (
+    (ailment === "poison" || ailment === "toxic") &&
+    (target.species.type1 === 8 || target.species.type2 === 8)
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function applyAilment(
+  target: BattleFighter,
+  ailment: string,
+  logs: TurnLogLine[],
+  name: string,
+  fromSide?: PartySide,
+): void {
+  if (ailment === "confusion") {
+    if (target.volatiles.confusionTurns <= 0) {
+      target.volatiles.confusionTurns = randInt(2, 5);
+      logs.push(`${name}は　こんらんした！`);
+    }
+    return;
+  }
+  if (ailment === "trap") return;
+  if (ailment === "leech-seed") {
+    if (
+      target.species.type1 === 5 ||
+      target.species.type2 === 5
+    ) {
+      logs.push("しかし　うまく　決まらなかった！");
+      return;
+    }
+    if (!target.volatiles.leechSeed) {
+      target.volatiles.leechSeed = true;
+      target.volatiles.leechSeedFrom = fromSide ?? null;
+      logs.push(`${name}に　やどりぎのタネを　植え付けた！`);
+    }
+    return;
+  }
+  if (!canStatus(target, ailment)) return;
+  if (
+    ailment === "paralysis" ||
+    ailment === "sleep" ||
+    ailment === "freeze" ||
+    ailment === "burn" ||
+    ailment === "poison"
+  ) {
+    target.status = ailment as BattleStatus;
+    if (ailment === "sleep") target.sleepTurns = randInt(1, 7);
+    const ja: Record<string, string> = {
+      paralysis: "まひした",
+      sleep: "ねむってしまった",
+      freeze: "こおってしまった",
+      burn: "やけどを　おった",
+      poison: "どくを　あびた",
+    };
+    logs.push(`${name}は　${ja[ailment] ?? ailment}！`);
+  }
+}
+
+function applyStatChanges(
+  user: BattleFighter,
+  target: BattleFighter,
+  move: Move,
+  logs: TurnLogLine[],
+  towardTarget: boolean,
+  field: BattleFieldState,
+): void {
+  const changes = metaOf(move).stat_changes;
+  if (!changes.length) return;
+  const chancePct = metaOf(move).stat_chance;
+  if (chancePct > 0 && !chance(chancePct)) return;
+
+  const mistBlocks =
+    towardTarget &&
+    changes.some((sc) => sc.change < 0) &&
+    field[target.side].mist;
+
+  if (mistBlocks) {
+    logs.push(`${target.member.nameJa}は　白い霧に　守られている！`);
+    return;
+  }
+
+  for (const sc of changes) {
+    const who = towardTarget ? target : user;
+    const whoName = who.member.nameJa;
+    const key =
+      sc.stat === "special-attack" || sc.stat === "special-defense"
+        ? "special"
+        : sc.stat === "special"
+          ? "special"
+          : sc.stat;
+    if (
+      key !== "attack" &&
+      key !== "defense" &&
+      key !== "special" &&
+      key !== "speed" &&
+      key !== "accuracy" &&
+      key !== "evasion"
+    ) {
+      continue;
+    }
+    const before = who.stages[key];
+    who.stages[key] = Math.max(-6, Math.min(6, before + sc.change));
+    if (who.stages[key] === before) {
+      logs.push(`${whoName}の　能力は　もう　変わらない！`);
+      continue;
+    }
+    const label: Record<string, string> = {
+      attack: "こうげき",
+      defense: "ぼうぎょ",
+      special: "とくしゅ",
+      speed: "すばやさ",
+      accuracy: "めいちゅう率",
+      evasion: "かいひ率",
+    };
+    logs.push(
+      `${whoName}の　${label[key]}が　${sc.change > 0 ? "上がった" : "下がった"}！`,
+    );
+  }
+}
+
+function checkAccuracy(
+  attacker: BattleFighter,
+  defender: BattleFighter,
+  move: Move,
+): boolean {
+  // Gen1: only Swift reliably hits Fly / Dig mid-charge
+  if (
+    defender.volatiles.semiInvulnerable &&
+    move.pokeapi_id !== 129 // Swift
+  ) {
+    return false;
+  }
+  if (move.accuracy == null) return true; // Swift etc.
+  const accStage = attacker.stages.accuracy - defender.stages.evasion;
+  const mult = stageMultiplierClamped(accStage);
+  const thresh = Math.floor((move.accuracy * mult * 255) / 100);
+  return randInt(0, 255) < Math.min(255, thresh);
+}
+
+function stageMultiplierClamped(stage: number): number {
+  const s = Math.max(-6, Math.min(6, stage));
+  if (s >= 0) return (3 + s) / 3;
+  return 3 / (3 - s);
+}
+
+function tryEndTurnStatus(
+  fighter: BattleFighter,
+  other: BattleFighter,
+  logs: TurnLogLine[],
+): void {
+  if (fighter.currentHp <= 0) return;
+  if (fighter.status === "burn" || fighter.status === "poison") {
+    const dmg = Math.max(1, Math.floor(fighter.maxHp / 16));
+    fighter.currentHp = Math.max(0, fighter.currentHp - dmg);
+    logs.push(
+      `${fighter.member.nameJa}は　${fighter.status === "burn" ? "やけど" : "どく"}の　ダメージを　受けた！`,
+    );
+  }
+  if (fighter.volatiles.leechSeed && fighter.currentHp > 0) {
+    const dmg = Math.max(1, Math.floor(fighter.maxHp / 16));
+    fighter.currentHp = Math.max(0, fighter.currentHp - dmg);
+    logs.push(`${fighter.member.nameJa}は　やどりぎのタネの　ダメージを　受けた！`);
+    const from = fighter.volatiles.leechSeedFrom;
+    const planter =
+      from === other.side ? other : from === fighter.side ? fighter : other;
+    if (planter.currentHp > 0) {
+      planter.currentHp = Math.min(planter.maxHp, planter.currentHp + dmg);
+      logs.push(`${planter.member.nameJa}は　体力を　吸い取った！`);
+    }
+  }
+  if (fighter.volatiles.disableTurns > 0) {
+    fighter.volatiles.disableTurns -= 1;
+    if (fighter.volatiles.disableTurns <= 0) {
+      fighter.volatiles.disableMoveId = null;
+      logs.push(`${fighter.member.nameJa}の　かなしばりが　解けた！`);
+    }
+  }
+}
+
+function canAct(
+  fighter: BattleFighter,
+  logs: TurnLogLine[],
+): boolean {
+  const clearChargeIfAny = () => {
+    if (fighter.volatiles.chargingMove) {
+      const name = fighter.volatiles.chargingMove.name_ja;
+      fighter.volatiles.chargingMove = null;
+      fighter.volatiles.semiInvulnerable = null;
+      logs.push(
+        `${fighter.member.nameJa}の　ためていた　${name}は　解除された！`,
+      );
+    }
+  };
+
+  if (fighter.volatiles.recharge) {
+    fighter.volatiles.recharge = false;
+    logs.push(`${fighter.member.nameJa}は　反動で　動けない！`);
+    clearChargeIfAny();
+    return false;
+  }
+  if (fighter.volatiles.trapTurns > 0) {
+    logs.push(`${fighter.member.nameJa}は　しめられて　動けない！`);
+    clearChargeIfAny();
+    return false;
+  }
+  if (fighter.volatiles.flinch) {
+    fighter.volatiles.flinch = false;
+    logs.push(`${fighter.member.nameJa}は　ひるんで　動けない！`);
+    clearChargeIfAny();
+    return false;
+  }
+  if (fighter.status === "freeze") {
+    if (chance(25)) {
+      fighter.status = null;
+      logs.push(`${fighter.member.nameJa}の　こおりが　溶けた！`);
+    } else {
+      logs.push(`${fighter.member.nameJa}は　こおっていて　動けない！`);
+      clearChargeIfAny();
+      return false;
+    }
+  }
+  if (fighter.status === "sleep") {
+    fighter.sleepTurns -= 1;
+    if (fighter.sleepTurns <= 0) {
+      fighter.status = null;
+      logs.push(`${fighter.member.nameJa}は　目を　覚ました！`);
+      // Gen1: cannot select a move on the turn sleep ends
+      clearChargeIfAny();
+      return false;
+    }
+    logs.push(`${fighter.member.nameJa}は　ぐうぐう　眠っている！`);
+    clearChargeIfAny();
+    return false;
+  }
+  if (fighter.status === "paralysis" && chance(25)) {
+    logs.push(`${fighter.member.nameJa}は　まひして　動けない！`);
+    clearChargeIfAny();
+    return false;
+  }
+  if (fighter.volatiles.confusionTurns > 0) {
+    fighter.volatiles.confusionTurns -= 1;
+    logs.push(`${fighter.member.nameJa}は　こんらんしている！`);
+    if (chance(50)) {
+      const dmg = calcDamage(
+        fighter,
+        fighter,
+        {
+          id: "confusion",
+          pokeapi_id: 0,
+          name_ja: "こんらん",
+          name_en: "confusion",
+          type_id: 1,
+          damage_class: "physical",
+          power: 40,
+          accuracy: null,
+          pp: null,
+          priority: 0,
+          description: null,
+          effect_category: "damage",
+          effect_meta: EMPTY_EFFECT_META,
+          effect_code: null,
+          introduced_generation: 1,
+          available_generations: 1,
+        },
+        false,
+        { mist: false, reflect: false, lightScreen: false },
+      );
+      fighter.currentHp = Math.max(0, fighter.currentHp - dmg);
+      logs.push(`わけも　わからず　自分を　攻撃した！`);
+      clearChargeIfAny();
+      return false;
+    }
+  }
+  return true;
+}
+
+function chargePrepMessage(move: Move): string {
+  switch (move.pokeapi_id) {
+    case 76: // Solar Beam
+      return "光を　吸収した";
+    case 19: // Fly
+      return "空高く　舞い上がった";
+    case 91: // Dig
+      return "地中に　潜った";
+    case 130: // Skull Bash
+      return "頭を　引っ込めた";
+    case 143: // Sky Attack
+      return "激しい　光を　まとっている";
+    case 13: // Razor Wind
+      return "風を　巻き起こしている";
+    default:
+      return "力を　ためている";
+  }
+}
+
+function isThrashLike(move: Move): boolean {
+  // Gen1 Thrash / Petal Dance (Rage is different)
+  return move.pokeapi_id === 37 || move.pokeapi_id === 80;
+}
+
+/** Forced move while charging or thrashing; null if free to choose. */
+export function getForcedMove(fighter: BattleFighter | null): Move | null {
+  if (!fighter || fighter.currentHp <= 0) return null;
+  // Hyper Beam etc.: must skip the recharge turn (UI auto-locks, canAct consumes it)
+  if (fighter.volatiles.recharge) {
+    return (
+      fighter.volatiles.lastMoveUsed ?? {
+        id: "recharge",
+        pokeapi_id: 0,
+        name_ja: "反動",
+        name_en: "recharge",
+        type_id: 1,
+        damage_class: "status",
+        power: null,
+        accuracy: null,
+        pp: null,
+        priority: 0,
+        description: null,
+        effect_category: "unique",
+        effect_meta: EMPTY_EFFECT_META,
+        effect_code: null,
+        introduced_generation: 1,
+        available_generations: 1,
+      }
+    );
+  }
+  if (fighter.volatiles.chargingMove) return fighter.volatiles.chargingMove;
+  if (fighter.volatiles.bindingMove && fighter.volatiles.bindingTurnsLeft > 0) {
+    return fighter.volatiles.bindingMove;
+  }
+  if (fighter.volatiles.bideTurnsLeft > 0 && fighter.volatiles.bideMove) {
+    return fighter.volatiles.bideMove;
+  }
+  if (fighter.volatiles.rageActive && fighter.volatiles.lockedMove) {
+    return fighter.volatiles.lockedMove;
+  }
+  if (fighter.volatiles.lockedMove && fighter.volatiles.lockTurnsLeft > 0) {
+    return fighter.volatiles.lockedMove;
+  }
+  return null;
+}
+
+function finishThrashLock(
+  attacker: BattleFighter,
+  move: Move,
+  logs: TurnLogLine[],
+): void {
+  if (
+    move.effect_code === "unique-lock" &&
+    isThrashLike(move) &&
+    attacker.volatiles.lockedMove?.id === move.id
+  ) {
+    attacker.volatiles.lockTurnsLeft -= 1;
+    if (attacker.volatiles.lockTurnsLeft <= 0) {
+      attacker.volatiles.lockedMove = null;
+      attacker.volatiles.lockTurnsLeft = 0;
+      if (attacker.volatiles.confusionTurns <= 0) {
+        attacker.volatiles.confusionTurns = randInt(2, 5);
+      }
+      logs.push(`${attacker.member.nameJa}は　疲れ果てて　こんらんした！`);
+    }
+  }
+}
+
+function executeMove(
+  attacker: BattleFighter,
+  defender: BattleFighter,
+  move: Move,
+  logs: TurnLogLine[],
+  field: BattleFieldState,
+  emitBeat?: (lines: TurnLogLine[]) => void,
+  fromMirror = false,
+  ctx?: ExecCtx,
+): void {
+  const code = move.effect_code;
+  const category = move.effect_category ?? "damage";
+  const meta = metaOf(move);
+
+  // Two-turn charge: wind-up turn
+  if (code === "unique-charge" && !attacker.volatiles.chargingMove) {
+    attacker.volatiles.chargingMove = move;
+    if (move.pokeapi_id === 19) attacker.volatiles.semiInvulnerable = "fly";
+    if (move.pokeapi_id === 91) attacker.volatiles.semiInvulnerable = "dig";
+    logs.push(
+      `${attacker.member.nameJa}は　${chargePrepMessage(move)}！`,
+    );
+    if (!fromMirror) attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+  if (
+    code === "unique-charge" &&
+    attacker.volatiles.chargingMove &&
+    attacker.volatiles.chargingMove.id === move.id
+  ) {
+    attacker.volatiles.chargingMove = null;
+    attacker.volatiles.semiInvulnerable = null;
+  }
+
+  // Thrash / Petal Dance: start lock (Gen1 = 3–4 turns total)
+  if (code === "unique-lock" && isThrashLike(move) && !attacker.volatiles.lockedMove) {
+    attacker.volatiles.lockedMove = move;
+    attacker.volatiles.lockTurnsLeft = randInt(3, 4);
+  }
+
+  // Rage: lock until faint/switch (ATK rises when hit)
+  if (move.pokeapi_id === 99 && !attacker.volatiles.rageActive) {
+    attacker.volatiles.rageActive = true;
+    attacker.volatiles.lockedMove = move;
+  }
+
+  if (!fromMirror || code !== "unique-mirror-move") {
+    logs.push(`${attacker.member.nameJa}の　${move.name_ja}！`);
+  }
+
+  // Field effects (Mist / Reflect / Light Screen / Haze)
+  if (category === "field-effect" || move.pokeapi_id === 54 || move.pokeapi_id === 113 || move.pokeapi_id === 115) {
+    const side = field[attacker.side];
+    if (move.pokeapi_id === 54) {
+      side.mist = true;
+      logs.push(`${attacker.member.nameJa}の　周りを　白い霧が　包んだ！`);
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    if (move.pokeapi_id === 113) {
+      side.lightScreen = true;
+      logs.push(`${attacker.member.nameJa}の　周りに　光の壁が　現れた！`);
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    if (move.pokeapi_id === 115) {
+      side.reflect = true;
+      logs.push(`${attacker.member.nameJa}の　周りに　反射壁が　現れた！`);
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+  }
+  if (category === "whole-field-effect" || move.pokeapi_id === 114) {
+    for (const f of [attacker, defender]) {
+      f.stages = {
+        attack: 0,
+        defense: 0,
+        special: 0,
+        speed: 0,
+        accuracy: 0,
+        evasion: 0,
+      };
+    }
+    logs.push("全ての　能力変化が　元に　戻った！");
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+
+  // Whirlwind / Roar
+  if (
+    category === "force-switch" ||
+    move.pokeapi_id === 18 ||
+    move.pokeapi_id === 46
+  ) {
+    if (!checkAccuracy(attacker, defender, move)) {
+      logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    logs.push(`${defender.member.nameJa}を　吹き飛ばした！`);
+    if (ctx) ctx.forceSwitchSide = defender.side;
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+
+  if (code === "unique-splash") {
+    logs.push("しかし　何も　起こらなかった！");
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+  if (code === "unique-teleport") {
+    logs.push("しかし　うまく　決まらなかった！");
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+  if (code === "unique-focus-energy") {
+    attacker.volatiles.focusEnergy = true;
+    logs.push(`${attacker.member.nameJa}は　気合を　ためた！`);
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+  if (code === "unique-rest") {
+    attacker.currentHp = attacker.maxHp;
+    attacker.status = "sleep";
+    // Gen1 Rest: 2 turns of sleep counting the Rest turn → 1 remaining sleep
+    // turn, then wake turn (also cannot move), then free.
+    attacker.sleepTurns = 2;
+    logs.push(`${attacker.member.nameJa}は　眠って　HPを　回復した！`);
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+  if (code === "unique-substitute") {
+    if (attacker.volatiles.substituteHp > 0) {
+      logs.push("しかし　うまく　決まらなかった！");
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    const cost = Math.max(1, Math.floor(attacker.maxHp / 4));
+    if (attacker.currentHp <= cost) {
+      logs.push("しかし　うまく　決まらなかった！");
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    attacker.currentHp -= cost;
+    attacker.volatiles.substituteHp = cost;
+    logs.push(
+      `${attacker.member.nameJa}の　HPが　${cost}減った！`,
+      `${attacker.member.nameJa}の　身代わりが　現れた！`,
+    );
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+  if (code === "unique-mimic") {
+    const copied = defender.volatiles.lastMoveUsed;
+    if (!copied || copied.effect_code === "unique-mimic") {
+      logs.push("しかし　うまく　決まらなかった！");
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    // Replace Mimic slot in battle move list with a copy (usable from next turn)
+    const idx = attacker.member.moveIds.findIndex((id) => id === move.id);
+    if (idx >= 0) {
+      const next = [...attacker.member.moveIds] as typeof attacker.member.moveIds;
+      next[idx] = copied.id;
+      attacker.member = { ...attacker.member, moveIds: next };
+    }
+    logs.push(
+      `${attacker.member.nameJa}は　${copied.name_ja}を　ものまねした！`,
+    );
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+  if (code === "unique-mirror-move") {
+    const mirrored = defender.volatiles.lastMoveUsed;
+    if (
+      !mirrored ||
+      mirrored.effect_code === "unique-mirror-move" ||
+      mirrored.pokeapi_id === 165 // Struggle
+    ) {
+      logs.push("しかし　うまく　決まらなかった！");
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    logs.push(`${attacker.member.nameJa}は　オウムがえしをした！`);
+    attacker.volatiles.lastMoveUsed = move;
+    executeMove(attacker, defender, mirrored, logs, field, emitBeat, true, ctx);
+    return;
+  }
+  if (code === "unique-metronome") {
+    const picked = pickMetronomeMove();
+    logs.push(`${picked.name_ja}が　でた！`);
+    attacker.volatiles.lastMoveUsed = move;
+    executeMove(attacker, defender, picked, logs, field, emitBeat, true, ctx);
+    return;
+  }
+  if (code === "unique-bide") {
+    if (attacker.volatiles.bideTurnsLeft <= 0) {
+      attacker.volatiles.bideTurnsLeft = randInt(2, 3);
+      attacker.volatiles.bideDamage = 0;
+      attacker.volatiles.bideMove = move;
+      logs.push(`${attacker.member.nameJa}は　がまんを　始めた！`);
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    attacker.volatiles.bideTurnsLeft -= 1;
+    if (attacker.volatiles.bideTurnsLeft > 0) {
+      logs.push(`${attacker.member.nameJa}は　がまんしている！`);
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    const stored = attacker.volatiles.bideDamage;
+    attacker.volatiles.bideDamage = 0;
+    attacker.volatiles.bideMove = null;
+    const unleashed = stored * 2;
+    if (unleashed <= 0) {
+      logs.push("しかし　うまく　決まらなかった！");
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    const result = applyDamage(defender, unleashed, { move, logs });
+    logs.push(
+      `${defender.member.nameJa}に　${result.dealt}の　ダメージを　返した！`,
+    );
+    if (result.brokeSub) {
+      logs.push(`${defender.member.nameJa}の　みがわりが　消えた！`);
+    }
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+  if (code === "unique-transform") {
+    if (defender.volatiles.transformed || attacker.volatiles.transformed) {
+      logs.push("しかし　うまく　決まらなかった！");
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    attacker.stats = { ...defender.stats, hp: attacker.stats.hp };
+    attacker.stages = { ...defender.stages };
+    attacker.species = {
+      ...defender.species,
+      id: attacker.species.id,
+      name_ja: attacker.species.name_ja,
+      name_en: attacker.species.name_en,
+      dex_no: attacker.species.dex_no,
+    };
+    attacker.member = {
+      ...attacker.member,
+      moveIds: [...defender.member.moveIds] as typeof attacker.member.moveIds,
+    };
+    attacker.volatiles.transformed = true;
+    logs.push(
+      `${attacker.member.nameJa}は　${defender.member.nameJa}に　へんしんした！`,
+    );
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+  if (code === "unique-conversion") {
+    const ids = attacker.member.moveIds.filter((id): id is string => !!id);
+    const moves = ids
+      .map((id) => GEN1_MOVE_POOL.find((m) => m.id === id))
+      .filter((m): m is Move => !!m);
+    if (moves.length === 0) {
+      logs.push("しかし　うまく　決まらなかった！");
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    const chosen = moves[randInt(0, moves.length - 1)];
+    attacker.species = {
+      ...attacker.species,
+      type1: chosen.type_id,
+      type2: 0,
+    };
+    logs.push(
+      `${attacker.member.nameJa}は　${chosen.name_ja}の　タイプに　なった！`,
+    );
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+  if (code === "unique-disable") {
+    if (defender.volatiles.substituteHp > 0) {
+      logs.push("しかし　身代わりには　効果が　ない！");
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    if (!checkAccuracy(attacker, defender, move)) {
+      logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    if (defender.volatiles.disableMoveId) {
+      logs.push("しかし　うまく　決まらなかった！");
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    const foeMoves = defender.member.moveIds.filter((id): id is string => !!id);
+    if (foeMoves.length === 0) {
+      logs.push("しかし　うまく　決まらなかった！");
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    const disabled = foeMoves[randInt(0, foeMoves.length - 1)];
+    defender.volatiles.disableMoveId = disabled;
+    defender.volatiles.disableTurns = randInt(2, 5);
+    const named = GEN1_MOVE_POOL.find((m) => m.id === disabled);
+    logs.push(
+      `${defender.member.nameJa}の　${named?.name_ja ?? "技"}を　かなしばりした！`,
+    );
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+
+  // Gen1 Wrap / Fire Spin continuation: fixed damage from first hit (no re-roll)
+  if (
+    code === "unique-partial-trap" &&
+    attacker.volatiles.bindingMove?.id === move.id &&
+    attacker.volatiles.bindingTurnsLeft > 0
+  ) {
+    const fixed = Math.max(1, attacker.volatiles.bindingDamage);
+    const result = applyDamage(defender, fixed, { move, logs });
+    logs.push(`${defender.member.nameJa}に　${result.dealt}の　ダメージ！`);
+    if (result.brokeSub) {
+      logs.push(`${defender.member.nameJa}の　みがわりが　消えた！`);
+    }
+    attacker.volatiles.bindingTurnsLeft -= 1;
+    const left = attacker.volatiles.bindingTurnsLeft;
+    if (left <= 0) {
+      attacker.volatiles.bindingMove = null;
+      attacker.volatiles.bindingTurnsLeft = 0;
+      attacker.volatiles.bindingDamage = 0;
+      defender.volatiles.trapTurns = 0;
+      defender.volatiles.trapDamage = 0;
+      logs.push(`${defender.member.nameJa}は　しめつけから　解放された！`);
+    } else {
+      defender.volatiles.trapTurns = left + 1;
+      logs.push(`しめつけが　続いている！（残り${left + 1}ターン）`);
+    }
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+
+  if (category === "heal" || meta.healing > 0) {
+    const heal = Math.max(1, Math.floor((attacker.maxHp * (meta.healing || 50)) / 100));
+    attacker.currentHp = Math.min(attacker.maxHp, attacker.currentHp + heal);
+    logs.push(`${attacker.member.nameJa}の　HPが　回復した！`);
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+  if (category === "net-good-stats") {
+    const towardFoe =
+      meta.stat_changes.length > 0 &&
+      meta.stat_changes.every((sc) => sc.change < 0);
+    applyStatChanges(attacker, defender, move, logs, towardFoe, field);
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+  if (category === "ailment" && meta.ailment) {
+    if (defender.volatiles.substituteHp > 0) {
+      logs.push("しかし　身代わりには　効果が　ない！");
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    if (!checkAccuracy(attacker, defender, move)) {
+      logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    applyAilment(
+      defender,
+      meta.ailment,
+      logs,
+      defender.member.nameJa,
+      attacker.side,
+    );
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+  if (code === "unique-ohko" || category === "ohko") {
+    if (!checkAccuracy(attacker, defender, move)) {
+      logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    applyDamage(defender, defender.currentHp + defender.volatiles.substituteHp, {
+      move,
+      logs,
+    });
+    logs.push("一撃必殺！");
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+
+  // Dream Eater only works on sleeping targets
+  if (move.pokeapi_id === 138 && defender.status !== "sleep") {
+    logs.push("しかし　うまく　決まらなかった！");
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+
+  // Gen1 Counter: 2× physical damage taken this turn
+  if (move.pokeapi_id === 68) {
+    if (!checkAccuracy(attacker, defender, move)) {
+      logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    const stored = attacker.volatiles.physicalDamageTakenThisTurn;
+    if (stored <= 0) {
+      logs.push("しかし　うまく　決まらなかった！");
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    const result = applyDamage(defender, stored * 2, { move, logs });
+    logs.push(`${defender.member.nameJa}に　${result.dealt}の　ダメージ！`);
+    if (result.brokeSub) {
+      logs.push(`${defender.member.nameJa}の　みがわりが　消えた！`);
+    }
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+
+  // Damage-dealing path (including partial trap / hyper beam / fixed / explosion)
+  if (!checkAccuracy(attacker, defender, move)) {
+    logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
+    if (code === "unique-crash") {
+      attacker.currentHp = Math.max(0, attacker.currentHp - 1);
+      logs.push(`${attacker.member.nameJa}は　激しく　地面に　ぶつかった！`);
+    }
+    finishThrashLock(attacker, move, logs);
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+
+  if (code === "unique-explosion") {
+    attacker.currentHp = 0;
+  }
+
+  let totalDealt = 0;
+  let brokeSub = false;
+  const typeEff = gen1TypeEffectiveness(
+    move.type_id,
+    defender.species.type1,
+    defender.species.type2,
+  );
+  // Partial trap can still immobilize on immunity (Gen1), but deals 0 damage
+  if (typeEff === 0 && code !== "unique-fixed-damage" && code !== "unique-partial-trap") {
+    logs.push(`${defender.member.nameJa}には　効果がないようだ…`);
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
+
+  if (code === "unique-fixed-damage") {
+    const fixed = fixedDamage(attacker, defender, move);
+    if (fixed == null) {
+      logs.push("しかし　うまく　決まらなかった！");
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+    const result = applyDamage(defender, fixed, { move, logs });
+    totalDealt = result.dealt;
+    brokeSub = result.brokeSub;
+    if (emitBeat) {
+      emitBeat([
+        ...logs,
+        `${defender.member.nameJa}に　${result.dealt}の　ダメージ！`,
+      ]);
+      logs.length = 0;
+    }
+  } else {
+    const hits = rollHits(meta);
+    const crit = rollsCrit(attacker, move);
+    // Gen1: one crit roll / damage value shared across multi-hit
+    let perHit =
+      typeEff === 0
+        ? 0
+        : calcDamage(
+            attacker,
+            defender,
+            move,
+            crit,
+            field[defender.side],
+          );
+    if (code === "unique-explosion" && perHit > 0) {
+      perHit = Math.max(1, perHit * 2);
+    }
+    if (crit && perHit > 0) logs.push("急所に　当たった！");
+    let actualHits = 0;
+    for (let i = 0; i < hits; i += 1) {
+      if (defender.currentHp <= 0 && defender.volatiles.substituteHp <= 0) break;
+      const result = applyDamage(defender, perHit, { move, logs });
+      if (result.dealt <= 0 && perHit <= 0) break;
+      actualHits += 1;
+      totalDealt += result.dealt;
+      if (result.brokeSub) brokeSub = true;
+      if (emitBeat && hits > 1) {
+        const beatLogs = [
+          ...(i === 0 ? [...logs] : []),
+          `${actualHits}回目！　${result.dealt}の　ダメージ！`,
+        ];
+        logs.length = 0;
+        emitBeat(beatLogs);
+      }
+    }
+    if (hits > 1) {
+      const hitMsg = `${actualHits}回　当たった！`;
+      if (!emitBeat) logs.push(hitMsg);
+      else if (actualHits > 0) {
+        // Own beat so HP bar already refreshed per hit; announce count after
+        emitBeat([hitMsg]);
+      }
+    } else if (emitBeat && logs.length) {
+      emitBeat([
+        ...logs,
+        perHit > 0
+          ? `${defender.member.nameJa}に　${totalDealt}の　ダメージ！`
+          : `${defender.member.nameJa}には　効果がないようだ…`,
+      ]);
+      logs.length = 0;
+    }
+  }
+
+  if (typeEff > 1) {
+    const msg = "効果は　抜群だ！";
+    if (emitBeat) emitBeat([msg]);
+    else logs.push(msg);
+  } else if (typeEff > 0 && typeEff < 1) {
+    const msg = "効果は　今ひとつの　ようだ…";
+    if (emitBeat) emitBeat([msg]);
+    else logs.push(msg);
+  } else if (typeEff === 0 && code === "unique-partial-trap") {
+    logs.push(`${defender.member.nameJa}には　ダメージが　ないが　しめつけた！`);
+  }
+
+  if (brokeSub) logs.push(`${defender.member.nameJa}の　みがわりが　消えた！`);
+
+  if (meta.drain > 0 && totalDealt > 0) {
+    const heal = Math.max(1, Math.floor((totalDealt * meta.drain) / 100));
+    attacker.currentHp = Math.min(attacker.maxHp, attacker.currentHp + heal);
+    logs.push(`${attacker.member.nameJa}は　体力を　吸い取った！`);
+  }
+  if (meta.drain < 0 && totalDealt > 0) {
+    const recoil = Math.max(1, Math.floor((totalDealt * Math.abs(meta.drain)) / 100));
+    attacker.currentHp = Math.max(0, attacker.currentHp - recoil);
+    logs.push(`${attacker.member.nameJa}は　反動を　受けた！`);
+  }
+
+  if (meta.flinch_chance > 0 && chance(meta.flinch_chance)) {
+    if (defender.volatiles.substituteHp <= 0) defender.volatiles.flinch = true;
+  }
+
+  if (meta.ailment && meta.ailment !== "trap") {
+    if (defender.volatiles.substituteHp <= 0) {
+      const pct = meta.ailment_chance > 0 ? meta.ailment_chance : 100;
+      if (chance(pct)) {
+        applyAilment(
+          defender,
+          meta.ailment,
+          logs,
+          defender.member.nameJa,
+          attacker.side,
+        );
+      }
+    }
+  }
+
+  if (category === "damage-lower" || category === "damage-raise") {
+    applyStatChanges(
+      attacker,
+      defender,
+      move,
+      logs,
+      category === "damage-lower",
+      field,
+    );
+  } else if (meta.stat_changes.length && meta.stat_chance > 0) {
+    applyStatChanges(attacker, defender, move, logs, true, field);
+  }
+
+  if (code === "unique-partial-trap") {
+    // Gen1: duration 2–5 includes this turn; remaining turns force the same move.
+    const duration = rollTrapTurns(meta);
+    const fixed = Math.max(1, totalDealt || 1);
+    defender.volatiles.trapTurns = duration;
+    defender.volatiles.trapDamage = fixed;
+    attacker.volatiles.bindingMove = move;
+    attacker.volatiles.bindingTurnsLeft = duration - 1;
+    attacker.volatiles.bindingDamage = fixed;
+    logs.push(
+      `${defender.member.nameJa}を　${duration}ターン　しめつけた！`,
+    );
+  }
+
+  if (
+    code === "unique-hyper-beam" &&
+    attacker.currentHp > 0 &&
+    totalDealt > 0 &&
+    defender.currentHp > 0 &&
+    !brokeSub
+  ) {
+    attacker.volatiles.recharge = true;
+  }
+
+  finishThrashLock(attacker, move, logs);
+  attacker.volatiles.lastMoveUsed = move;
+}
+
+function speedTieBreak(): boolean {
+  return Math.random() < 0.5;
+}
+
+function effectiveSpeed(fighter: BattleFighter): number {
+  let spd = stagedStat(fighter.stats.speed, fighter.stages.speed);
+  if (fighter.status === "paralysis") spd = Math.max(1, Math.floor(spd / 4));
+  return spd;
+}
+
+function actionPriority(action: BattleAction): number {
+  if (action.type === "move") return action.move.priority;
+  if (action.type === "switch") return 6;
+  return 0;
+}
+
+export function buildFighter(input: {
+  side: BattleFighter["side"];
+  member: BattleFighter["member"];
+  species: BattleFighter["species"];
+  stats: BattleFighter["stats"];
+  currentHp: number;
+  maxHp: number;
+}): BattleFighter {
+  return {
+    side: input.side,
+    speciesId: input.member.speciesId,
+    member: input.member,
+    species: input.species,
+    stats: input.stats,
+    stages: createStages(),
+    currentHp: input.currentHp,
+    maxHp: input.maxHp,
+    status: null,
+    sleepTurns: 0,
+    volatiles: createVolatiles(),
+  };
+}
+
+/**
+ * Resolve one turn as ordered steps so the UI can refresh between movers.
+ * Mutates fighters / field in place.
+ */
+export function resolveTurnSteps(input: {
+  fighterA: BattleFighter;
+  fighterB: BattleFighter;
+  actionA: BattleAction;
+  actionB: BattleAction;
+  field: BattleFieldState;
+}): {
+  steps: TurnStep[];
+  faintedA: boolean;
+  faintedB: boolean;
+  ran: PartySide | null;
+} {
+  const steps: TurnStep[] = [];
+  const { fighterA, fighterB, actionA, actionB, field } = input;
+  fighterA.volatiles.physicalDamageTakenThisTurn = 0;
+  fighterB.volatiles.physicalDamageTakenThisTurn = 0;
+
+  const pushStep = (
+    logs: TurnLogLine[],
+    ppSpent: TurnStep["ppSpent"] = null,
+    forceSwitchSide: PartySide | null = null,
+    hpSnapshot?: { a: number; b: number },
+  ) => {
+    if (logs.length === 0 && !ppSpent && !forceSwitchSide) return;
+    steps.push({
+      logs,
+      ppSpent,
+      forceSwitchSide,
+      hpSnapshot: hpSnapshot ?? {
+        a: fighterA.currentHp,
+        b: fighterB.currentHp,
+      },
+    });
+  };
+
+  if (actionA.type === "run" || actionB.type === "run") {
+    const side = actionA.type === "run" ? "a" : "b";
+    pushStep([
+      `${side === "a" ? fighterA.member.nameJa : fighterB.member.nameJa}側は　降参した！`,
+    ]);
+    return { steps, faintedA: false, faintedB: false, ran: side };
+  }
+
+  type Slot = { fighter: BattleFighter; foe: BattleFighter; action: BattleAction };
+  const slots: Slot[] = [
+    { fighter: fighterA, foe: fighterB, action: actionA },
+    { fighter: fighterB, foe: fighterA, action: actionB },
+  ];
+
+  slots.sort((x, y) => {
+    const p = actionPriority(y.action) - actionPriority(x.action);
+    if (p !== 0) return p;
+    const sx = effectiveSpeed(x.fighter);
+    const sy = effectiveSpeed(y.fighter);
+    if (sx !== sy) return sy - sx;
+    return speedTieBreak() ? -1 : 1;
+  });
+
+  for (const slot of slots) {
+    if (slot.fighter.currentHp <= 0) continue;
+    if (slot.action.type === "switch") continue;
+    if (slot.action.type !== "move") continue;
+
+    const logs: TurnLogLine[] = [];
+    if (!canAct(slot.fighter, logs)) {
+      if (slot.fighter.volatiles.bindingMove) {
+        const foe = slot.foe;
+        slot.fighter.volatiles.bindingMove = null;
+        slot.fighter.volatiles.bindingTurnsLeft = 0;
+        slot.fighter.volatiles.bindingDamage = 0;
+        foe.volatiles.trapTurns = 0;
+        foe.volatiles.trapDamage = 0;
+        logs.push("しめつけが　解けた！");
+      }
+      if (slot.fighter.volatiles.bideMove) {
+        slot.fighter.volatiles.bideMove = null;
+        slot.fighter.volatiles.bideTurnsLeft = 0;
+        slot.fighter.volatiles.bideDamage = 0;
+        logs.push("がまんが　解けた！");
+      }
+      pushStep(logs);
+      continue;
+    }
+    if (slot.foe.currentHp <= 0 && slot.action.move.damage_class !== "status") {
+      const cat = slot.action.move.effect_category;
+      if (
+        cat !== "net-good-stats" &&
+        cat !== "heal" &&
+        cat !== "field-effect" &&
+        slot.action.move.effect_code !== "unique-rest" &&
+        slot.action.move.effect_code !== "unique-substitute"
+      ) {
+        continue;
+      }
+    }
+
+    const move = slot.action.move;
+    const continuingCharge =
+      !!slot.fighter.volatiles.chargingMove &&
+      move.effect_code === "unique-charge";
+    const continuingLock =
+      !!slot.fighter.volatiles.lockedMove && isThrashLike(move);
+    const continuingBind =
+      !!slot.fighter.volatiles.bindingMove &&
+      slot.fighter.volatiles.bindingTurnsLeft > 0 &&
+      move.effect_code === "unique-partial-trap";
+    const continuingBide =
+      !!slot.fighter.volatiles.bideMove &&
+      slot.fighter.volatiles.bideTurnsLeft > 0 &&
+      move.effect_code === "unique-bide";
+    const continuingRage =
+      slot.fighter.volatiles.rageActive && move.pokeapi_id === 99;
+
+    const beats: {
+      logs: TurnLogLine[];
+      hpA: number;
+      hpB: number;
+    }[] = [];
+    const emitBeat = (lines: TurnLogLine[]) => {
+      if (lines.length) {
+        beats.push({
+          logs: lines,
+          hpA: fighterA.currentHp,
+          hpB: fighterB.currentHp,
+        });
+      }
+    };
+
+    const ctx: ExecCtx = { forceSwitchSide: null };
+    executeMove(slot.fighter, slot.foe, move, logs, field, emitBeat, false, ctx);
+    if (logs.length) {
+      beats.push({
+        logs: [...logs],
+        hpA: fighterA.currentHp,
+        hpB: fighterB.currentHp,
+      });
+    }
+
+    if (slot.foe.currentHp <= 0) {
+      const faintLine = `${slot.foe.member.nameJa}は　たおれた！`;
+      if (beats.length) beats[beats.length - 1].logs.push(faintLine);
+      else {
+        beats.push({
+          logs: [faintLine],
+          hpA: fighterA.currentHp,
+          hpB: fighterB.currentHp,
+        });
+      }
+    }
+    if (slot.fighter.currentHp <= 0) {
+      const faintLine = `${slot.fighter.member.nameJa}は　たおれた！`;
+      if (beats.length) beats[beats.length - 1].logs.push(faintLine);
+      else {
+        beats.push({
+          logs: [faintLine],
+          hpA: fighterA.currentHp,
+          hpB: fighterB.currentHp,
+        });
+      }
+    }
+
+    const skipPp =
+      continuingCharge ||
+      continuingLock ||
+      continuingBind ||
+      continuingBide ||
+      continuingRage;
+    if (beats.length === 0) {
+      pushStep(
+        [],
+        skipPp ? null : { speciesId: slot.fighter.speciesId, moveId: move.id },
+        ctx.forceSwitchSide,
+      );
+    } else {
+      beats.forEach((beat, index) => {
+        pushStep(
+          beat.logs,
+          index === 0 && !skipPp
+            ? { speciesId: slot.fighter.speciesId, moveId: move.id }
+            : null,
+          index === beats.length - 1 ? ctx.forceSwitchSide : null,
+          { a: beat.hpA, b: beat.hpB },
+        );
+      });
+    }
+
+    if (ctx.forceSwitchSide) break;
+  }
+
+  {
+    const endLogs: TurnLogLine[] = [];
+    // Keep foe trapTurns in sync with binder's remaining lock (for UI / canAct)
+    for (const [trapped, binder] of [
+      [fighterA, fighterB],
+      [fighterB, fighterA],
+    ] as const) {
+      if (
+        binder.volatiles.bindingMove &&
+        binder.volatiles.bindingTurnsLeft > 0
+      ) {
+        trapped.volatiles.trapTurns = binder.volatiles.bindingTurnsLeft + 1;
+      } else if (
+        !binder.volatiles.bindingMove &&
+        trapped.volatiles.trapTurns > 0 &&
+        trapped.volatiles.trapDamage > 0
+      ) {
+        // Binder finished or interrupted; ensure clear
+        trapped.volatiles.trapTurns = 0;
+        trapped.volatiles.trapDamage = 0;
+      }
+    }
+    tryEndTurnStatus(fighterA, fighterB, endLogs);
+    tryEndTurnStatus(fighterB, fighterA, endLogs);
+    if (
+      fighterA.currentHp <= 0 &&
+      !endLogs.some((l) => l.includes(`${fighterA.member.nameJa}は　たおれた`)) &&
+      !steps.some((s) =>
+        s.logs.some((l) => l.includes(`${fighterA.member.nameJa}は　たおれた`)),
+      )
+    ) {
+      endLogs.push(`${fighterA.member.nameJa}は　たおれた！`);
+    }
+    if (
+      fighterB.currentHp <= 0 &&
+      !endLogs.some((l) => l.includes(`${fighterB.member.nameJa}は　たおれた`)) &&
+      !steps.some((s) =>
+        s.logs.some((l) => l.includes(`${fighterB.member.nameJa}は　たおれた`)),
+      )
+    ) {
+      endLogs.push(`${fighterB.member.nameJa}は　たおれた！`);
+    }
+    pushStep(endLogs);
+  }
+
+  fighterA.volatiles.flinch = false;
+  fighterB.volatiles.flinch = false;
+
+  return {
+    steps,
+    faintedA: fighterA.currentHp <= 0,
+    faintedB: fighterB.currentHp <= 0,
+    ran: null,
+  };
+}
+
+/** @deprecated Prefer resolveTurnSteps for UI pacing. */
+export function resolveTurn(input: {
+  fighterA: BattleFighter;
+  fighterB: BattleFighter;
+  actionA: BattleAction;
+  actionB: BattleAction;
+  field: BattleFieldState;
+}): {
+  logs: TurnLogLine[];
+  faintedA: boolean;
+  faintedB: boolean;
+  ran: PartySide | null;
+} {
+  const result = resolveTurnSteps(input);
+  return {
+    logs: result.steps.flatMap((s) => s.logs),
+    faintedA: result.faintedA,
+    faintedB: result.faintedB,
+    ran: result.ran,
+  };
+}

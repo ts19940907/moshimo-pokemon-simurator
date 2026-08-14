@@ -11,6 +11,9 @@ App tables live in the **`moshimo`** schema (not `public`), to keep them separat
 - Migration (moves): `supabase/migrations/20260813140000_create_moves.sql`
 - Migration (final evolution): `supabase/migrations/20260813150000_add_pokemon_final_evolution.sql`
 - Migration (generation columns): `supabase/migrations/20260813160000_pokemon_moves_generation_columns.sql`
+- Migration (pokemon_moves generations): `supabase/migrations/20260813170000_pokemon_moves_available_generations.sql`
+- Migration (drop junction generation): `supabase/migrations/20260813180000_drop_pokemon_moves_available_generations.sql`
+- Migration (move effects): `supabase/migrations/20260814110000_moves_effect_columns.sql`
 - Ability seed: `supabase/seed/abilities.sql`
 - Gen1 pokemon seed: `supabase/seed/gen1_pokemon.sql`
 - Combined pokemon reseed: `supabase/seed/gen1_all.sql`（abilities → pokemon の順）
@@ -49,6 +52,8 @@ where available_generations & (1 << (N - 1)) <> 0;
 ```
 
 同一種族は **値が世代で変わらない限り1レコード**（例: `511` = Gen1..9）。種族値・タイプ・特性が変わるときだけレコードを分け、bitmask を分割する（ユニークキーに `available_generations` を含む）。
+
+`pokemon_moves` は **解決済みの pokemon 行 ID × move 行 ID** の紐づけのみ（世代カラムなし）。世代はポケモン／技マスタ側で行を選んでから JOIN する。
 
 第6世代で値が変わる初代勢は `31`（Gen1–5）と Gen6 以降行に分割。Gen8/9 で対戦不可の種は該当ビットを落とす（例: スピアーの Gen6 行は `96` = Gen6–7）。
 

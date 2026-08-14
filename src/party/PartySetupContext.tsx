@@ -32,6 +32,8 @@ type PartySetupContextValue = {
   commitEditingParty: () => void;
   clearEditingParty: () => void;
   clearAllParties: () => void;
+  /** Replace a side's committed party (e.g. from party select + set). */
+  setSideParty: (side: PartySide, party: PartySetupState) => void;
   getSide: (side: PartySide) => PartySetupState | null;
 };
 
@@ -139,6 +141,11 @@ export function PartySetupProvider({ children }: { children: ReactNode }) {
     setBaseline(null);
   }, []);
 
+  const setSideParty = useCallback((side: PartySide, party: PartySetupState) => {
+    if (side === "a") setSideA(party);
+    else setSideB(party);
+  }, []);
+
   const isDirty =
     editing != null &&
     baseline != null &&
@@ -156,6 +163,7 @@ export function PartySetupProvider({ children }: { children: ReactNode }) {
       commitEditingParty,
       clearEditingParty,
       clearAllParties,
+      setSideParty,
       getSide,
     }),
     [
@@ -169,6 +177,7 @@ export function PartySetupProvider({ children }: { children: ReactNode }) {
       commitEditingParty,
       clearEditingParty,
       clearAllParties,
+      setSideParty,
       getSide,
     ],
   );

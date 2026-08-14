@@ -28,6 +28,7 @@ import {
   type Gen1StatBlock,
   type PartyMemberBuild,
 } from "../../party/types";
+import { calcGen1Stats } from "../../party/gen1Stats";
 import type { LevelCapMode } from "../../match-setup/types";
 import type { GenerationFilterOptions } from "../../match-setup/generationFilter";
 
@@ -400,6 +401,10 @@ export function SetPokemonDialog({
 
   const maxLevel = maxLevelForCap(levelCapMode);
   const genderLocked = species.gender !== GENDER.BOTH;
+  const computedStats = useMemo(
+    () => calcGen1Stats(species, draft),
+    [species, draft],
+  );
 
   useEffect(() => {
     if (!visible) return;
@@ -481,6 +486,12 @@ export function SetPokemonDialog({
 
   const setMoveAt = (index: number, moveId: string | null) => {
     setDraft((current) => {
+      if (
+        moveId &&
+        current.moveIds.some((id, i) => i !== index && id === moveId)
+      ) {
+        return current;
+      }
       const next = [...current.moveIds] as PartyMemberBuild["moveIds"];
       next[index] = moveId;
       return { ...current, moveIds: next };
@@ -561,6 +572,14 @@ export function SetPokemonDialog({
               </View>
             ))}
 
+            <Text style={styles.section}>実数値（レベル・個体値・努力値から計算）</Text>
+            {GEN1_STAT_KEYS.map((key) => (
+              <View key={`real-${key}`} style={styles.statRow}>
+                <Text style={styles.statLabel}>{GEN1_STAT_LABELS[key]}</Text>
+                <Text style={styles.statValue}>{computedStats[key]}</Text>
+              </View>
+            ))}
+
             <Text style={styles.section}>技（最大4つ・詳細を見ながら選択）</Text>
             {loadingMoves ? <ActivityIndicator color="#1f6b4a" /> : null}
             {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
@@ -617,18 +636,24 @@ export function SetPokemonDialog({
                           条件に合う技がありません。
                         </Text>
                       ) : (
-                        filteredMoves.map((move) => (
-                          <MoveDetailCard
-                            key={`${index}-${move.id}`}
-                            move={move}
-                            selected={moveId === move.id}
-                            onPress={() => {
-                              setMoveAt(index, move.id);
-                              setPickingSlot(null);
-                              setMoveFilters(EMPTY_MOVE_FILTERS);
-                            }}
-                          />
-                        ))
+                        filteredMoves.map((move) => {
+                          const usedElsewhere = draft.moveIds.some(
+                            (id, i) => i !== index && id === move.id,
+                          );
+                          if (usedElsewhere) return null;
+                          return (
+                            <MoveDetailCard
+                              key={`${index}-${move.id}`}
+                              move={move}
+                              selected={moveId === move.id}
+                              onPress={() => {
+                                setMoveAt(index, move.id);
+                                setPickingSlot(null);
+                                setMoveFilters(EMPTY_MOVE_FILTERS);
+                              }}
+                            />
+                          );
+                        })
                       )}
                     </View>
                   ) : null}
@@ -722,6 +747,13 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     fontSize: 14,
     backgroundColor: "#fff",
+  },
+  statValue: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#1d1a16",
+    paddingVertical: 6,
   },
   moveBlock: { gap: 8, marginBottom: 12 },
   moveLabel: { fontSize: 12, fontWeight: "700", color: "#5c564c" },

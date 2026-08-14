@@ -16,7 +16,6 @@ import {
   opponentOptions,
   poolGenerationOptions,
   restrictionOptions,
-  visibilityOptions,
 } from "../match-setup/options";
 import { matchGenerationRouteParams } from "../match-setup/params";
 import type {
@@ -236,15 +235,11 @@ export function MenuScreen() {
   const [opponentType, setOpponentType] = useState<OpponentType>(
     defaultSetup.opponentType,
   );
-  const [visibilityMode, setVisibilityMode] = useState<VisibilityMode>(
-    defaultSetup.visibilityMode,
-  );
   const [levelCapMode, setLevelCapMode] = useState<LevelCapMode>(
     defaultSetup.levelCapMode,
   );
 
-  const isLocalBoth = opponentType === "local_both";
-  const resolvedVisibility = isLocalBoth ? visibilityMode : "opponent_hidden";
+  const resolvedVisibility: VisibilityMode = "full";
 
   const displayedPokemonGens = syncGenerationsWithRules
     ? [rulesGeneration]
@@ -276,9 +271,6 @@ export function MenuScreen() {
 
   const handleOpponentChange = (value: OpponentType) => {
     setOpponentType(value);
-    if (value === "ai") {
-      setVisibilityMode("opponent_hidden");
-    }
   };
 
   const handleStart = () => {
@@ -415,21 +407,6 @@ export function MenuScreen() {
               ))}
             </View>
 
-            {isLocalBoth ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>相手の情報</Text>
-                {visibilityOptions.map((option) => (
-                  <OptionCard
-                    key={option.value}
-                    title={option.title}
-                    description={option.description}
-                    selected={visibilityMode === option.value}
-                    onPress={() => setVisibilityMode(option.value)}
-                  />
-                ))}
-              </View>
-            ) : null}
-
             <View style={styles.summary}>
               <Text style={styles.summaryTitle}>この対戦</Text>
               <Text style={styles.summaryLine}>
@@ -445,8 +422,7 @@ export function MenuScreen() {
                 {labelOf(levelCapMode, levelCapOptions)}
               </Text>
               <Text style={styles.summaryLine}>
-                {labelOf(opponentType, opponentOptions)} ／{" "}
-                {labelOf(resolvedVisibility, visibilityOptions)}
+                {labelOf(opponentType, opponentOptions)} ／ フル公開
               </Text>
             </View>
 

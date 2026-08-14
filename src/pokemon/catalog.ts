@@ -7,7 +7,11 @@ import {
 import { TYPE_BY_ID, TYPE_NONE, type PokemonSpecies } from "./types";
 
 export const PAGE_SIZE = 10;
+/** Max Pokémon in a side’s box / party setup. */
 export const PARTY_SIZE = 6;
+/** Minimum Pokémon required to proceed from party setup. */
+export const MIN_PARTY_SIZE = 3;
+/** Pokémon brought into a single battle. */
 export const BATTLE_PARTY_SIZE = 3;
 
 export function isUsableInGeneration(
