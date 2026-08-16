@@ -47,6 +47,7 @@ import {
 import { PokemonSprite } from "../pokemon/PokemonSprite";
 import { SetPokemonDialog } from "./set/SetPokemonDialog";
 import { DamageCalcDialog } from "../battle/DamageCalcDialog";
+import { SpeedCompareDialog } from "../battle/SpeedCompareDialog";
 import { Gen1TypeChartDialog } from "../battle/Gen1TypeChartDialog";
 
 const grassland = require("../../assets/title/title-grassland.png");
@@ -698,6 +699,7 @@ export function SelectPokemonScreen() {
   const [partyRequiredOpen, setPartyRequiredOpen] = useState(false);
   const [typeChartOpen, setTypeChartOpen] = useState(false);
   const [damageCalcOpen, setDamageCalcOpen] = useState(false);
+  const [speedCompareOpen, setSpeedCompareOpen] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [nameQuery, setNameQuery] = useState("");
   const [typeFilters, setTypeFilters] = useState<TypeId[]>([]);
@@ -1191,7 +1193,16 @@ export function SelectPokemonScreen() {
               >
                 <Text style={styles.toolButtonText}>ダメージ計算</Text>
               </Pressable>
-              {/* すばやさ比較ボタンは後続で横並びに追加予定 */}
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setSpeedCompareOpen(true)}
+                style={({ pressed }) => [
+                  styles.toolButton,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.toolButtonText}>素早さ比較</Text>
+              </Pressable>
             </View>
 
             <SpeciesFilters
@@ -1314,6 +1325,26 @@ export function SelectPokemonScreen() {
         partyBuildsBySpeciesId={buildsBySpeciesId}
         partyDexNos={selectedDexNos}
         onClose={() => setDamageCalcOpen(false)}
+        onApplyToParty={(build) => {
+          const alreadyInParty = selectedDexNos.includes(build.dexNo);
+          if (!alreadyInParty) {
+            if (selectedDexNos.length >= PARTY_SIZE) return;
+            setSelectedDexNos((current) => [...current, build.dexNo]);
+          }
+          setBuildsBySpeciesId((current) => ({
+            ...current,
+            [build.speciesId]: build,
+          }));
+        }}
+      />
+
+      <SpeedCompareDialog
+        visible={speedCompareOpen}
+        speciesPool={species}
+        levelCapMode={levelCapMode}
+        partyBuildsBySpeciesId={buildsBySpeciesId}
+        partyDexNos={selectedDexNos}
+        onClose={() => setSpeedCompareOpen(false)}
         onApplyToParty={(build) => {
           const alreadyInParty = selectedDexNos.includes(build.dexNo);
           if (!alreadyInParty) {
