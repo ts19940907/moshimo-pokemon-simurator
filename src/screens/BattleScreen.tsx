@@ -15,6 +15,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useBattleSession } from "../battle/BattleSessionContext";
 import {
+  chooseCpuAction,
+  chooseCpuForcedSwitch,
+  noteRevealedMove,
+  type CpuKnowledge,
+} from "../battle/cpuChooseAction";
+import {
   buildFighter,
   getForcedMove,
   resolveTurnSteps,
@@ -25,6 +31,7 @@ import {
   type BattleFieldState,
   type BattleFighter,
 } from "../battle/types";
+import { moveGenerationFilterFromParams } from "../match-setup/params";
 import type { OpponentType } from "../match-setup/types";
 import { calcGen1Stats } from "../party/gen1Stats";
 import { usePartySetup } from "../party/PartySetupContext";
@@ -36,7 +43,10 @@ import {
 } from "../party/types";
 import { formatDexNo, TYPE_COLORS, typeNameJa } from "../pokemon/catalog";
 import type { Move } from "../pokemon/moves";
-import { fetchMovesByIds } from "../pokemon/moveRepository";
+import {
+  fetchMovesByIds,
+  fetchMovesForPokemon,
+} from "../pokemon/moveRepository";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
 import { fetchPokemonSpecies } from "../pokemon/repository";
 import type { PokemonSpecies } from "../pokemon/types";
@@ -55,6 +65,8 @@ type MatchParams = {
   syncGenerationsWithRules?: string;
   pokemonGenerations?: string;
   moveGenerations?: string;
+  pokemonGeneration?: string;
+  moveGeneration?: string;
   restrictionMode?: string;
   opponentType?: string;
   visibilityMode?: string;
@@ -236,13 +248,6 @@ function sideFieldSummary(field: BattleFieldState, side: PartySide): string[] {
   return lines;
 }
 
-function describeAction(action: BattleAction | null): string {
-  if (!action) return "未選択";
-  if (action.type === "move") return `技:${action.move.name_ja}`;
-  if (action.type === "switch") return `交代→${action.index + 1}番手`;
-  return "降参";
-}
-
 
 export function BattleScreen() {
   const router = useRouter();
@@ -258,6 +263,16 @@ export function BattleScreen() {
 
   const opponentType = (params.opponentType ?? "local_both") as OpponentType;
   const isLocalBoth = opponentType === "local_both";
+  const isCpu = opponentType === "cpu";
+  const moveGenerationOptions = useMemo(
+    () => moveGenerationFilterFromParams(params),
+    [
+      params.rulesGeneration,
+      params.syncGenerationsWithRules,
+      params.moveGenerations,
+      params.moveGeneration,
+    ],
+  );
 
   const [menu, setMenu] = useState<CommandMenu>("root");
   const [pickPhase, setPickPhase] = useState<PickPhase>("a");
@@ -298,6 +313,12 @@ export function BattleScreen() {
   const fieldRef = useRef<BattleFieldState>(createBattleField());
   /** Persist HP across switches (瀕死維持). */
   const hpBySpeciesIdRef = useRef<Record<string, number>>({});
+  const cpuKnowledgeRef = useRef<CpuKnowledge>({
+    revealedMoveIdsBySpeciesId: {},
+  });
+  const movesByIdRef = useRef<Record<string, Move>>({});
+  const learnsetBySpeciesIdRef = useRef<Record<string, Move[]>>({});
+  const ppRemainingRef = useRef<Record<string, number>>({});
   const [fighterTick, setFighterTick] = useState(0);
   const bumpFighters = () => setFighterTick((n) => n + 1);
   /** Display HP during step playback (multi-hit snapshots). */
@@ -319,8 +340,13 @@ export function BattleScreen() {
   const memberA = resolveMember("a", activeIdA);
   const memberB = resolveMember("b", activeIdB);
 
-  const controllingSide: PartySide =
-    mustSwitchSide ?? (pickPhase === "b" ? "b" : "a");
+  const controllingSide: PartySide = (() => {
+    if (isCpu) {
+      // Player always drives side A; CPU auto-handles B forced switches.
+      return "a";
+    }
+    return mustSwitchSide ?? (pickPhase === "b" ? "b" : "a");
+  })();
   const controllingLineup = useMemo(() => {
     if (!lineup) return [];
     return controllingSide === "a" ? lineup.a : lineup.b;
@@ -387,6 +413,7 @@ export function BattleScreen() {
         }
         hpBySpeciesIdRef.current = nextHp;
         fieldRef.current = createBattleField();
+        cpuKnowledgeRef.current = { revealedMoveIdsBySpeciesId: {} };
 
         fightersRef.current = {
           a: buildSide("a", lineup.a[0]),
@@ -397,6 +424,55 @@ export function BattleScreen() {
           b: fightersRef.current.b?.currentHp ?? 0,
         });
         bumpFighters();
+
+        if (isCpu) {
+          const allMoveIds = new Set<string>();
+          for (const side of ["a", "b"] as PartySide[]) {
+            const ids = side === "a" ? lineup.a : lineup.b;
+            for (const speciesId of ids) {
+              const member = getSide(side)?.members.find(
+                (m) => m.speciesId === speciesId,
+              );
+              for (const moveId of member?.moveIds ?? []) {
+                if (moveId) allMoveIds.add(moveId);
+              }
+            }
+          }
+          const moveRows = await fetchMovesByIds([...allMoveIds]);
+          if (cancelled) return;
+          const byId: Record<string, Move> = {};
+          for (const move of moveRows) byId[move.id] = move;
+          movesByIdRef.current = byId;
+          setPpRemaining((current) => {
+            const next = { ...current };
+            for (const side of ["a", "b"] as PartySide[]) {
+              const ids = side === "a" ? lineup.a : lineup.b;
+              for (const speciesId of ids) {
+                const member = getSide(side)?.members.find(
+                  (m) => m.speciesId === speciesId,
+                );
+                for (const moveId of member?.moveIds ?? []) {
+                  if (!moveId) continue;
+                  const move = byId[moveId];
+                  if (!move) continue;
+                  const key = ppKey(speciesId, moveId);
+                  if (next[key] == null) next[key] = move.pp ?? 0;
+                }
+              }
+            }
+            return next;
+          });
+
+          const learnsets: Record<string, Move[]> = {};
+          for (const speciesId of lineup.a) {
+            learnsets[speciesId] = await fetchMovesForPokemon(
+              speciesId,
+              moveGenerationOptions,
+            );
+            if (cancelled) return;
+          }
+          learnsetBySpeciesIdRef.current = learnsets;
+        }
       } catch (error) {
         if (!cancelled) {
           setErrorMessage(
@@ -412,7 +488,7 @@ export function BattleScreen() {
     return () => {
       cancelled = true;
     };
-  }, [lineup, getSide]);
+  }, [lineup, getSide, isCpu, moveGenerationOptions]);
 
   useEffect(() => {
     if (menu !== "fight" || !controllingMember || !battleMoveIds) {
@@ -569,12 +645,55 @@ export function BattleScreen() {
     openEndDestination();
   };
 
+  useEffect(() => {
+    ppRemainingRef.current = ppRemaining;
+  }, [ppRemaining]);
+
   const spendPp = (speciesId: string, moveId: string) => {
     const key = ppKey(speciesId, moveId);
     setPpRemaining((current) => {
       const remaining = current[key];
       if (remaining == null) return current;
-      return { ...current, [key]: Math.max(0, remaining - 1) };
+      const next = { ...current, [key]: Math.max(0, remaining - 1) };
+      ppRemainingRef.current = next;
+      return next;
+    });
+  };
+
+  const cpuSwitchOptions = (side: PartySide = "b") => {
+    if (!lineup) return [];
+    const ids = side === "a" ? lineup.a : lineup.b;
+    const active = side === "a" ? activeIndexA : activeIndexB;
+    const options: {
+      index: number;
+      member: PartyMemberBuild;
+      species: PokemonSpecies;
+    }[] = [];
+    ids.forEach((speciesId, index) => {
+      if (index === active) return;
+      if ((hpBySpeciesIdRef.current[speciesId] ?? 0) <= 0) return;
+      const member = resolveMember(side, speciesId);
+      const species = speciesById[speciesId];
+      if (!member || !species) return;
+      options.push({ index, member, species });
+    });
+    return options;
+  };
+
+  const pickCpuBattleAction = (): BattleAction => {
+    const self = fightersRef.current.b;
+    const foe = fightersRef.current.a;
+    if (!self || !foe) return { type: "run" };
+    return chooseCpuAction({
+      self,
+      foe,
+      field: fieldRef.current,
+      selfMovesById: movesByIdRef.current,
+      foeMovesById: movesByIdRef.current,
+      ppRemaining: ppRemainingRef.current,
+      knowledge: cpuKnowledgeRef.current,
+      foeLearnset: learnsetBySpeciesIdRef.current[foe.species.id] ?? [],
+      switchOptions: cpuSwitchOptions("b"),
     });
   };
 
@@ -635,12 +754,6 @@ export function BattleScreen() {
     setActionB(null);
     actionARef.current = null;
     setMenu("root");
-
-    // Selection summary (no field change yet)
-    await playLog([
-      `サイドA: ${describeAction(nextA)}`,
-      `サイドB: ${describeAction(nextB)}`,
-    ]);
 
     if (nextA.type === "switch") {
       persistFighterHp();
@@ -758,11 +871,13 @@ export function BattleScreen() {
         return;
       }
       await playLog([
-        `${side === "a" ? "サイドA" : "サイドB"}は　次のポケモンを　選んでください。`,
+        isCpu && side === "b"
+          ? "CPUが　次のポケモンを　選んでいます…"
+          : `${side === "a" ? "サイドA" : "サイドB"}は　次のポケモンを　選んでください。`,
       ]);
       setMustSwitchSide(side);
       setPickPhase(side);
-      setMenu("party");
+      setMenu(isCpu && side === "b" ? "root" : "party");
       return;
     }
 
@@ -783,6 +898,10 @@ export function BattleScreen() {
       persistFighterHp();
       switchActive(mustSwitchSide, action.index);
       syncFighterFromActive(mustSwitchSide, action.index);
+      setFieldHp({
+        a: fightersRef.current.a?.currentHp ?? 0,
+        b: fightersRef.current.b?.currentHp ?? 0,
+      });
       const member = resolveMember(mustSwitchSide, speciesId);
       void playLog([
         `ゆけ！　${member?.nameJa ?? "ポケモン"}！`,
@@ -803,13 +922,24 @@ export function BattleScreen() {
       setMenu("root");
       if (isLocalBoth) {
         setPickPhase("b");
-        setLog([
-          `サイドA: ${describeAction(action)}`,
-          "サイドBの行動を選んでください。",
-        ]);
+        setLog(["サイドBの行動を選んでください。"]);
+      } else if (isCpu) {
+        if (action.type === "move") {
+          const foe = fightersRef.current.a;
+          if (foe) {
+            cpuKnowledgeRef.current = noteRevealedMove(
+              cpuKnowledgeRef.current,
+              foe.species.id,
+              action.move.id,
+            );
+          }
+        }
+        const cpuAction = pickCpuBattleAction();
+        setActionB(cpuAction);
+        setLog(["CPUが行動を選んでいます…"]);
+        void runResolve(action, cpuAction);
       } else {
         setLog([
-          `サイドA: ${describeAction(action)}`,
           "AI対戦の自動行動は未実装です。local_both で遊んでください。",
         ]);
         actionARef.current = null;
@@ -830,6 +960,24 @@ export function BattleScreen() {
     }
   };
 
+  // CPU auto-pick when forced to switch after faint
+  useEffect(() => {
+    if (!isCpu || mustSwitchSide !== "b" || logPlaying || loading) return;
+    const foe = fightersRef.current.a;
+    if (!foe) return;
+    const options = cpuSwitchOptions("b");
+    const action = chooseCpuForcedSwitch({
+      switchOptions: options,
+      foe,
+    });
+    if (action.type !== "switch") return;
+    const t = setTimeout(() => {
+      lockAction(action);
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- auto when B must switch
+  }, [isCpu, mustSwitchSide, logPlaying, loading, fighterTick]);
+
   // Auto-continue charge / thrash locks
   useEffect(() => {
     if (logPlaying || mustSwitchSide || loading || menu !== "root") return;
@@ -846,12 +994,14 @@ export function BattleScreen() {
 
   const onFight = () => {
     if (mustSwitchSide || logPlaying) return;
+    if (isCpu && mustSwitchSide === "b") return;
     if (getForcedMove(fightersRef.current[controllingSide])) return;
     setMenu("fight");
   };
 
   const onParty = () => {
     if (logPlaying) return;
+    if (isCpu && mustSwitchSide === "b") return;
     if (
       !mustSwitchSide &&
       getForcedMove(fightersRef.current[controllingSide])
@@ -945,7 +1095,7 @@ export function BattleScreen() {
             <Text style={styles.lead}>
               {mustSwitchSide
                 ? `${mustSwitchSide === "a" ? "サイドA" : "サイドB"}の交代を選んでください。`
-                : `行動選択: ${sideLabel}（A:${describeAction(actionA)} / B:${describeAction(actionB)}）`}
+                : `行動選択: ${sideLabel}`}
             </Text>
 
             {loading ? (
@@ -966,7 +1116,11 @@ export function BattleScreen() {
                     species={activeIdB ? speciesById[activeIdB] ?? null : null}
                     align="opponent"
                     emptyLabel={
-                      isLocalBoth ? "相手の場が空です" : "AIの場は準備中です"
+                      isLocalBoth
+                        ? "相手の場が空です"
+                        : isCpu
+                          ? "CPUの場が空です"
+                          : "AIの場は準備中です"
                     }
                     currentHp={fieldHp?.b ?? fighterB?.currentHp}
                     maxHp={fighterB?.maxHp}

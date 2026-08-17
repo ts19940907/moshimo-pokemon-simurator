@@ -62,9 +62,16 @@ export const opponentOptions: {
     description: "同じ端末でサイドAとサイドBを順番に操作します。",
   },
   {
+    value: "cpu",
+    title: "CPUと対戦",
+    description:
+      "自分の6体編成後、CPUが6体を自動編成します。3体選出では相手の6体が見え、確定後にCPUが3体を選びます（選出内容は非公開）。行動は乱数つきの重み付けで決まります。",
+  },
+  {
     value: "ai",
     title: "AIと対戦",
-    description: "自分の編成後に3体選出へ進みます。AIの選出は裏で同時に行われ、初手だけが見えます。",
+    description: "高度なAI対戦（未実装）。",
+    disabled: true,
   },
 ];
 

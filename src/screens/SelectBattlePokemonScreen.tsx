@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { OpponentType } from "../match-setup/types";
 import { useBattleSession } from "../battle/BattleSessionContext";
+import { pickCpuBattleThree } from "../battle/cpuTeam";
 import { usePartySetup } from "../party/PartySetupContext";
 import type { PartyMemberBuild } from "../party/types";
 import { BATTLE_PARTY_SIZE, formatDexNo } from "../pokemon/catalog";
@@ -180,6 +181,8 @@ export function SelectBattlePokemonScreen() {
   const { startBattle } = useBattleSession();
   const opponentType = (params.opponentType ?? "local_both") as OpponentType;
   const isLocalBoth = opponentType === "local_both";
+  const isCpu = opponentType === "cpu";
+  const needsSideB = isLocalBoth || isCpu;
 
   const [picksA, setPicksA] = useState<string[]>([]);
   const [picksB, setPicksB] = useState<string[]>([]);
@@ -198,11 +201,13 @@ export function SelectBattlePokemonScreen() {
       try {
         setLoading(true);
         setErrorMessage(null);
-        if (!sideA || (isLocalBoth && !sideB)) {
+        if (!sideA || (needsSideB && !sideB)) {
           setErrorMessage(
             isLocalBoth
               ? "両方のパーティが揃っていません。編成からやり直してください。"
-              : "自分のパーティがありません。編成からやり直してください。",
+              : isCpu
+                ? "CPUパーティがありません。編成からやり直してください。"
+                : "自分のパーティがありません。編成からやり直してください。",
           );
           return;
         }
@@ -226,7 +231,7 @@ export function SelectBattlePokemonScreen() {
     return () => {
       cancelled = true;
     };
-  }, [sideA, sideB, isLocalBoth]);
+  }, [sideA, sideB, needsSideB, isLocalBoth, isCpu]);
 
   const togglePick = (side: "a" | "b", speciesId: string) => {
     const setter = side === "a" ? setPicksA : setPicksB;
@@ -256,10 +261,18 @@ export function SelectBattlePokemonScreen() {
 
   const confirmSelection = () => {
     if (!bothReady) return;
+    const cpuPicks =
+      isCpu && sideB && sideA
+        ? pickCpuBattleThree({
+            cpuMembers: sideB.members,
+            playerMembers: sideA.members,
+            speciesById,
+          })
+        : [];
     startBattle(
       {
         a: picksA,
-        b: isLocalBoth ? picksB : [],
+        b: isLocalBoth ? picksB : isCpu ? cpuPicks : [],
       },
       "a",
     );
@@ -297,7 +310,9 @@ export function SelectBattlePokemonScreen() {
             <Text style={styles.lead}>
               {isLocalBoth
                 ? "同一画面で両サイドが3体ずつ選びます。選んだ順が並びで、先頭が初手です（フル公開）。"
-                : "左側から3体を選んでください。選んだ順が並びで、先頭が初手です。AIの選出は裏で進行しています。"}
+                : isCpu
+                  ? "左側から3体を選んでください（先頭が初手）。右側はCPUの6体です。確定後、CPUがこちらの6体を見て3体を選びます（選出内容は非公開）。"
+                  : "左側から3体を選んでください。選んだ順が並びで、先頭が初手です。AIの選出は裏で進行しています。"}
             </Text>
 
             {loading ? (
@@ -338,14 +353,18 @@ export function SelectBattlePokemonScreen() {
                     title={
                       isLocalBoth
                         ? `サイドB（${membersB.length}体）`
-                        : "相手のパーティ"
+                        : isCpu
+                          ? `CPUのパーティ（${membersB.length}体）`
+                          : "相手のパーティ"
                     }
-                    members={isLocalBoth ? membersB : []}
+                    members={isLocalBoth || isCpu ? membersB : []}
                     speciesById={speciesById}
                     emptyText={
                       isLocalBoth
                         ? "サイドBのパーティがありません。"
-                        : "AIのパーティは準備中です。"
+                        : isCpu
+                          ? "CPUのパーティがありません。"
+                          : "AIのパーティは準備中です。"
                     }
                     selectable={isLocalBoth}
                     pickedIds={isLocalBoth ? picksB : []}

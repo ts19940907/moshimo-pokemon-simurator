@@ -12,7 +12,7 @@ export const restrictionModes = [
 
 export type RestrictionMode = (typeof restrictionModes)[number];
 
-export const opponentTypes = ["local_both", "ai"] as const;
+export const opponentTypes = ["local_both", "cpu", "ai"] as const;
 
 export type OpponentType = (typeof opponentTypes)[number];
 

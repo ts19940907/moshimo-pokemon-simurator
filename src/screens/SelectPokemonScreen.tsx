@@ -49,6 +49,7 @@ import { SetPokemonDialog } from "./set/SetPokemonDialog";
 import { DamageCalcDialog } from "../battle/DamageCalcDialog";
 import { SpeedCompareDialog } from "../battle/SpeedCompareDialog";
 import { Gen1TypeChartDialog } from "../battle/Gen1TypeChartDialog";
+import { generateCpuParty } from "../battle/cpuTeam";
 
 const grassland = require("../../assets/title/title-grassland.png");
 
@@ -701,6 +702,7 @@ export function SelectPokemonScreen() {
   const [damageCalcOpen, setDamageCalcOpen] = useState(false);
   const [speedCompareOpen, setSpeedCompareOpen] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
+  const [cpuGenerating, setCpuGenerating] = useState(false);
   const [nameQuery, setNameQuery] = useState("");
   const [typeFilters, setTypeFilters] = useState<TypeId[]>([]);
   const [singleTypeOnly, setSingleTypeOnly] = useState(false);
@@ -935,7 +937,7 @@ export function SelectPokemonScreen() {
     return rest;
   }, [params]);
 
-  const continueAfterSelect = () => {
+  const continueAfterSelect = async () => {
     if (orderedMembers.length < MIN_PARTY_SIZE) {
       setPartyRequiredOpen(true);
       return;
@@ -967,6 +969,46 @@ export function SelectPokemonScreen() {
       return;
     }
 
+    if (opponentType === "cpu" && side === "a") {
+      try {
+        setCpuGenerating(true);
+        setErrorMessage(null);
+        const cpuParty = await generateCpuParty({
+          speciesPool: species,
+          levelCapMode,
+          moveGenerationOptions,
+          playerDexNos: orderedMembers.map((m) => m.dexNo),
+          rulesGeneration,
+        });
+        const missingCpuMoves = cpuParty.members.filter(
+          (member) => !member.moveIds.some((moveId) => Boolean(moveId)),
+        );
+        if (missingCpuMoves.length > 0) {
+          setErrorMessage(
+            "CPUパーティの技取得に失敗しました。通信を確認して再試行してください。",
+          );
+          return;
+        }
+        setSideParty("b", cpuParty);
+        router.push({
+          pathname: "/select",
+          params: {
+            ...matchParams,
+            selectSide: "a",
+          },
+        });
+      } catch (error) {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "CPUパーティの作成に失敗しました。",
+        );
+      } finally {
+        setCpuGenerating(false);
+      }
+      return;
+    }
+
     router.push({
       pathname: "/select",
       params: {
@@ -979,7 +1021,9 @@ export function SelectPokemonScreen() {
   const continueLabel =
     opponentType === "local_both" && side === "a"
       ? "相手の編成へ進む"
-      : "3体選出へ進む";
+      : opponentType === "cpu"
+        ? "CPU編成のあと3体選出へ"
+        : "3体選出へ進む";
 
   const leaveBack = () => {
     if (isOpponentSide) {
@@ -1274,20 +1318,25 @@ export function SelectPokemonScreen() {
           </View>
         </ScrollView>
 
-        {!loading && !errorMessage ? (
+        {!loading ? (
           <View style={styles.continueBar}>
             <Pressable
               accessibilityRole="button"
-              onPress={continueAfterSelect}
+              disabled={cpuGenerating}
+              onPress={() => {
+                void continueAfterSelect();
+              }}
               style={({ pressed }) => [
                 styles.primaryButton,
-                pressed && styles.primaryButtonPressed,
+                (pressed || cpuGenerating) && styles.primaryButtonPressed,
               ]}
             >
               <Text style={styles.primaryButtonText}>
-                {selectedDexNos.length >= MIN_PARTY_SIZE
-                  ? continueLabel
-                  : `あと${MIN_PARTY_SIZE - selectedDexNos.length}体以上選んでください`}
+                {cpuGenerating
+                  ? "CPU編成を準備中…"
+                  : selectedDexNos.length >= MIN_PARTY_SIZE
+                    ? continueLabel
+                    : `あと${MIN_PARTY_SIZE - selectedDexNos.length}体以上選んでください`}
               </Text>
             </Pressable>
           </View>
