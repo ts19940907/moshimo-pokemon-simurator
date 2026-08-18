@@ -92,10 +92,14 @@ const STATUS_LABEL: Record<string, string> = {
   poison: "どく",
 };
 
-function statusBadges(fighter: BattleFighter | null | undefined): string[] {
+function statusBadges(
+  fighter: BattleFighter | null | undefined,
+  displayedHp?: number,
+): string[] {
   if (!fighter) return [];
   const badges: string[] = [];
-  if (fighter.currentHp <= 0) {
+  const hp = displayedHp ?? fighter.currentHp;
+  if (hp <= 0) {
     badges.push("ひんし");
     return badges;
   }
@@ -156,13 +160,20 @@ function FieldFighter({
   }, [memberKey]);
 
   useEffect(() => {
-    setDisplayHp(current);
+    const listenerId = widthAnim.addListener(({ value }) => {
+      setDisplayHp(Math.round((value / 100) * max));
+    });
     Animated.timing(widthAnim, {
       toValue: ratio * 100,
-      duration: 180,
+      duration: 420,
       useNativeDriver: false,
-    }).start();
-  }, [current, ratio, widthAnim]);
+    }).start(() => {
+      setDisplayHp(current);
+    });
+    return () => {
+      widthAnim.removeListener(listenerId);
+    };
+  }, [current, ratio, widthAnim, max]);
 
   if (!member) {
     return (
@@ -612,6 +623,13 @@ export function BattleScreen() {
     }
   };
 
+  const persistSnapshotHp = (snapshot: { a: number; b: number }) => {
+    const fighterA = fightersRef.current.a;
+    const fighterB = fightersRef.current.b;
+    if (fighterA) hpBySpeciesIdRef.current[fighterA.speciesId] = snapshot.a;
+    if (fighterB) hpBySpeciesIdRef.current[fighterB.speciesId] = snapshot.b;
+  };
+
   const openEndDestination = () => {
     setEndDestOpen(true);
   };
@@ -792,22 +810,22 @@ export function BattleScreen() {
       if (step.ppSpent) {
         spendPp(step.ppSpent.speciesId, step.ppSpent.moveId);
       }
-      // Apply HP first so the bar updates before this beat's log lines
+      // Apply this beat's HP with its logs so bars drop in attack order.
       if (step.hpSnapshot) {
         setFieldHp({ a: step.hpSnapshot.a, b: step.hpSnapshot.b });
+        persistSnapshotHp(step.hpSnapshot);
       }
-      persistFighterHp();
       bumpFighters();
-      // Yield so React commits fieldHp, then hold for the bar animation
       await sleep(0);
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => {
           requestAnimationFrame(() => resolve());
         });
       });
-      await sleep(220);
       if (step.logs.length > 0) {
         await playLog(step.logs);
+      } else {
+        await sleep(420);
       }
       if (step.forceSwitchSide) {
         const side = step.forceSwitchSide;
@@ -842,6 +860,8 @@ export function BattleScreen() {
         }
       }
     }
+
+    persistFighterHp();
 
     if (result.ran) {
       goMenu();
@@ -1124,7 +1144,7 @@ export function BattleScreen() {
                     }
                     currentHp={fieldHp?.b ?? fighterB?.currentHp}
                     maxHp={fighterB?.maxHp}
-                    badges={statusBadges(fighterB)}
+                    badges={statusBadges(fighterB, fieldHp?.b)}
                   />
                   <View style={styles.fieldDivider} />
                   <FieldFighter
@@ -1134,7 +1154,7 @@ export function BattleScreen() {
                     emptyLabel="自分の場が空です"
                     currentHp={fieldHp?.a ?? fighterA?.currentHp}
                     maxHp={fighterA?.maxHp}
-                    badges={statusBadges(fighterA)}
+                    badges={statusBadges(fighterA, fieldHp?.a)}
                   />
                 </View>
 
