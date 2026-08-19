@@ -36,7 +36,12 @@ import {
   TYPE_COLORS,
   typeFilterOptions,
 } from "../pokemon/catalog";
-import { fetchMovesByIds } from "../pokemon/moveRepository";
+import type { Move } from "../pokemon/moves";
+import {
+  fetchMovesByIds,
+  fetchPokemonIdsForMoves,
+  searchMoves,
+} from "../pokemon/moveRepository";
 import { fetchPokemonSpecies } from "../pokemon/repository";
 import {
   TYPE_NONE,
@@ -63,6 +68,7 @@ type StatFiltersState = Record<StatKey, StatFilterEntry>;
 type DualTypeOrderMode = "any" | "exact";
 
 const MAX_TYPE_FILTERS = 2;
+const MAX_MOVE_FILTERS = 4;
 
 const STAT_FILTERS: { key: StatKey; label: string }[] = [
   { key: "hp", label: "HP" },
@@ -186,6 +192,23 @@ function compareSpeciesBySort(
   }
 
   return diff * direction;
+}
+
+function createBuildWithMoveFilters(
+  species: PokemonSpecies,
+  levelCapMode: LevelCapMode,
+  moveFilters: Move[],
+): PartyMemberBuild {
+  const build = createDefaultBuild(species, levelCapMode);
+  if (moveFilters.length === 0) {
+    return build;
+  }
+
+  const moveIds: PartyMemberBuild["moveIds"] = [null, null, null, null];
+  moveFilters.slice(0, MAX_MOVE_FILTERS).forEach((move, index) => {
+    moveIds[index] = move.id;
+  });
+  return { ...build, moveIds };
 }
 
 type MatchParams = {
@@ -432,6 +455,14 @@ function SpeciesFilters({
   onFinalEvolutionOnlyChange,
   statFilters,
   onStatFilterChange,
+  moveFilters,
+  moveQuery,
+  onMoveQueryChange,
+  moveSuggestions,
+  moveSearchLoading,
+  onPickMoveSuggestion,
+  onRemoveMoveFilter,
+  moveFilterLoading,
   resultCount,
   onClear,
 }: {
@@ -453,12 +484,21 @@ function SpeciesFilters({
     key: StatKey,
     patch: Partial<StatFilterEntry>,
   ) => void;
+  moveFilters: Move[];
+  moveQuery: string;
+  onMoveQueryChange: (value: string) => void;
+  moveSuggestions: Move[];
+  moveSearchLoading: boolean;
+  onPickMoveSuggestion: (move: Move) => void;
+  onRemoveMoveFilter: (moveId: string) => void;
+  moveFilterLoading: boolean;
   resultCount: number;
   onClear: () => void;
 }) {
   const hasFilters =
     nameQuery.trim().length > 0 ||
     typeFilters.length > 0 ||
+    moveFilters.length > 0 ||
     singleTypeOnly ||
     !finalEvolutionOnly ||
     STAT_FILTERS.some(
@@ -676,9 +716,72 @@ function SpeciesFilters({
         })}
       </View>
 
+      <Text style={styles.filterLabel}>
+        覚える技（最大{MAX_MOVE_FILTERS}つ・すべて覚えるポケモンに絞り込み）
+      </Text>
+      <View style={styles.searchWrap}>
+        <TextInput
+          value={moveQuery}
+          onChangeText={onMoveQueryChange}
+          placeholder="技名で検索"
+          placeholderTextColor="#9a9286"
+          autoCorrect={false}
+          autoCapitalize="none"
+          style={styles.searchInput}
+        />
+        {moveSearchLoading ? (
+          <View style={styles.moveSearchLoading}>
+            <ActivityIndicator size="small" color="#1f6b4a" />
+          </View>
+        ) : null}
+        {moveSuggestions.length > 0 ? (
+          <View style={styles.suggestList}>
+            {moveSuggestions.map((move) => {
+              const selected = moveFilters.some((entry) => entry.id === move.id);
+              const blocked =
+                !selected && moveFilters.length >= MAX_MOVE_FILTERS;
+              return (
+                <Pressable
+                  key={move.id}
+                  disabled={blocked || selected}
+                  onPress={() => onPickMoveSuggestion(move)}
+                  style={({ pressed }) => [
+                    styles.suggestItem,
+                    (pressed || blocked || selected) && styles.suggestItemPressed,
+                    (blocked || selected) && styles.suggestItemDisabled,
+                  ]}
+                >
+                  <Text style={styles.suggestName}>{move.name_ja}</Text>
+                  {selected ? (
+                    <Text style={styles.suggestMoveMeta}>選択済み</Text>
+                  ) : blocked ? (
+                    <Text style={styles.suggestMoveMeta}>上限</Text>
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
+      </View>
+      {moveFilters.length > 0 ? (
+        <View style={styles.moveFilterChipRow}>
+          {moveFilters.map((move) => (
+            <Pressable
+              key={move.id}
+              onPress={() => onRemoveMoveFilter(move.id)}
+              style={styles.moveFilterChip}
+            >
+              <Text style={styles.moveFilterChipText}>{move.name_ja}</Text>
+              <Text style={styles.moveFilterChipRemove}>×</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+
       <Text style={styles.filterResult}>
         {resultCount}体表示中
-        {hasFilters ? "（絞り込み適用中）" : ""}
+        {moveFilterLoading ? "（技絞り込み中…）" : ""}
+        {!moveFilterLoading && hasFilters ? "（絞り込み適用中）" : ""}
       </Text>
     </View>
   );
@@ -799,6 +902,14 @@ export function SelectPokemonScreen() {
   const [sortKey, setSortKey] = useState<SortKey>("dex");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [suggestOpen, setSuggestOpen] = useState(false);
+  const [moveFilters, setMoveFilters] = useState<Move[]>([]);
+  const [moveQuery, setMoveQuery] = useState("");
+  const [moveSuggestOpen, setMoveSuggestOpen] = useState(false);
+  const [moveSuggestions, setMoveSuggestions] = useState<Move[]>([]);
+  const [moveSearchLoading, setMoveSearchLoading] = useState(false);
+  const [moveFilterPokemonIds, setMoveFilterPokemonIds] =
+    useState<Set<string> | null>(null);
+  const [moveFilterLoading, setMoveFilterLoading] = useState(false);
 
   useEffect(() => {
     const existing = getSide(side);
@@ -818,7 +929,76 @@ export function SelectPokemonScreen() {
     setSortKey("dex");
     setSortOrder("asc");
     setSuggestOpen(false);
+    setMoveFilters([]);
+    setMoveQuery("");
+    setMoveSuggestOpen(false);
+    setMoveSuggestions([]);
+    setMoveFilterPokemonIds(null);
+    setMoveFilterLoading(false);
   }, [side, getSide]);
+
+  useEffect(() => {
+    const trimmed = moveQuery.trim();
+    if (!moveSuggestOpen || trimmed.length < 1) {
+      setMoveSuggestions([]);
+      setMoveSearchLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      setMoveSearchLoading(true);
+      try {
+        const moves = await searchMoves(trimmed, moveGenerationOptions);
+        if (!cancelled) {
+          setMoveSuggestions(moves);
+        }
+      } catch {
+        if (!cancelled) {
+          setMoveSuggestions([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setMoveSearchLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [moveQuery, moveSuggestOpen, moveGenerationOptions]);
+
+  useEffect(() => {
+    if (moveFilters.length === 0) {
+      setMoveFilterPokemonIds(null);
+      setMoveFilterLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      setMoveFilterLoading(true);
+      try {
+        const ids = await fetchPokemonIdsForMoves(
+          moveFilters.map((move) => move.id),
+        );
+        if (!cancelled) {
+          setMoveFilterPokemonIds(ids);
+        }
+      } catch {
+        if (!cancelled) {
+          setMoveFilterPokemonIds(new Set());
+        }
+      } finally {
+        if (!cancelled) {
+          setMoveFilterLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [moveFilters]);
 
   useEffect(() => {
     let cancelled = false;
@@ -883,6 +1063,14 @@ export function SelectPokemonScreen() {
           return false;
         }
       }
+      if (
+        moveFilters.length > 0 &&
+        moveFilterPokemonIds != null &&
+        !moveFilterLoading &&
+        !moveFilterPokemonIds.has(pokemon.id)
+      ) {
+        return false;
+      }
       return true;
     });
   }, [
@@ -893,6 +1081,9 @@ export function SelectPokemonScreen() {
     dualOrderMode,
     finalEvolutionOnly,
     statFilters,
+    moveFilters,
+    moveFilterPokemonIds,
+    moveFilterLoading,
   ]);
 
   const sortedSpecies = useMemo(() => {
@@ -927,6 +1118,7 @@ export function SelectPokemonScreen() {
     dualOrderMode,
     finalEvolutionOnly,
     statFilters,
+    moveFilters,
     sortKey,
     sortOrder,
   ]);
@@ -943,6 +1135,10 @@ export function SelectPokemonScreen() {
     setFinalEvolutionOnly(true);
     setStatFilters(EMPTY_STAT_FILTERS);
     setSuggestOpen(false);
+    setMoveFilters([]);
+    setMoveQuery("");
+    setMoveSuggestOpen(false);
+    setMoveSuggestions([]);
   };
 
   const handleToggleTypeFilter = (typeId: TypeId) => {
@@ -981,7 +1177,11 @@ export function SelectPokemonScreen() {
       if (current[pokemon.id]) return current;
       return {
         ...current,
-        [pokemon.id]: createDefaultBuild(pokemon, levelCapMode),
+        [pokemon.id]: createBuildWithMoveFilters(
+          pokemon,
+          levelCapMode,
+          moveFilters,
+        ),
       };
     });
   };
@@ -1372,6 +1572,34 @@ export function SelectPokemonScreen() {
                   [key]: { ...current[key], ...patch },
                 }))
               }
+              moveFilters={moveFilters}
+              moveQuery={moveQuery}
+              onMoveQueryChange={(value) => {
+                setMoveQuery(value);
+                setMoveSuggestOpen(true);
+              }}
+              moveSuggestions={moveSuggestions}
+              moveSearchLoading={moveSearchLoading}
+              onPickMoveSuggestion={(move) => {
+                setMoveFilters((current) => {
+                  if (current.some((entry) => entry.id === move.id)) {
+                    return current;
+                  }
+                  if (current.length >= MAX_MOVE_FILTERS) {
+                    return current;
+                  }
+                  return [...current, move];
+                });
+                setMoveQuery("");
+                setMoveSuggestOpen(false);
+                setMoveSuggestions([]);
+              }}
+              onRemoveMoveFilter={(moveId) => {
+                setMoveFilters((current) =>
+                  current.filter((move) => move.id !== moveId),
+                );
+              }}
+              moveFilterLoading={moveFilterLoading}
               resultCount={sortedSpecies.length}
               onClear={clearFilters}
             />
@@ -2053,6 +2281,46 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: "#1d1a16",
+  },
+  suggestItemDisabled: {
+    opacity: 0.45,
+  },
+  suggestMoveMeta: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#6b4f2a",
+  },
+  moveSearchLoading: {
+    position: "absolute",
+    right: 12,
+    top: 12,
+  },
+  moveFilterChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  moveFilterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderWidth: 1,
+    borderColor: "#1f6b4a",
+    borderRadius: 8,
+    backgroundColor: "#eef7f1",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  moveFilterChipText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#1f6b4a",
+  },
+  moveFilterChipRemove: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#1f6b4a",
+    lineHeight: 14,
   },
   filterLabel: {
     fontSize: 12,
