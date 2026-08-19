@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  ImageBackground,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -20,8 +19,9 @@ import { BATTLE_PARTY_SIZE, formatDexNo } from "../pokemon/catalog";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
 import { fetchPokemonSpecies } from "../pokemon/repository";
 import type { PokemonSpecies } from "../pokemon/types";
-
-const grassland = require("../../assets/title/title-grassland.png");
+import { matchBackgroundForRules } from "../match-setup/backgrounds";
+import { MatchScreenBackground } from "../match-setup/MatchScreenBackground";
+import { parseRulesGeneration } from "../match-setup/params";
 
 type MatchParams = {
   side?: string;
@@ -183,6 +183,10 @@ export function SelectBattlePokemonScreen() {
   const isLocalBoth = opponentType === "local_both";
   const isCpu = opponentType === "cpu";
   const needsSideB = isLocalBoth || isCpu;
+  const matchBackground = useMemo(
+    () => matchBackgroundForRules(parseRulesGeneration(params)),
+    [params.rulesGeneration],
+  );
 
   const [picksA, setPicksA] = useState<string[]>([]);
   const [picksB, setPicksB] = useState<string[]>([]);
@@ -294,8 +298,7 @@ export function SelectBattlePokemonScreen() {
   };
 
   return (
-    <ImageBackground source={grassland} style={styles.background} resizeMode="cover">
-      <View style={styles.dim} />
+    <MatchScreenBackground source={matchBackground}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.panel}>
@@ -396,7 +399,7 @@ export function SelectBattlePokemonScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
-    </ImageBackground>
+    </MatchScreenBackground>
   );
 }
 

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
-  ImageBackground,
   Modal,
   Pressable,
   ScrollView,
@@ -31,7 +30,7 @@ import {
   type BattleFieldState,
   type BattleFighter,
 } from "../battle/types";
-import { moveGenerationFilterFromParams } from "../match-setup/params";
+import { moveGenerationFilterFromParams, parseRulesGeneration } from "../match-setup/params";
 import type { OpponentType } from "../match-setup/types";
 import { calcGen1Stats } from "../party/gen1Stats";
 import { usePartySetup } from "../party/PartySetupContext";
@@ -50,8 +49,8 @@ import {
 import { PokemonSprite } from "../pokemon/PokemonSprite";
 import { fetchPokemonSpecies } from "../pokemon/repository";
 import type { PokemonSpecies } from "../pokemon/types";
-
-const grassland = require("../../assets/title/title-grassland.png");
+import { matchBackgroundForRules } from "../match-setup/backgrounds";
+import { MatchScreenBackground } from "../match-setup/MatchScreenBackground";
 
 /** Rough beat between log lines (move-effect pacing). */
 const LOG_LINE_DELAY_MS = 800;
@@ -283,6 +282,10 @@ export function BattleScreen() {
       params.moveGenerations,
       params.moveGeneration,
     ],
+  );
+  const matchBackground = useMemo(
+    () => matchBackgroundForRules(parseRulesGeneration(params)),
+    [params.rulesGeneration],
   );
 
   const [menu, setMenu] = useState<CommandMenu>("root");
@@ -1080,8 +1083,7 @@ export function BattleScreen() {
 
   if (!lineup && !loading) {
     return (
-      <ImageBackground source={grassland} style={styles.background} resizeMode="cover">
-        <View style={styles.dim} />
+      <MatchScreenBackground source={matchBackground}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.panel}>
             <Text style={styles.title}>対戦</Text>
@@ -1096,13 +1098,12 @@ export function BattleScreen() {
             </Pressable>
           </View>
         </SafeAreaView>
-      </ImageBackground>
+      </MatchScreenBackground>
     );
   }
 
   return (
-    <ImageBackground source={grassland} style={styles.background} resizeMode="cover">
-      <View style={styles.dim} />
+    <MatchScreenBackground source={matchBackground}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
           style={styles.content}
@@ -1795,7 +1796,7 @@ export function BattleScreen() {
           </View>
         </View>
       </Modal>
-    </ImageBackground>
+    </MatchScreenBackground>
   );
 }
 const styles = StyleSheet.create({

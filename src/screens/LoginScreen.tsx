@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  ImageBackground,
   Pressable,
   StyleSheet,
   Text,
@@ -11,8 +10,8 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAppAuth } from "../auth/AppAuthContext";
-
-const grassland = require("../../assets/title/title-grassland.png");
+import { defaultMatchBackground } from "../match-setup/backgrounds";
+import { MatchScreenBackground } from "../match-setup/MatchScreenBackground";
 
 export function LoginScreen() {
   const router = useRouter();
@@ -31,12 +30,10 @@ export function LoginScreen() {
   };
 
   return (
-    <ImageBackground
-      source={grassland}
-      style={styles.background}
-      resizeMode="cover"
+    <MatchScreenBackground
+      source={defaultMatchBackground}
+      overlayColor="rgba(28, 36, 24, 0.35)"
     >
-      <View style={styles.dim} />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.card}>
           <Text style={styles.kicker}>クローズド利用</Text>
@@ -76,19 +73,11 @@ export function LoginScreen() {
           </Pressable>
         </View>
       </SafeAreaView>
-    </ImageBackground>
+    </MatchScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
-    flex: 1,
-    width: "100%",
-  },
-  dim: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: "rgba(28, 36, 24, 0.35)",
-  },
   safeArea: {
     flex: 1,
     justifyContent: "center",

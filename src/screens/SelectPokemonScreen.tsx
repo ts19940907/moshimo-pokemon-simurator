@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  ImageBackground,
   Modal,
   Pressable,
   ScrollView,
@@ -50,8 +49,9 @@ import { DamageCalcDialog } from "../battle/DamageCalcDialog";
 import { SpeedCompareDialog } from "../battle/SpeedCompareDialog";
 import { Gen1TypeChartDialog } from "../battle/Gen1TypeChartDialog";
 import { generateCpuParty } from "../battle/cpuTeam";
-
-const grassland = require("../../assets/title/title-grassland.png");
+import { matchBackgroundForRules } from "../match-setup/backgrounds";
+import { MatchScreenBackground } from "../match-setup/MatchScreenBackground";
+import { parseRulesGeneration } from "../match-setup/params";
 
 type StatKey = "hp" | "attack" | "defense" | "special" | "speed";
 type StatCompareMode = "gte" | "lte";
@@ -664,6 +664,10 @@ export function SelectPokemonScreen() {
   const opponentType = (params.opponentType ?? "local_both") as OpponentType;
   const levelCapMode = (params.levelCapMode ?? "max_50") as LevelCapMode;
   const rulesGeneration = Number(params.rulesGeneration) || 1;
+  const matchBackground = useMemo(
+    () => matchBackgroundForRules(parseRulesGeneration(params)),
+    [params.rulesGeneration],
+  );
   const restrictionMode = (params.restrictionMode ??
     "standard") as RestrictionMode;
   const pokemonGenerationOptions = useMemo(
@@ -1062,8 +1066,7 @@ export function SelectPokemonScreen() {
   };
 
   return (
-    <ImageBackground source={grassland} style={styles.background} resizeMode="cover">
-      <View style={styles.dim} />
+    <MatchScreenBackground source={matchBackground}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
           style={styles.scroll}
@@ -1495,7 +1498,7 @@ export function SelectPokemonScreen() {
           </View>
         </View>
       </Modal>
-    </ImageBackground>
+    </MatchScreenBackground>
   );
 }
 

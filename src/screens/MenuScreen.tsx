@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  ImageBackground,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -28,8 +27,8 @@ import type {
 } from "../match-setup/types";
 import { implementedGeneration } from "../match-setup/types";
 import { usePartySetup } from "../party/PartySetupContext";
-
-const grassland = require("../../assets/title/title-grassland.png");
+import { defaultMatchBackground } from "../match-setup/backgrounds";
+import { MatchScreenBackground } from "../match-setup/MatchScreenBackground";
 
 const defaultSetup: MatchSetup = {
   rulesGeneration: implementedGeneration,
@@ -294,8 +293,7 @@ export function MenuScreen() {
   };
 
   return (
-    <ImageBackground source={grassland} style={styles.background} resizeMode="cover">
-      <View style={styles.dim} />
+    <MatchScreenBackground source={defaultMatchBackground}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.panel}>
@@ -439,23 +437,11 @@ export function MenuScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
-    </ImageBackground>
+    </MatchScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
-    flex: 1,
-    backgroundColor: "#87c6ef",
-  },
-  dim: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: "rgba(20, 28, 16, 0.28)",
-  },
   safeArea: {
     flex: 1,
   },

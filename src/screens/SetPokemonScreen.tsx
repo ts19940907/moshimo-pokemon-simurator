@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  ImageBackground,
   Modal,
   Pressable,
   ScrollView,
@@ -29,12 +28,13 @@ import type { PokemonSpecies } from "../pokemon/types";
 import type { LevelCapMode, OpponentType } from "../match-setup/types";
 import {
   moveGenerationFilterFromParams,
+  parseRulesGeneration,
   pokemonGenerationFilterFromParams,
 } from "../match-setup/params";
 import { SetPokemonDialog } from "./set/SetPokemonDialog";
 import { Gen1TypeChartDialog } from "../battle/Gen1TypeChartDialog";
-
-const grassland = require("../../assets/title/title-grassland.png");
+import { matchBackgroundForRules } from "../match-setup/backgrounds";
+import { MatchScreenBackground } from "../match-setup/MatchScreenBackground";
 
 type MatchParams = {
   side?: string;
@@ -91,6 +91,10 @@ export function SetPokemonScreen() {
 
   const levelCapMode = (params.levelCapMode ?? "max_50") as LevelCapMode;
   const rulesGeneration = Number(params.rulesGeneration) || 1;
+  const matchBackground = useMemo(
+    () => matchBackgroundForRules(parseRulesGeneration(params)),
+    [params.rulesGeneration],
+  );
   const pokemonGenerationOptions = useMemo(
     () => pokemonGenerationFilterFromParams(params),
     [
@@ -259,8 +263,7 @@ export function SetPokemonScreen() {
       : "3体選出へ進む";
 
   return (
-    <ImageBackground source={grassland} style={styles.background} resizeMode="cover">
-      <View style={styles.dim} />
+    <MatchScreenBackground source={matchBackground}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.panel}>
@@ -469,7 +472,7 @@ export function SetPokemonScreen() {
           </View>
         </View>
       </Modal>
-    </ImageBackground>
+    </MatchScreenBackground>
   );
 }
 

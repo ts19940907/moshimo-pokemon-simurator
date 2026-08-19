@@ -13,8 +13,9 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { FireBreath, PetalTornado, WaterCannons } from "./title/TitleEffects";
+import { defaultMatchBackground } from "../match-setup/backgrounds";
+import { MatchScreenBackground } from "../match-setup/MatchScreenBackground";
 
-const grassland = require("../../assets/title/title-grassland.png");
 const greenFox = require("../../assets/title/green-fox.png");
 const orangeLizard = require("../../assets/title/orange-lizard.png");
 const blueTurtle = require("../../assets/title/blue-turtle.png");
@@ -62,13 +63,10 @@ export function TitleScreen() {
   const turtleBob = useIdleBob(220);
 
   return (
-    <View style={styles.root}>
-      <Image
-        source={grassland}
-        style={[styles.backgroundImage, { width, height }]}
-        resizeMode="cover"
-      />
-      <View style={styles.skyWash} />
+    <MatchScreenBackground
+      source={defaultMatchBackground}
+      overlayColor="rgba(255,255,255,0.08)"
+    >
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.hero}>
           <Text style={styles.kicker}>初代・シングルバトル</Text>
@@ -130,31 +128,11 @@ export function TitleScreen() {
           </Animated.View>
         </View>
       </SafeAreaView>
-    </View>
+    </MatchScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    width: "100%",
-    height: "100%",
-    overflow: "hidden",
-    backgroundColor: "#87c6ef",
-  },
-  backgroundImage: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-  },
-  skyWash: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: "rgba(255,255,255,0.08)",
-  },
   safeArea: {
     flex: 1,
     width: "100%",
