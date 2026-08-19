@@ -64,17 +64,21 @@ export function typeNameJa(typeId: number): string {
 
 /** Dark / Steel / Fairy — not in Gen1 type chart. */
 export const POST_GEN1_TYPE_IDS: ReadonlySet<TypeId> = new Set([16, 17, 18]);
+/** Fairy — introduced in Gen6. */
+export const PRE_GEN6_TYPE_IDS: ReadonlySet<TypeId> = new Set([18]);
 
 export type TypeFilterOption = { id: TypeId; nameJa: string };
 
-/** Type chips for species/move filters. Gen1 rules omit post-Gen1 types. */
+/** Type chips for species/move filters. Gen1 omits Dark/Steel/Fairy; Gen2–5 omit Fairy. */
 export function typeFilterOptions(rulesGeneration: number): TypeFilterOption[] {
-  const hideLaterTypes = rulesGeneration === 1;
   return Object.entries(TYPE_BY_ID)
     .filter(([id]) => {
       const typeId = Number(id);
       if (typeId <= 0) return false;
-      if (hideLaterTypes && POST_GEN1_TYPE_IDS.has(typeId as TypeId)) {
+      if (rulesGeneration === 1 && POST_GEN1_TYPE_IDS.has(typeId as TypeId)) {
+        return false;
+      }
+      if (rulesGeneration < 6 && PRE_GEN6_TYPE_IDS.has(typeId as TypeId)) {
         return false;
       }
       return true;

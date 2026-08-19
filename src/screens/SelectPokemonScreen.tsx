@@ -54,6 +54,8 @@ import { MatchScreenBackground } from "../match-setup/MatchScreenBackground";
 import { parseRulesGeneration } from "../match-setup/params";
 
 type StatKey = "hp" | "attack" | "defense" | "special" | "speed";
+type SortKey = "dex" | StatKey;
+type SortOrder = "asc" | "desc";
 type StatCompareMode = "gte" | "lte";
 type StatFilterEntry = { value: string; mode: StatCompareMode };
 type StatFiltersState = Record<StatKey, StatFilterEntry>;
@@ -68,6 +70,15 @@ const STAT_FILTERS: { key: StatKey; label: string }[] = [
   { key: "defense", label: "ぼうぎょ" },
   { key: "special", label: "とくしゅ" },
   { key: "speed", label: "すばやさ" },
+];
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "dex", label: "図鑑" },
+  { key: "hp", label: "HP" },
+  { key: "attack", label: "攻撃" },
+  { key: "defense", label: "防御" },
+  { key: "special", label: "特殊" },
+  { key: "speed", label: "素早さ" },
 ];
 
 const EMPTY_STAT_FILTERS: StatFiltersState = {
@@ -152,6 +163,29 @@ function toggleTypeFilter(current: TypeId[], typeId: TypeId): TypeId[] {
     return current;
   }
   return [...current, typeId];
+}
+
+function compareSpeciesBySort(
+  a: PokemonSpecies,
+  b: PokemonSpecies,
+  sortKey: SortKey,
+  sortOrder: SortOrder,
+): number {
+  const direction = sortOrder === "asc" ? 1 : -1;
+  let diff = 0;
+
+  if (sortKey === "dex") {
+    diff = a.dex_no - b.dex_no || a.region_type - b.region_type;
+  } else {
+    const statsA = getDisplayBaseStats(a);
+    const statsB = getDisplayBaseStats(b);
+    diff = statsA[sortKey] - statsB[sortKey];
+    if (diff === 0) {
+      diff = a.dex_no - b.dex_no || a.region_type - b.region_type;
+    }
+  }
+
+  return diff * direction;
 }
 
 type MatchParams = {
@@ -650,6 +684,54 @@ function SpeciesFilters({
   );
 }
 
+function SpeciesSortBar({
+  sortKey,
+  sortOrder,
+  onSortChange,
+}: {
+  sortKey: SortKey;
+  sortOrder: SortOrder;
+  onSortChange: (key: SortKey, order: SortOrder) => void;
+}) {
+  return (
+    <View style={styles.sortBox}>
+      <Text style={styles.filterLabel}>並び替え（タップで昇順・降順）</Text>
+      <View style={styles.sortChipRow}>
+        {SORT_OPTIONS.map(({ key, label }) => {
+          const active = sortKey === key;
+          const arrow = active ? (sortOrder === "asc" ? " ↑" : " ↓") : "";
+          return (
+            <Pressable
+              key={key}
+              onPress={() => {
+                if (active) {
+                  onSortChange(key, sortOrder === "asc" ? "desc" : "asc");
+                } else {
+                  onSortChange(key, "asc");
+                }
+              }}
+              style={[
+                styles.sortChip,
+                active && styles.sortChipSelected,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.sortChipText,
+                  active && styles.sortChipTextSelected,
+                ]}
+              >
+                {label}
+                {arrow}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 export function SelectPokemonScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<MatchParams>();
@@ -714,6 +796,8 @@ export function SelectPokemonScreen() {
   const [finalEvolutionOnly, setFinalEvolutionOnly] = useState(true);
   const [statFilters, setStatFilters] =
     useState<StatFiltersState>(EMPTY_STAT_FILTERS);
+  const [sortKey, setSortKey] = useState<SortKey>("dex");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [suggestOpen, setSuggestOpen] = useState(false);
 
   useEffect(() => {
@@ -731,6 +815,8 @@ export function SelectPokemonScreen() {
     setDualOrderMode("any");
     setFinalEvolutionOnly(true);
     setStatFilters(EMPTY_STAT_FILTERS);
+    setSortKey("dex");
+    setSortOrder("asc");
     setSuggestOpen(false);
   }, [side, getSide]);
 
@@ -809,6 +895,12 @@ export function SelectPokemonScreen() {
     statFilters,
   ]);
 
+  const sortedSpecies = useMemo(() => {
+    return [...filteredSpecies].sort((a, b) =>
+      compareSpeciesBySort(a, b, sortKey, sortOrder),
+    );
+  }, [filteredSpecies, sortKey, sortOrder]);
+
   const suggestions = useMemo(() => {
     const trimmed = nameQuery.trim();
     if (!suggestOpen || trimmed.length < 1) {
@@ -819,8 +911,8 @@ export function SelectPokemonScreen() {
       .slice(0, 8);
   }, [species, nameQuery, suggestOpen]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredSpecies.length / PAGE_SIZE));
-  const pageItems = filteredSpecies.slice(
+  const totalPages = Math.max(1, Math.ceil(sortedSpecies.length / PAGE_SIZE));
+  const pageItems = sortedSpecies.slice(
     page * PAGE_SIZE,
     page * PAGE_SIZE + PAGE_SIZE,
   );
@@ -835,6 +927,8 @@ export function SelectPokemonScreen() {
     dualOrderMode,
     finalEvolutionOnly,
     statFilters,
+    sortKey,
+    sortOrder,
   ]);
 
   useEffect(() => {
@@ -1278,8 +1372,17 @@ export function SelectPokemonScreen() {
                   [key]: { ...current[key], ...patch },
                 }))
               }
-              resultCount={filteredSpecies.length}
+              resultCount={sortedSpecies.length}
               onClear={clearFilters}
+            />
+
+            <SpeciesSortBar
+              sortKey={sortKey}
+              sortOrder={sortOrder}
+              onSortChange={(key, order) => {
+                setSortKey(key);
+                setSortOrder(order);
+              }}
             />
 
             <PagePager
@@ -1858,6 +1961,39 @@ const styles = StyleSheet.create({
     borderColor: "#e5dccb",
     padding: 12,
     gap: 10,
+  },
+  sortBox: {
+    backgroundColor: "#f7f3ea",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5dccb",
+    padding: 12,
+    gap: 8,
+  },
+  sortChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  sortChip: {
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    borderRadius: 8,
+    backgroundColor: "#fffdf8",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  sortChipSelected: {
+    borderColor: "#1f6b4a",
+    backgroundColor: "#eef7f1",
+  },
+  sortChipText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#5c564c",
+  },
+  sortChipTextSelected: {
+    color: "#1f6b4a",
   },
   filterHeader: {
     flexDirection: "row",
