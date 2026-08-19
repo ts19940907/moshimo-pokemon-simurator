@@ -34,11 +34,11 @@ import {
   PAGE_SIZE,
   PARTY_SIZE,
   TYPE_COLORS,
+  typeFilterOptions,
 } from "../pokemon/catalog";
 import { fetchMovesByIds } from "../pokemon/moveRepository";
 import { fetchPokemonSpecies } from "../pokemon/repository";
 import {
-  TYPE_BY_ID,
   TYPE_NONE,
   type PokemonSpecies,
   type TypeId,
@@ -77,13 +77,6 @@ const EMPTY_STAT_FILTERS: StatFiltersState = {
   special: { value: "", mode: "gte" },
   speed: { value: "", mode: "gte" },
 };
-
-const TYPE_OPTIONS = Object.entries(TYPE_BY_ID)
-  .filter(([id]) => Number(id) > 0)
-  .map(([id, type]) => ({
-    id: Number(id) as TypeId,
-    nameJa: type.nameJa,
-  }));
 
 function matchesNameQuery(pokemon: PokemonSpecies, query: string): boolean {
   const trimmed = query.trim();
@@ -396,6 +389,7 @@ function SpeciesFilters({
   onPickSuggestion,
   typeFilters,
   onToggleTypeFilter,
+  typeOptions,
   singleTypeOnly,
   onSingleTypeOnlyChange,
   dualOrderMode,
@@ -413,6 +407,7 @@ function SpeciesFilters({
   onPickSuggestion: (pokemon: PokemonSpecies) => void;
   typeFilters: TypeId[];
   onToggleTypeFilter: (typeId: TypeId) => void;
+  typeOptions: { id: TypeId; nameJa: string }[];
   singleTypeOnly: boolean;
   onSingleTypeOnlyChange: (value: boolean) => void;
   dualOrderMode: DualTypeOrderMode;
@@ -480,7 +475,7 @@ function SpeciesFilters({
         タイプ（最大2つ・選んだ順がタイプ1→タイプ2）
       </Text>
       <View style={styles.typeChipRow}>
-        {TYPE_OPTIONS.map((type) => {
+        {typeOptions.map((type) => {
           const selectedIndex = typeFilters.indexOf(type.id);
           const selected = selectedIndex >= 0;
           const blocked =
@@ -664,6 +659,10 @@ export function SelectPokemonScreen() {
   const opponentType = (params.opponentType ?? "local_both") as OpponentType;
   const levelCapMode = (params.levelCapMode ?? "max_50") as LevelCapMode;
   const rulesGeneration = Number(params.rulesGeneration) || 1;
+  const typeOptions = useMemo(
+    () => typeFilterOptions(rulesGeneration),
+    [rulesGeneration],
+  );
   const matchBackground = useMemo(
     () => matchBackgroundForRules(parseRulesGeneration(params)),
     [params.rulesGeneration],
@@ -1265,6 +1264,7 @@ export function SelectPokemonScreen() {
               }}
               typeFilters={typeFilters}
               onToggleTypeFilter={handleToggleTypeFilter}
+              typeOptions={typeOptions}
               singleTypeOnly={singleTypeOnly}
               onSingleTypeOnlyChange={setSingleTypeOnly}
               dualOrderMode={dualOrderMode}

@@ -23,6 +23,7 @@ import {
   PAGE_SIZE,
   PARTY_SIZE,
   TYPE_COLORS,
+  typeFilterOptions,
 } from "../pokemon/catalog";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
 import {
@@ -80,12 +81,7 @@ const EMPTY_STAT_FILTERS: StatFiltersState = {
   speed: { value: "", mode: "gte" },
 };
 
-const TYPE_OPTIONS = Object.entries(TYPE_BY_ID)
-  .filter(([id]) => Number(id) > 0)
-  .map(([id, type]) => ({
-    id: Number(id) as TypeId,
-    nameJa: type.nameJa,
-  }));
+const TYPE_OPTIONS = typeFilterOptions(1);
 
 function emptySide(): SideDraft {
   return {

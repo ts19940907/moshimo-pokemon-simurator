@@ -26,6 +26,7 @@ import {
   PAGE_SIZE,
   PARTY_SIZE,
   TYPE_COLORS,
+  typeFilterOptions,
   typeNameJa,
 } from "../pokemon/catalog";
 import type { Move, MoveDamageClass } from "../pokemon/moves";
@@ -90,12 +91,7 @@ const EMPTY_STAT_FILTERS: StatFiltersState = {
   speed: { value: "", mode: "gte" },
 };
 
-const TYPE_OPTIONS = Object.entries(TYPE_BY_ID)
-  .filter(([id]) => Number(id) > 0)
-  .map(([id, type]) => ({
-    id: Number(id) as TypeId,
-    nameJa: type.nameJa,
-  }));
+const TYPE_OPTIONS = typeFilterOptions(1);
 
 const DAMAGE_CLASS_JA: Record<MoveDamageClass, string> = {
   physical: "物理",

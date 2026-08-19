@@ -4,7 +4,7 @@ import {
   generationBit,
   type GenerationFilterOptions,
 } from "../match-setup/generationFilter";
-import { TYPE_BY_ID, TYPE_NONE, type PokemonSpecies } from "./types";
+import { TYPE_BY_ID, TYPE_NONE, type PokemonSpecies, type TypeId } from "./types";
 
 export const PAGE_SIZE = 10;
 /** Max Pokémon in a side’s box / party setup. */
@@ -60,6 +60,29 @@ export function formatDexNo(dexNo: number): string {
 
 export function typeNameJa(typeId: number): string {
   return TYPE_BY_ID[typeId]?.nameJa ?? `タイプ${typeId}`;
+}
+
+/** Dark / Steel / Fairy — not in Gen1 type chart. */
+export const POST_GEN1_TYPE_IDS: ReadonlySet<TypeId> = new Set([16, 17, 18]);
+
+export type TypeFilterOption = { id: TypeId; nameJa: string };
+
+/** Type chips for species/move filters. Gen1 rules omit post-Gen1 types. */
+export function typeFilterOptions(rulesGeneration: number): TypeFilterOption[] {
+  const hideLaterTypes = rulesGeneration === 1;
+  return Object.entries(TYPE_BY_ID)
+    .filter(([id]) => {
+      const typeId = Number(id);
+      if (typeId <= 0) return false;
+      if (hideLaterTypes && POST_GEN1_TYPE_IDS.has(typeId as TypeId)) {
+        return false;
+      }
+      return true;
+    })
+    .map(([id, type]) => ({
+      id: Number(id) as TypeId,
+      nameJa: type.nameJa,
+    }));
 }
 
 export function getTypes(pokemon: PokemonSpecies): string[] {
