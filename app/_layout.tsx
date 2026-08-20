@@ -19,6 +19,14 @@ function isLoginPath(pathname: string): boolean {
   return pathname === "/login" || pathname.endsWith("/login");
 }
 
+function isPublicPath(pathname: string): boolean {
+  return (
+    pathname === "/simulator" ||
+    pathname.endsWith("/simulator") ||
+    isLoginPath(pathname)
+  );
+}
+
 function AuthRoot() {
   const { isReady, isAuthenticated, authRequired } = useAppAuth();
   const pathname = usePathname();
@@ -36,6 +44,7 @@ function AuthRoot() {
 
   // Always keep `login` mounted. Protect only the app screens so that when
   // locked, Expo falls back to login instead of showing index under /login.
+  // `/simulator` stays public (no auth redirect).
   return (
     <>
       <StatusBar style="dark" />
@@ -48,12 +57,13 @@ function AuthRoot() {
           <Stack.Screen name="set" />
           <Stack.Screen name="battle" />
         </Stack.Protected>
+        <Stack.Screen name="simulator" />
         <Stack.Screen name="login" />
       </Stack>
       {authRequired && unlocked && isLoginPath(pathname) ? (
         <Redirect href="/" />
       ) : null}
-      {authRequired && !unlocked && !isLoginPath(pathname) ? (
+      {authRequired && !unlocked && !isPublicPath(pathname) ? (
         <Redirect href="/login" />
       ) : null}
     </>

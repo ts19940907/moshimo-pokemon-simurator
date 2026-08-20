@@ -65,6 +65,12 @@ type Props = {
   onClose: () => void;
   /** Add a new member or overwrite an existing party build. */
   onApplyToParty: (build: PartyMemberBuild) => void;
+  /** Modal overlay (party) vs inline panel (/simulator). */
+  presentation?: "modal" | "embedded";
+  showSprites?: boolean;
+  showPartyActions?: boolean;
+  /** Used for type-filter chips (Gen1 hides post-Gen1 types). */
+  rulesGeneration?: number;
 };
 
 type StatKey = "hp" | "attack" | "defense" | "special" | "speed";
@@ -90,8 +96,6 @@ const EMPTY_STAT_FILTERS: StatFiltersState = {
   special: { value: "", mode: "gte" },
   speed: { value: "", mode: "gte" },
 };
-
-const TYPE_OPTIONS = typeFilterOptions(1);
 
 const DAMAGE_CLASS_JA: Record<MoveDamageClass, string> = {
   physical: "物理",
@@ -356,6 +360,20 @@ function CheckRow({
   );
 }
 
+
+function OptionalSprite({
+  show,
+  uri,
+  size,
+}: {
+  show: boolean;
+  uri: string | null | undefined;
+  size: number;
+}) {
+  if (!show) return null;
+  return <PokemonSprite uri={uri} size={size} />;
+}
+
 export function DamageCalcDialog({
   visible,
   speciesPool,
@@ -365,7 +383,16 @@ export function DamageCalcDialog({
   partyDexNos,
   onClose,
   onApplyToParty,
+  presentation = "modal",
+  showSprites = true,
+  showPartyActions = true,
+  rulesGeneration = 1,
 }: Props) {
+  const embedded = presentation === "embedded";
+  const typeOptions = useMemo(
+    () => typeFilterOptions(rulesGeneration),
+    [rulesGeneration],
+  );
   const maxLevel = maxLevelForCap(levelCapMode);
   const [attacker, setAttacker] = useState<SideDraft>(emptySide);
   const [defender, setDefender] = useState<SideDraft>(emptySide);
@@ -868,15 +895,9 @@ export function DamageCalcDialog({
     (m) => (m.power ?? 0) > 0 || FIXED_MOVE_IDS.has(m.pokeapi_id),
   );
 
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={requestClose}
-    >
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
+  const shell = (
+      <View style={embedded ? styles.embeddedRoot : styles.backdrop}>
+        <View style={embedded ? styles.embeddedSheet : styles.sheet}>
           <View style={styles.headerRow}>
             <Text style={styles.title}>ダメージ計算</Text>
             <View style={styles.headerActions}>
@@ -889,12 +910,14 @@ export function DamageCalcDialog({
               >
                 <Text style={styles.headerLink}>クリア</Text>
               </Pressable>
-              <Pressable
-                onPress={requestClose}
-                style={({ pressed }) => pressed && styles.pressed}
-              >
-                <Text style={styles.headerLink}>閉じる</Text>
-              </Pressable>
+              {!embedded ? (
+                <Pressable
+                  onPress={requestClose}
+                  style={({ pressed }) => pressed && styles.pressed}
+                >
+                  <Text style={styles.headerLink}>閉じる</Text>
+                </Pressable>
+              ) : null}
             </View>
           </View>
 
@@ -959,7 +982,7 @@ export function DamageCalcDialog({
                   タイプ（最大2つ・選んだ順がタイプ1→タイプ2）
                 </Text>
                 <View style={styles.typeChipRow}>
-                  {TYPE_OPTIONS.map((type) => {
+                  {typeOptions.map((type) => {
                     const selectedIndex = typeFilters.indexOf(type.id);
                     const selected = selectedIndex >= 0;
                     const blocked =
@@ -1118,7 +1141,7 @@ export function DamageCalcDialog({
                         pressed && styles.pressed,
                       ]}
                     >
-                      <PokemonSprite uri={pokemon.sprite_url} size={56} />
+                      <OptionalSprite show={showSprites} uri={pokemon.sprite_url} size={56} />
                       <View style={styles.pickCardBody}>
                         <Text style={styles.pickDex}>
                           {formatDexNo(pokemon.dex_no)}
@@ -1148,7 +1171,8 @@ export function DamageCalcDialog({
                   >
                     {attacker.species ? (
                       <View style={styles.selectedPokemon}>
-                        <PokemonSprite
+                        <OptionalSprite
+                          show={showSprites}
                           uri={attacker.species.sprite_url}
                           size={48}
                         />
@@ -1346,7 +1370,7 @@ export function DamageCalcDialog({
                         </>
                       ) : null}
 
-                      {!pickingMove ? (
+                      {showPartyActions && !pickingMove ? (
                         <>
                           <Pressable
                             disabled={attackerPartyAction.mode === "disabled"}
@@ -1386,7 +1410,8 @@ export function DamageCalcDialog({
                   >
                     {defender.species ? (
                       <View style={styles.selectedPokemon}>
-                        <PokemonSprite
+                        <OptionalSprite
+                          show={showSprites}
                           uri={defender.species.sprite_url}
                           size={48}
                         />
@@ -1545,56 +1570,64 @@ export function DamageCalcDialog({
                         </Text>
                       ) : null}
 
-                      <Pressable
-                        disabled={defenderPartyAction.mode === "disabled"}
-                        onPress={handleDefenderPartyPress}
-                        style={[
-                          styles.addPartyBtn,
-                          defenderPartyAction.mode === "disabled" &&
-                            styles.addPartyBtnDisabled,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.addPartyBtnText,
-                            defenderPartyAction.mode === "disabled" &&
-                              styles.addPartyBtnTextDisabled,
-                          ]}
-                        >
-                          {defenderPartyAction.label}
-                        </Text>
-                      </Pressable>
-                      {defenderPartyAction.reason ? (
-                        <Text style={styles.disabledHint}>
-                          {defenderPartyAction.reason}
-                        </Text>
+                      {showPartyActions ? (
+                        <>
+                          <Pressable
+                            disabled={defenderPartyAction.mode === "disabled"}
+                            onPress={handleDefenderPartyPress}
+                            style={[
+                              styles.addPartyBtn,
+                              defenderPartyAction.mode === "disabled" &&
+                                styles.addPartyBtnDisabled,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.addPartyBtnText,
+                                defenderPartyAction.mode === "disabled" &&
+                                  styles.addPartyBtnTextDisabled,
+                              ]}
+                            >
+                              {defenderPartyAction.label}
+                            </Text>
+                          </Pressable>
+                          {defenderPartyAction.reason ? (
+                            <Text style={styles.disabledHint}>
+                              {defenderPartyAction.reason}
+                            </Text>
+                          ) : null}
+                        </>
                       ) : null}
                     </>
                   ) : defender.build && defender.species ? (
                     <>
-                      <Pressable
-                        disabled={defenderPartyAction.mode === "disabled"}
-                        onPress={handleDefenderPartyPress}
-                        style={[
-                          styles.addPartyBtn,
-                          defenderPartyAction.mode === "disabled" &&
-                            styles.addPartyBtnDisabled,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.addPartyBtnText,
-                            defenderPartyAction.mode === "disabled" &&
-                              styles.addPartyBtnTextDisabled,
-                          ]}
-                        >
-                          {defenderPartyAction.label}
-                        </Text>
-                      </Pressable>
-                      {defenderPartyAction.reason ? (
-                        <Text style={styles.disabledHint}>
-                          {defenderPartyAction.reason}
-                        </Text>
+                      {showPartyActions ? (
+                        <>
+                          <Pressable
+                            disabled={defenderPartyAction.mode === "disabled"}
+                            onPress={handleDefenderPartyPress}
+                            style={[
+                              styles.addPartyBtn,
+                              defenderPartyAction.mode === "disabled" &&
+                                styles.addPartyBtnDisabled,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.addPartyBtnText,
+                                defenderPartyAction.mode === "disabled" &&
+                                  styles.addPartyBtnTextDisabled,
+                              ]}
+                            >
+                              {defenderPartyAction.label}
+                            </Text>
+                          </Pressable>
+                          {defenderPartyAction.reason ? (
+                            <Text style={styles.disabledHint}>
+                              {defenderPartyAction.reason}
+                            </Text>
+                          ) : null}
+                        </>
                       ) : null}
                     </>
                   ) : null}
@@ -1640,7 +1673,10 @@ export function DamageCalcDialog({
           )}
         </View>
       </View>
+  );
 
+  const confirms = (
+    <>
       <Modal
         visible={importConfirmOpen}
         transparent
@@ -1781,6 +1817,28 @@ export function DamageCalcDialog({
           </View>
         </View>
       </Modal>
+    </>
+  );
+
+  if (embedded) {
+    if (!visible) return null;
+    return (
+      <>
+        {shell}
+        {confirms}
+      </>
+    );
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={requestClose}
+    >
+      {shell}
+      {confirms}
     </Modal>
   );
 }
@@ -1792,12 +1850,25 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 12,
   },
+  embeddedRoot: {
+    flex: 1,
+    minHeight: 0,
+  },
   sheet: {
     backgroundColor: "#fffdf8",
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#ddd4c4",
     maxHeight: "92%",
+    overflow: "hidden",
+  },
+  embeddedSheet: {
+    flex: 1,
+    minHeight: 0,
+    backgroundColor: "#fffdf8",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
     overflow: "hidden",
   },
   headerRow: {

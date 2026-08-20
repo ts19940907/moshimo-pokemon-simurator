@@ -55,6 +55,10 @@ type Props = {
   partyDexNos: number[];
   onClose: () => void;
   onApplyToParty: (build: PartyMemberBuild) => void;
+  presentation?: "modal" | "embedded";
+  showSprites?: boolean;
+  showPartyActions?: boolean;
+  rulesGeneration?: number;
 };
 
 type StatKey = "hp" | "attack" | "defense" | "special" | "speed";
@@ -80,8 +84,6 @@ const EMPTY_STAT_FILTERS: StatFiltersState = {
   special: { value: "", mode: "gte" },
   speed: { value: "", mode: "gte" },
 };
-
-const TYPE_OPTIONS = typeFilterOptions(1);
 
 function emptySide(): SideDraft {
   return {
@@ -300,6 +302,20 @@ function CheckRow({
   );
 }
 
+
+function OptionalSprite({
+  show,
+  uri,
+  size,
+}: {
+  show: boolean;
+  uri: string | null | undefined;
+  size: number;
+}) {
+  if (!show) return null;
+  return <PokemonSprite uri={uri} size={size} />;
+}
+
 export function SpeedCompareDialog({
   visible,
   speciesPool,
@@ -308,7 +324,16 @@ export function SpeedCompareDialog({
   partyDexNos,
   onClose,
   onApplyToParty,
+  presentation = "modal",
+  showSprites = true,
+  showPartyActions = true,
+  rulesGeneration = 1,
 }: Props) {
+  const embedded = presentation === "embedded";
+  const typeOptions = useMemo(
+    () => typeFilterOptions(rulesGeneration),
+    [rulesGeneration],
+  );
   const maxLevel = maxLevelForCap(levelCapMode);
   const [self, setSelf] = useState<SideDraft>(emptySide);
   const [foe, setFoe] = useState<SideDraft>(emptySide);
@@ -617,7 +642,7 @@ export function SpeedCompareDialog({
         >
           {draft.species ? (
             <View style={styles.selectedPokemon}>
-              <PokemonSprite uri={draft.species.sprite_url} size={48} />
+              <OptionalSprite show={showSprites} uri={draft.species.sprite_url} size={48} />
               <Text style={styles.selectedName}>{draft.species.name_ja}</Text>
             </View>
           ) : (
@@ -697,7 +722,7 @@ export function SpeedCompareDialog({
               }
             />
 
-            {side === "self" ? (
+            {side === "self" && showPartyActions ? (
               <>
                 <Pressable
                   disabled={selfPartyAction.mode === "disabled"}
@@ -731,15 +756,9 @@ export function SpeedCompareDialog({
     );
   };
 
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={requestClose}
-    >
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
+  const shell = (
+      <View style={embedded ? styles.embeddedRoot : styles.backdrop}>
+        <View style={embedded ? styles.embeddedSheet : styles.sheet}>
           <View style={styles.headerRow}>
             <Text style={styles.title}>素早さ比較</Text>
             <View style={styles.headerActions}>
@@ -752,12 +771,14 @@ export function SpeedCompareDialog({
               >
                 <Text style={styles.headerLink}>クリア</Text>
               </Pressable>
-              <Pressable
-                onPress={requestClose}
-                style={({ pressed }) => pressed && styles.pressed}
-              >
-                <Text style={styles.headerLink}>閉じる</Text>
-              </Pressable>
+              {!embedded ? (
+                <Pressable
+                  onPress={requestClose}
+                  style={({ pressed }) => pressed && styles.pressed}
+                >
+                  <Text style={styles.headerLink}>閉じる</Text>
+                </Pressable>
+              ) : null}
             </View>
           </View>
 
@@ -822,7 +843,7 @@ export function SpeedCompareDialog({
                   タイプ（最大2つ・選んだ順がタイプ1→タイプ2）
                 </Text>
                 <View style={styles.typeChipRow}>
-                  {TYPE_OPTIONS.map((type) => {
+                  {typeOptions.map((type) => {
                     const selectedIndex = typeFilters.indexOf(type.id);
                     const selected = selectedIndex >= 0;
                     const blocked =
@@ -981,7 +1002,7 @@ export function SpeedCompareDialog({
                         pressed && styles.pressed,
                       ]}
                     >
-                      <PokemonSprite uri={pokemon.sprite_url} size={56} />
+                      <OptionalSprite show={showSprites} uri={pokemon.sprite_url} size={56} />
                       <View style={styles.pickCardBody}>
                         <Text style={styles.pickDex}>
                           {formatDexNo(pokemon.dex_no)}
@@ -1057,7 +1078,10 @@ export function SpeedCompareDialog({
           )}
         </View>
       </View>
+  );
 
+  const confirms = (
+    <>
       <Modal
         visible={importConfirmOpen}
         transparent
@@ -1194,6 +1218,28 @@ export function SpeedCompareDialog({
           </View>
         </View>
       </Modal>
+    </>
+  );
+
+  if (embedded) {
+    if (!visible) return null;
+    return (
+      <>
+        {shell}
+        {confirms}
+      </>
+    );
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={requestClose}
+    >
+      {shell}
+      {confirms}
     </Modal>
   );
 }
@@ -1205,12 +1251,25 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 12,
   },
+  embeddedRoot: {
+    flex: 1,
+    minHeight: 0,
+  },
   sheet: {
     backgroundColor: "#fffdf8",
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#ddd4c4",
     maxHeight: "92%",
+    overflow: "hidden",
+  },
+  embeddedSheet: {
+    flex: 1,
+    minHeight: 0,
+    backgroundColor: "#fffdf8",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
     overflow: "hidden",
   },
   headerRow: {

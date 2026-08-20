@@ -1,2 +1,4 @@
+# Keep in sync with src/seo/searchIndexing.ts (SEARCH_ENGINE_INDEXING_ENABLED).
+# When enabling indexing: change to "Allow: /" (and update vercel.json / the flag).
 User-agent: *
 Disallow: /

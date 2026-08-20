@@ -1,7 +1,10 @@
 import { ScrollViewStyleReset } from "expo-router/html";
 import type { PropsWithChildren } from "react";
 
+import { robotsMetaContent } from "../src/seo/searchIndexing";
+
 export default function Root({ children }: PropsWithChildren) {
+  const robots = robotsMetaContent();
   return (
     <html lang="ja" style={{ height: "100%" }}>
       <head>
@@ -11,8 +14,8 @@ export default function Root({ children }: PropsWithChildren) {
           name="viewport"
           content="width=device-width, initial-scale=1, shrink-to-fit=no"
         />
-        <meta name="robots" content="noindex, nofollow, noarchive" />
-        <meta name="googlebot" content="noindex, nofollow, noarchive" />
+        <meta name="robots" content={robots} />
+        <meta name="googlebot" content={robots} />
         <ScrollViewStyleReset />
         <style
           dangerouslySetInnerHTML={{
