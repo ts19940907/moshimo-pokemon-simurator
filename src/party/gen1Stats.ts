@@ -2,6 +2,10 @@ import type { PokemonSpecies } from "../pokemon/types";
 import type { Gen1StatBlock, PartyMemberBuild } from "./types";
 import { GEN1_STAT_KEYS, GEN1_STAT_LABELS } from "./types";
 
+export const GEN1_DV_MAX = 15;
+export const GEN1_STAT_EXP_MAX = 65535;
+const GEN1_STAT_EXP_MAX_TERM = Math.floor(Math.sqrt(GEN1_STAT_EXP_MAX) / 4);
+
 /** Gen1 Stat Exp contribution: floor(sqrt(statExp) / 4). */
 export function gen1StatExpTerm(statExp: number): number {
   const clamped = Math.max(0, Math.min(65535, Math.floor(statExp)));
@@ -32,6 +36,67 @@ export function calcGen1Hp(
 
 function baseSpecial(species: PokemonSpecies): number {
   return species.base_special ?? species.base_sp_attack ?? 0;
+}
+
+export function gen1BaseForStat(
+  species: PokemonSpecies,
+  key: keyof Gen1StatBlock,
+): number {
+  if (key === "hp") return species.base_hp;
+  if (key === "attack") return species.base_attack;
+  if (key === "defense") return species.base_defense;
+  if (key === "special") return baseSpecial(species);
+  return species.base_speed;
+}
+
+export function calcGen1StatValue(
+  species: PokemonSpecies,
+  key: keyof Gen1StatBlock,
+  dv: number,
+  statExp: number,
+  level: number,
+): number {
+  const base = gen1BaseForStat(species, key);
+  return key === "hp"
+    ? calcGen1Hp(base, dv, statExp, level)
+    : calcGen1OtherStat(base, dv, statExp, level);
+}
+
+function statExpRangeForTerm(term: number): { min: number; max: number } {
+  const min = (4 * term) ** 2;
+  const max = Math.min(GEN1_STAT_EXP_MAX, (4 * (term + 1)) ** 2 - 1);
+  return { min, max };
+}
+
+/**
+ * Find Stat Exp so the Lv50 actual stat becomes currentLv50 ± 1.
+ * +1 uses the smallest matching Exp; -1 uses the largest.
+ */
+export function findStatExpForLevel50Delta(
+  species: PokemonSpecies,
+  key: keyof Gen1StatBlock,
+  dv: number,
+  currentStatExp: number,
+  delta: 1 | -1,
+): number | null {
+  const current = calcGen1StatValue(species, key, dv, currentStatExp, 50);
+  const target = current + delta;
+  let best: number | null = null;
+
+  for (let term = 0; term <= GEN1_STAT_EXP_MAX_TERM; term += 1) {
+    const { min, max } = statExpRangeForTerm(term);
+    const value = calcGen1StatValue(species, key, dv, min, 50);
+    if (value !== target) continue;
+    const candidate = delta > 0 ? min : max;
+    if (best == null) {
+      best = candidate;
+      continue;
+    }
+    if (delta > 0 && candidate < best) best = candidate;
+    if (delta < 0 && candidate > best) best = candidate;
+  }
+
+  return best;
 }
 
 /** Compute Gen1 in-battle stats from species bases + build (IV/DV, Stat Exp, level). */

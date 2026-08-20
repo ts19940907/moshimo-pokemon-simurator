@@ -28,7 +28,12 @@ import {
   type Gen1StatBlock,
   type PartyMemberBuild,
 } from "../../party/types";
-import { calcGen1Stats } from "../../party/gen1Stats";
+import {
+  calcGen1Stats,
+  findStatExpForLevel50Delta,
+  GEN1_DV_MAX,
+  GEN1_STAT_EXP_MAX,
+} from "../../party/gen1Stats";
 import type { LevelCapMode } from "../../match-setup/types";
 import type { GenerationFilterOptions } from "../../match-setup/generationFilter";
 
@@ -80,6 +85,28 @@ const EMPTY_MOVE_FILTERS: MoveFiltersState = {
 function clamp(n: number, min: number, max: number) {
   if (!Number.isFinite(n)) return min;
   return Math.min(max, Math.max(min, n));
+}
+
+function StatAdjustButton({
+  label,
+  disabled,
+  onPress,
+}: {
+  label: string;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      disabled={disabled}
+      onPress={onPress}
+      style={[styles.statBtn, disabled && styles.statBtnDisabled]}
+    >
+      <Text style={[styles.statBtnText, disabled && styles.statBtnTextDisabled]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
 }
 
 function parseIntOr(value: string, fallback: number) {
@@ -464,12 +491,32 @@ export function SetPokemonDialog({
     return ["male", "female"] as BattleGender[];
   }, [species.gender]);
 
+  const setIv = (key: keyof Gen1StatBlock, value: number) => {
+    setDraft((current) => ({
+      ...current,
+      iv: {
+        ...current.iv,
+        [key]: clamp(value, 0, GEN1_DV_MAX),
+      },
+    }));
+  };
+
   const patchIv = (key: keyof Gen1StatBlock, raw: string) => {
     setDraft((current) => ({
       ...current,
       iv: {
         ...current.iv,
-        [key]: clamp(parseIntOr(raw, current.iv[key]), 0, 15),
+        [key]: clamp(parseIntOr(raw, current.iv[key]), 0, GEN1_DV_MAX),
+      },
+    }));
+  };
+
+  const setStatExp = (key: keyof Gen1StatBlock, value: number) => {
+    setDraft((current) => ({
+      ...current,
+      statExp: {
+        ...current.statExp,
+        [key]: clamp(value, 0, GEN1_STAT_EXP_MAX),
       },
     }));
   };
@@ -479,9 +526,24 @@ export function SetPokemonDialog({
       ...current,
       statExp: {
         ...current.statExp,
-        [key]: clamp(parseIntOr(raw, current.statExp[key]), 0, 65535),
+        [key]: clamp(parseIntOr(raw, current.statExp[key]), 0, GEN1_STAT_EXP_MAX),
       },
     }));
+  };
+
+  const nudgeStatExpForLevel50 = (
+    key: keyof Gen1StatBlock,
+    delta: 1 | -1,
+  ) => {
+    const next = findStatExpForLevel50Delta(
+      species,
+      key,
+      draft.iv[key],
+      draft.statExp[key],
+      delta,
+    );
+    if (next == null) return;
+    setStatExp(key, next);
   };
 
   const setMoveAt = (index: number, moveId: string | null) => {
@@ -547,30 +609,101 @@ export function SetPokemonDialog({
             </View>
 
             <Text style={styles.section}>個体値（0〜15）</Text>
-            {GEN1_STAT_KEYS.map((key) => (
-              <View key={`iv-${key}`} style={styles.statRow}>
-                <Text style={styles.statLabel}>{GEN1_STAT_LABELS[key]}</Text>
-                <TextInput
-                  style={styles.statInput}
-                  keyboardType="number-pad"
-                  value={String(draft.iv[key])}
-                  onChangeText={(text) => patchIv(key, text)}
-                />
-              </View>
-            ))}
+            {GEN1_STAT_KEYS.map((key) => {
+              const value = draft.iv[key];
+              return (
+                <View key={`iv-${key}`} style={styles.statBlock}>
+                  <View style={styles.statRow}>
+                    <Text style={styles.statLabel}>{GEN1_STAT_LABELS[key]}</Text>
+                    <TextInput
+                      style={styles.statInput}
+                      keyboardType="number-pad"
+                      value={String(value)}
+                      onChangeText={(text) => patchIv(key, text)}
+                    />
+                  </View>
+                  <View style={styles.statBtnRow}>
+                    <StatAdjustButton
+                      label="0"
+                      disabled={value === 0}
+                      onPress={() => setIv(key, 0)}
+                    />
+                    <StatAdjustButton
+                      label="最大"
+                      disabled={value === GEN1_DV_MAX}
+                      onPress={() => setIv(key, GEN1_DV_MAX)}
+                    />
+                    <StatAdjustButton
+                      label="−1"
+                      disabled={value <= 0}
+                      onPress={() => setIv(key, value - 1)}
+                    />
+                    <StatAdjustButton
+                      label="+1"
+                      disabled={value >= GEN1_DV_MAX}
+                      onPress={() => setIv(key, value + 1)}
+                    />
+                  </View>
+                </View>
+              );
+            })}
 
             <Text style={styles.section}>努力値 / 基礎ポイント（0〜65535）</Text>
-            {GEN1_STAT_KEYS.map((key) => (
-              <View key={`ev-${key}`} style={styles.statRow}>
-                <Text style={styles.statLabel}>{GEN1_STAT_LABELS[key]}</Text>
-                <TextInput
-                  style={styles.statInput}
-                  keyboardType="number-pad"
-                  value={String(draft.statExp[key])}
-                  onChangeText={(text) => patchStatExp(key, text)}
-                />
-              </View>
-            ))}
+            <Text style={styles.sectionHint}>
+              Lv50 ±1 は、レベル50での実数値が1変わる基礎ポイントに合わせます。
+            </Text>
+            {GEN1_STAT_KEYS.map((key) => {
+              const value = draft.statExp[key];
+              const downExp = findStatExpForLevel50Delta(
+                species,
+                key,
+                draft.iv[key],
+                value,
+                -1,
+              );
+              const upExp = findStatExpForLevel50Delta(
+                species,
+                key,
+                draft.iv[key],
+                value,
+                1,
+              );
+              return (
+                <View key={`ev-${key}`} style={styles.statBlock}>
+                  <View style={styles.statRow}>
+                    <Text style={styles.statLabel}>{GEN1_STAT_LABELS[key]}</Text>
+                    <TextInput
+                      style={styles.statInput}
+                      keyboardType="number-pad"
+                      value={String(value)}
+                      onChangeText={(text) => patchStatExp(key, text)}
+                    />
+                  </View>
+                  <View style={styles.statBtnRow}>
+                    <StatAdjustButton
+                      label="0"
+                      disabled={value === 0}
+                      onPress={() => setStatExp(key, 0)}
+                    />
+                    <StatAdjustButton
+                      label="最大"
+                      disabled={value === GEN1_STAT_EXP_MAX}
+                      onPress={() => setStatExp(key, GEN1_STAT_EXP_MAX)}
+                    />
+                    <StatAdjustButton
+                      label="Lv50 −1"
+                      disabled={downExp == null}
+                      onPress={() => nudgeStatExpForLevel50(key, -1)}
+                    />
+                    <StatAdjustButton
+                      label="Lv50 +1"
+                      disabled={upExp == null}
+                      onPress={() => nudgeStatExpForLevel50(key, 1)}
+                    />
+                  </View>
+                </View>
+              );
+            })}
 
             <Text style={styles.section}>実数値（レベル・個体値・努力値から計算）</Text>
             {GEN1_STAT_KEYS.map((key) => (
@@ -705,6 +838,41 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 13,
     fontWeight: "800",
+    color: "#5c564c",
+  },
+  sectionHint: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#8a8276",
+    marginTop: -2,
+  },
+  statBlock: {
+    gap: 6,
+    marginBottom: 4,
+  },
+  statBtnRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    paddingLeft: 80,
+  },
+  statBtn: {
+    borderWidth: 1,
+    borderColor: "#cfe3d6",
+    borderRadius: 8,
+    backgroundColor: "#f3f6ea",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  statBtnDisabled: {
+    opacity: 0.35,
+  },
+  statBtnText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#1f6b4a",
+  },
+  statBtnTextDisabled: {
     color: "#5c564c",
   },
   input: {
