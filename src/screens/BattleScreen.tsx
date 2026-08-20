@@ -51,6 +51,7 @@ import { fetchPokemonSpecies } from "../pokemon/repository";
 import type { PokemonSpecies } from "../pokemon/types";
 import { matchBackgroundForRules } from "../match-setup/backgrounds";
 import { MatchScreenBackground } from "../match-setup/MatchScreenBackground";
+import { formatChampionsHpPercentLabel } from "../battle/hpPercent";
 
 /** Rough beat between log lines (move-effect pacing). */
 const LOG_LINE_DELAY_MS = 800;
@@ -94,6 +95,7 @@ const STATUS_LABEL: Record<string, string> = {
 function statusBadges(
   fighter: BattleFighter | null | undefined,
   displayedHp?: number,
+  options?: { hideDeferred?: boolean },
 ): string[] {
   if (!fighter) return [];
   const badges: string[] = [];
@@ -110,9 +112,14 @@ function statusBadges(
     badges.push(`しめつけ(残り${fighter.volatiles.trapTurns})`);
   }
   if (fighter.volatiles.leechSeed) badges.push("やどりぎ");
-  if (fighter.volatiles.recharge) badges.push("反動");
+  // 「ため」「反動」は交代・ターン演出のあとに出す（解決中は隠す）
+  if (fighter.volatiles.recharge && !options?.hideDeferred) {
+    badges.push("反動");
+  }
   if (fighter.volatiles.focusEnergy) badges.push("きあい");
-  if (fighter.volatiles.chargingMove) badges.push("ため");
+  if (fighter.volatiles.chargingMove && !options?.hideDeferred) {
+    badges.push("ため");
+  }
   if (fighter.volatiles.semiInvulnerable === "fly") badges.push("そらをとぶ");
   if (fighter.volatiles.semiInvulnerable === "dig") badges.push("あなをほる");
   if (fighter.volatiles.lockedMove) badges.push("暴走");
@@ -135,6 +142,7 @@ function FieldFighter({
   currentHp,
   maxHp,
   badges,
+  hpDisplay = "absolute",
 }: {
   member: PartyMemberBuild | null;
   species: PokemonSpecies | null;
@@ -143,6 +151,8 @@ function FieldFighter({
   currentHp?: number;
   maxHp?: number;
   badges?: string[];
+  /** CPU/AI foe: Champions-style percentage. */
+  hpDisplay?: "absolute" | "percent";
 }) {
   const max = Math.max(1, maxHp ?? 1);
   const current = Math.max(0, Math.min(max, currentHp ?? max));
@@ -190,6 +200,10 @@ function FieldFighter({
   // Official-style thresholds: yellow/orange at ≤50%, red at ≤20% (1/5)
   const hpColor =
     ratio <= 0.2 ? "#d64545" : ratio <= 0.5 ? "#e09a2b" : "#2f9e5b";
+  const hpLabelText =
+    hpDisplay === "percent"
+      ? `HP ${formatChampionsHpPercentLabel(displayHp, max)}`
+      : `HP ${displayHp}/${max}`;
 
   return (
     <View
@@ -230,9 +244,7 @@ function FieldFighter({
             ]}
           />
         </View>
-        <Text style={styles.hpLabel}>
-          HP {displayHp}/{max}
-        </Text>
+        <Text style={styles.hpLabel}>{hpLabelText}</Text>
       </View>
       <PokemonSprite
         uri={species?.sprite_url}
@@ -274,6 +286,8 @@ export function BattleScreen() {
   const opponentType = (params.opponentType ?? "local_both") as OpponentType;
   const isLocalBoth = opponentType === "local_both";
   const isCpu = opponentType === "cpu";
+  /** CPU/AI: hide exact foe HP and show Champions-style %. */
+  const foeHpAsPercent = opponentType === "cpu" || opponentType === "ai";
   const moveGenerationOptions = useMemo(
     () => moveGenerationFilterFromParams(params),
     [
@@ -320,6 +334,7 @@ export function BattleScreen() {
   const [mustSwitchSide, setMustSwitchSide] = useState<PartySide | null>(null);
   const [logPlaying, setLogPlaying] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
+  const [foePartyOpen, setFoePartyOpen] = useState(false);
 
   const fightersRef = useRef<{ a: BattleFighter | null; b: BattleFighter | null }>(
     { a: null, b: null },
@@ -327,6 +342,14 @@ export function BattleScreen() {
   const fieldRef = useRef<BattleFieldState>(createBattleField());
   /** Persist HP across switches (瀕死維持). */
   const hpBySpeciesIdRef = useRef<Record<string, number>>({});
+  /** Species that have appeared on the field at least once. */
+  const seenOnFieldRef = useRef<Set<string>>(new Set());
+  const [seenOnFieldTick, setSeenOnFieldTick] = useState(0);
+  const markSeenOnField = (speciesId: string | undefined) => {
+    if (!speciesId || seenOnFieldRef.current.has(speciesId)) return;
+    seenOnFieldRef.current.add(speciesId);
+    setSeenOnFieldTick((n) => n + 1);
+  };
   const cpuKnowledgeRef = useRef<CpuKnowledge>({
     revealedMoveIdsBySpeciesId: {},
   });
@@ -337,6 +360,11 @@ export function BattleScreen() {
   const bumpFighters = () => setFighterTick((n) => n + 1);
   /** Display HP during step playback (multi-hit snapshots). */
   const [fieldHp, setFieldHp] = useState<{ a: number; b: number } | null>(null);
+  /**
+   * Hide 「ため」「反動」 while switch / turn logs play.
+   * Shown again after those animations finish if still active.
+   */
+  const [hideDeferredBadges, setHideDeferredBadges] = useState(false);
 
   const resolveMember = (
     side: PartySide,
@@ -428,11 +456,15 @@ export function BattleScreen() {
         hpBySpeciesIdRef.current = nextHp;
         fieldRef.current = createBattleField();
         cpuKnowledgeRef.current = { revealedMoveIdsBySpeciesId: {} };
+        seenOnFieldRef.current = new Set();
 
         fightersRef.current = {
           a: buildSide("a", lineup.a[0]),
           b: buildSide("b", lineup.b[0]),
         };
+        if (lineup.a[0]) seenOnFieldRef.current.add(lineup.a[0]);
+        if (lineup.b[0]) seenOnFieldRef.current.add(lineup.b[0]);
+        setSeenOnFieldTick((n) => n + 1);
         setFieldHp({
           a: fightersRef.current.a?.currentHp ?? 0,
           b: fightersRef.current.b?.currentHp ?? 0,
@@ -757,6 +789,7 @@ export function BattleScreen() {
       currentHp: hp,
       maxHp: stats.hp,
     });
+    markSeenOnField(speciesId);
     bumpFighters();
   };
 
@@ -775,6 +808,9 @@ export function BattleScreen() {
     setActionB(null);
     actionARef.current = null;
     setMenu("root");
+    // 交代・行動ログのあいだは「ため」「反動」を出さない
+    setHideDeferredBadges(true);
+    bumpFighters();
 
     if (nextA.type === "switch") {
       persistFighterHp();
@@ -865,6 +901,9 @@ export function BattleScreen() {
     }
 
     persistFighterHp();
+    // 交代・行動演出のあと、溜め／反動中ならバッジを表示
+    setHideDeferredBadges(false);
+    bumpFighters();
 
     if (result.ran) {
       goMenu();
@@ -1080,6 +1119,14 @@ export function BattleScreen() {
   const fighterA = fightersRef.current.a;
   const fighterB = fightersRef.current.b;
   void fighterTick;
+  void seenOnFieldTick;
+
+  const opponentSide: PartySide = controllingSide === "a" ? "b" : "a";
+  const opponentPartyMembers = getSide(opponentSide)?.members ?? [];
+  const opponentPartyLabel =
+    isCpu && opponentSide === "b"
+      ? "CPUの手持ち"
+      : `サイド${opponentSide === "a" ? "A" : "B"}の手持ち`;
 
   if (!lineup && !loading) {
     return (
@@ -1145,7 +1192,10 @@ export function BattleScreen() {
                     }
                     currentHp={fieldHp?.b ?? fighterB?.currentHp}
                     maxHp={fighterB?.maxHp}
-                    badges={statusBadges(fighterB, fieldHp?.b)}
+                    hpDisplay={foeHpAsPercent ? "percent" : "absolute"}
+                    badges={statusBadges(fighterB, fieldHp?.b, {
+                      hideDeferred: hideDeferredBadges,
+                    })}
                   />
                   <View style={styles.fieldDivider} />
                   <FieldFighter
@@ -1155,16 +1205,26 @@ export function BattleScreen() {
                     emptyLabel="自分の場が空です"
                     currentHp={fieldHp?.a ?? fighterA?.currentHp}
                     maxHp={fighterA?.maxHp}
-                    badges={statusBadges(fighterA, fieldHp?.a)}
+                    badges={statusBadges(fighterA, fieldHp?.a, {
+                      hideDeferred: hideDeferredBadges,
+                    })}
                   />
                 </View>
 
-                <Pressable
-                  onPress={() => setStatusOpen(true)}
-                  style={styles.statusButton}
-                >
-                  <Text style={styles.statusButtonText}>能力・場を確認</Text>
-                </Pressable>
+                <View style={styles.statusButtonRow}>
+                  <Pressable
+                    onPress={() => setStatusOpen(true)}
+                    style={styles.statusButton}
+                  >
+                    <Text style={styles.statusButtonText}>能力・場を確認</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setFoePartyOpen(true)}
+                    style={styles.statusButton}
+                  >
+                    <Text style={styles.statusButtonText}>相手の手持ち</Text>
+                  </Pressable>
+                </View>
 
                 <View style={styles.logBox}>
                   {logLines.map((line, index) => (
@@ -1723,6 +1783,80 @@ export function BattleScreen() {
       </Modal>
 
       <Modal
+        visible={foePartyOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFoePartyOpen(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.detailSheet}>
+            <Text style={styles.modalTitle}>{opponentPartyLabel}</Text>
+            <Text style={styles.foePartyHint}>
+              場に出たポケモンは強調表示されます
+            </Text>
+            <View style={styles.foePartyList}>
+              {opponentPartyMembers.length === 0 ? (
+                <Text style={styles.modalBody}>手持ちがありません</Text>
+              ) : (
+                opponentPartyMembers.map((member, index) => {
+                  const species = speciesById[member.speciesId];
+                  const seen = seenOnFieldRef.current.has(member.speciesId);
+                  const onField =
+                    (opponentSide === "a"
+                      ? fighterA?.speciesId
+                      : fighterB?.speciesId) === member.speciesId;
+                  const hp = hpBySpeciesIdRef.current[member.speciesId];
+                  const maxHp = species
+                    ? calcGen1Stats(species, member).hp
+                    : 0;
+                  const fainted = hp != null && hp <= 0;
+                  return (
+                    <View
+                      key={member.speciesId}
+                      style={[
+                        styles.foePartyRow,
+                        seen && styles.foePartyRowSeen,
+                      ]}
+                    >
+                      <PokemonSprite
+                        uri={species?.sprite_url}
+                        size={40}
+                        style={styles.partySprite}
+                      />
+                      <View style={styles.partyText}>
+                        <Text style={styles.foePartyName} numberOfLines={1}>
+                          {index + 1}. {member.nameJa}
+                          {onField ? "（場）" : ""}
+                          {fainted ? "（ひんし）" : ""}
+                          {seen ? "（確認済）" : ""}
+                        </Text>
+                        <Text style={styles.partyMeta}>
+                          {formatDexNo(member.dexNo)} ／ Lv{member.level}
+                          {seen
+                            ? foeHpAsPercent
+                              ? hp != null && maxHp > 0
+                                ? ` ／ HP ${formatChampionsHpPercentLabel(hp, maxHp)}`
+                                : ""
+                              : ` ／ HP ${hp ?? "—"}/${maxHp || "—"}`
+                            : ""}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })
+              )}
+            </View>
+            <Pressable
+              onPress={() => setFoePartyOpen(false)}
+              style={styles.primaryButton}
+            >
+              <Text style={styles.primaryButtonText}>閉じる</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
         visible={statusOpen}
         transparent
         animationType="fade"
@@ -1872,6 +2006,11 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#c5ddce",
   },
+  statusButtonRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
   statusButton: {
     alignSelf: "flex-start",
     backgroundColor: "#fffdf8",
@@ -1885,6 +2024,37 @@ const styles = StyleSheet.create({
     color: "#1d1a16",
     fontSize: 13,
     fontWeight: "800",
+  },
+  foePartyHint: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#5c564c",
+    marginBottom: 4,
+  },
+  foePartyList: {
+    gap: 8,
+    marginBottom: 8,
+  },
+  foePartyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#e5dccb",
+    borderRadius: 10,
+    backgroundColor: "#fffdf8",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  foePartyRowSeen: {
+    borderColor: "#1f6b4a",
+    borderWidth: 2,
+    backgroundColor: "#eef7f1",
+  },
+  foePartyName: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#1d1a16",
   },
   statusBlock: {
     gap: 4,
