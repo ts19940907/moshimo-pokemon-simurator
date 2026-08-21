@@ -332,6 +332,8 @@ export function BattleScreen() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [mustSwitchSide, setMustSwitchSide] = useState<PartySide | null>(null);
+  /** When both sides faint (e.g. じばく), switch the other side after the first. */
+  const pendingMustSwitchSideRef = useRef<PartySide | null>(null);
   const [logPlaying, setLogPlaying] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const [foePartyOpen, setFoePartyOpen] = useState(false);
@@ -695,6 +697,8 @@ export function BattleScreen() {
   };
 
   const goMenu = () => {
+    pendingMustSwitchSideRef.current = null;
+    setMustSwitchSide(null);
     openEndDestination();
   };
 
@@ -911,35 +915,57 @@ export function BattleScreen() {
     }
 
     if (result.faintedA || result.faintedB) {
-      if (result.faintedA && result.faintedB) {
+      const benchFor = (side: PartySide) => {
+        const ids = side === "a" ? lineup.a : lineup.b;
+        const active = side === "a" ? liveActiveA : liveActiveB;
+        return ids
+          .map((id, index) => ({ id, index }))
+          .filter(
+            ({ id, index }) =>
+              index !== active && (hpBySpeciesIdRef.current[id] ?? 0) > 0,
+          );
+      };
+
+      const needA = result.faintedA;
+      const needB = result.faintedB;
+      const wipedA = needA && benchFor("a").length === 0;
+      const wipedB = needB && benchFor("b").length === 0;
+
+      // じばく／だいばくはつなどで相打ちでも、手持ちが残っていれば交代へ
+      if (wipedA && wipedB) {
         await playLog(["相打ちだ！　メニューへ戻ります。"]);
         goMenu();
         return;
       }
-      const side: PartySide = result.faintedA ? "a" : "b";
-      const ids = side === "a" ? lineup.a : lineup.b;
-      const active = side === "a" ? liveActiveA : liveActiveB;
-      const bench = ids
-        .map((id, index) => ({ id, index }))
-        .filter(
-          ({ id, index }) =>
-            index !== active && (hpBySpeciesIdRef.current[id] ?? 0) > 0,
-        );
-      if (bench.length === 0) {
-        await playLog([
-          `${side === "a" ? "サイドA" : "サイドB"}の　ポケモンが　全滅した！`,
-        ]);
+      if (wipedA) {
+        await playLog(["サイドAの　ポケモンが　全滅した！"]);
         goMenu();
         return;
       }
-      await playLog([
-        isCpu && side === "b"
+      if (wipedB) {
+        await playLog(["サイドBの　ポケモンが　全滅した！"]);
+        goMenu();
+        return;
+      }
+
+      const switchOrder: PartySide[] = [];
+      if (needA) switchOrder.push("a");
+      if (needB) switchOrder.push("b");
+      const first = switchOrder[0]!;
+      pendingMustSwitchSideRef.current = switchOrder[1] ?? null;
+
+      const switchPrompt =
+        isCpu && first === "b"
           ? "CPUが　次のポケモンを　選んでいます…"
-          : `${side === "a" ? "サイドA" : "サイドB"}は　次のポケモンを　選んでください。`,
-      ]);
-      setMustSwitchSide(side);
-      setPickPhase(side);
-      setMenu(isCpu && side === "b" ? "root" : "party");
+          : `${first === "a" ? "サイドA" : "サイドB"}は　次のポケモンを　選んでください。`;
+      await playLog(
+        needA && needB
+          ? ["おたがいの　ポケモンが　たおれた！", switchPrompt]
+          : [switchPrompt],
+      );
+      setMustSwitchSide(first);
+      setPickPhase(first);
+      setMenu(isCpu && first === "b" ? "root" : "party");
       return;
     }
 
@@ -951,25 +977,45 @@ export function BattleScreen() {
     if (logPlaying) return;
     if (mustSwitchSide) {
       if (action.type !== "switch") return;
+      const switchingSide = mustSwitchSide;
       const speciesId =
-        (mustSwitchSide === "a" ? lineup?.a : lineup?.b)?.[action.index];
+        (switchingSide === "a" ? lineup?.a : lineup?.b)?.[action.index];
       if (speciesId && (hpBySpeciesIdRef.current[speciesId] ?? 0) <= 0) {
         setLog(["そのポケモンは　ひんしだ！"]);
         return;
       }
+      const pending = pendingMustSwitchSideRef.current;
+      pendingMustSwitchSideRef.current = null;
+      // Clear before async work so CPU auto-switch effect cannot re-enter.
+      setMustSwitchSide(null);
+
       persistFighterHp();
-      switchActive(mustSwitchSide, action.index);
-      syncFighterFromActive(mustSwitchSide, action.index);
+      switchActive(switchingSide, action.index);
+      syncFighterFromActive(switchingSide, action.index);
       setFieldHp({
         a: fightersRef.current.a?.currentHp ?? 0,
         b: fightersRef.current.b?.currentHp ?? 0,
       });
-      const member = resolveMember(mustSwitchSide, speciesId);
+      const member = resolveMember(switchingSide, speciesId);
+      if (pending) {
+        void playLog([
+          `ゆけ！　${member?.nameJa ?? "ポケモン"}！`,
+          isCpu && pending === "b"
+            ? "CPUが　次のポケモンを　選んでいます…"
+            : `${pending === "a" ? "サイドA" : "サイドB"}は　次のポケモンを　選んでください。`,
+        ]).then(() => {
+          setMustSwitchSide(pending);
+          setPickPhase(pending);
+          setMenu(isCpu && pending === "b" ? "root" : "party");
+          setActionA(null);
+          setActionB(null);
+        });
+        return;
+      }
       void playLog([
         `ゆけ！　${member?.nameJa ?? "ポケモン"}！`,
         "次のターン。サイドAから行動を選んでください。",
       ]).then(() => {
-        setMustSwitchSide(null);
         setMenu("root");
         setPickPhase("a");
         setActionA(null);
@@ -1037,8 +1083,10 @@ export function BattleScreen() {
       lockAction(action);
     }, 400);
     return () => clearTimeout(t);
+    // Intentionally omit fighterTick: bumping fighters during switch must not
+    // re-schedule CPU forced switch while mustSwitchSide is still "b".
     // eslint-disable-next-line react-hooks/exhaustive-deps -- auto when B must switch
-  }, [isCpu, mustSwitchSide, logPlaying, loading, fighterTick]);
+  }, [isCpu, mustSwitchSide, logPlaying, loading]);
 
   // Auto-continue charge / thrash locks
   useEffect(() => {
