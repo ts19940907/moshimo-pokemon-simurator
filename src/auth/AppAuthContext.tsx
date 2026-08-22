@@ -14,6 +14,14 @@ import {
   verifyAppPassword,
   writeStoredAuthSession,
 } from "./appAuth";
+import {
+  authenticateWithBiometrics,
+  getBiometricCapability,
+  isBiometricGateEnabled,
+  isNativeBiometricGate,
+} from "./biometrics";
+
+type LoginResult = { ok: true } | { ok: false; message: string };
 
 type AppAuthContextValue = {
   /** False until session storage has been read. */
@@ -22,7 +30,9 @@ type AppAuthContextValue = {
   isAuthenticated: boolean;
   /** True when EXPO_PUBLIC_APP_PASSWORD is set. */
   authRequired: boolean;
-  login: (password: string) => { ok: true } | { ok: false; message: string };
+  /** Native / web require face or fingerprint in addition to the password. */
+  biometricRequired: boolean;
+  login: (password: string) => Promise<LoginResult>;
   logout: () => void;
 };
 
@@ -30,6 +40,7 @@ const AppAuthContext = createContext<AppAuthContextValue | null>(null);
 
 export function AppAuthProvider({ children }: { children: ReactNode }) {
   const authRequired = isAppAuthRequired();
+  const biometricRequired = isBiometricGateEnabled();
   const [isReady, setIsReady] = useState(!authRequired);
   const [isAuthenticated, setIsAuthenticated] = useState(!authRequired);
 
@@ -39,7 +50,9 @@ export function AppAuthProvider({ children }: { children: ReactNode }) {
       setIsReady(true);
       return;
     }
-    const stored = readStoredAuthSession();
+    // Native never restores — biometrics every launch.
+    // Web may restore within the same browser tab after password + WebAuthn.
+    const stored = isNativeBiometricGate() ? false : readStoredAuthSession();
     setIsAuthenticated(stored);
     setIsReady(true);
   }, [authRequired]);
@@ -49,7 +62,8 @@ export function AppAuthProvider({ children }: { children: ReactNode }) {
       isReady,
       isAuthenticated,
       authRequired,
-      login: (password: string) => {
+      biometricRequired,
+      login: async (password: string): Promise<LoginResult> => {
         if (!authRequired) {
           setIsAuthenticated(true);
           return { ok: true };
@@ -63,6 +77,18 @@ export function AppAuthProvider({ children }: { children: ReactNode }) {
         if (!verifyAppPassword(password)) {
           return { ok: false, message: "パスワードが正しくありません。" };
         }
+
+        if (biometricRequired) {
+          const capability = await getBiometricCapability();
+          if (!capability.ok) {
+            return capability;
+          }
+          const biometric = await authenticateWithBiometrics(capability.label);
+          if (!biometric.ok) {
+            return biometric;
+          }
+        }
+
         writeStoredAuthSession(true);
         setIsAuthenticated(true);
         return { ok: true };
@@ -72,7 +98,7 @@ export function AppAuthProvider({ children }: { children: ReactNode }) {
         setIsAuthenticated(!authRequired);
       },
     }),
-    [authRequired, isAuthenticated, isReady],
+    [authRequired, biometricRequired, isAuthenticated, isReady],
   );
 
   return (
