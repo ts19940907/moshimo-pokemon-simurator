@@ -21,11 +21,26 @@ import {
 import type { GenerationFilterOptions } from "../match-setup/generationFilter";
 import type { Generation, LevelCapMode } from "../match-setup/types";
 import { implementedGeneration } from "../match-setup/types";
+import type { PartyMemberBuild } from "../party/types";
 import { getSelectableSpeciesFromList } from "../pokemon/catalog";
 import { fetchPokemonSpecies } from "../pokemon/repository";
 import type { PokemonSpecies } from "../pokemon/types";
 
 type SimulatorTab = "damage" | "speed";
+
+export type SimulatorScreenProps = {
+  /** Full page (`/simulator`) or modal dialog (party select). */
+  presentation?: "page" | "dialog";
+  visible?: boolean;
+  onClose?: () => void;
+  showSprites?: boolean;
+  showPartyActions?: boolean;
+  partyBuildsBySpeciesId?: Record<string, PartyMemberBuild>;
+  partyDexNos?: number[];
+  onApplyToParty?: (build: PartyMemberBuild) => void;
+  levelCapMode?: LevelCapMode;
+  initialRulesGeneration?: Generation;
+};
 
 function labelOf<T extends string | number>(
   value: T,
@@ -192,26 +207,48 @@ function GenerationCheckboxGroup({
   );
 }
 
-export function SimulatorScreen() {
+export function SimulatorScreen({
+  presentation = "page",
+  visible = true,
+  onClose,
+  showSprites = false,
+  showPartyActions = false,
+  partyBuildsBySpeciesId = {},
+  partyDexNos = [],
+  onApplyToParty,
+  levelCapMode: levelCapModeProp,
+  initialRulesGeneration,
+}: SimulatorScreenProps) {
+  const isDialog = presentation === "dialog";
   const [tab, setTab] = useState<SimulatorTab>("damage");
   const [rulesGeneration, setRulesGeneration] = useState<Generation>(
-    implementedGeneration,
+    initialRulesGeneration ?? implementedGeneration,
   );
   const [syncGenerationsWithRules, setSyncGenerationsWithRules] =
     useState(true);
   const [pokemonGenerations, setPokemonGenerations] = useState<Generation[]>([
-    implementedGeneration,
+    initialRulesGeneration ?? implementedGeneration,
   ]);
   const [moveGenerations, setMoveGenerations] = useState<Generation[]>([
-    implementedGeneration,
+    initialRulesGeneration ?? implementedGeneration,
   ]);
-  /** Simulator tools allow Lv1–100. */
-  const levelCapMode: LevelCapMode = "unlimited";
+  /** Page: Lv1–100. Dialog from party select may inherit match level cap. */
+  const levelCapMode: LevelCapMode =
+    levelCapModeProp ?? (isDialog ? "max_50" : "unlimited");
 
   const [allSpecies, setAllSpecies] = useState<PokemonSpecies[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [generationDialogOpen, setGenerationDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isDialog || !visible || initialRulesGeneration == null) return;
+    setRulesGeneration(initialRulesGeneration);
+    setPokemonGenerations([initialRulesGeneration]);
+    setMoveGenerations([initialRulesGeneration]);
+    setSyncGenerationsWithRules(true);
+    setTab("damage");
+  }, [isDialog, visible, initialRulesGeneration]);
 
   const displayedPokemonGens = syncGenerationsWithRules
     ? [rulesGeneration]
@@ -298,28 +335,35 @@ export function SimulatorScreen() {
     }
   };
 
-  return (
-    <MatchScreenBackground source={defaultMatchBackground}>
-      <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
-        <View style={styles.layout}>
-          <View style={styles.headerPanel}>
-            <View style={styles.headerTextCol}>
-              <Text style={styles.kicker}>TOOLS</Text>
-              <Text style={styles.title}>シミュレーター</Text>
-              <Text style={styles.generationSummary}>{generationSummary}</Text>
+  const main = (
+    <>
+      <SafeAreaView
+        style={styles.safeArea}
+        edges={isDialog ? [] : ["top", "left", "right"]}
+      >
+        <View style={[styles.layout, isDialog && styles.layoutDialog]}>
+          {!isDialog ? (
+            <View style={styles.headerPanel}>
+              <View style={styles.headerTextCol}>
+                <Text style={styles.kicker}>TOOLS</Text>
+                <Text style={styles.title}>シミュレーター</Text>
+                <Text style={styles.generationSummary}>{generationSummary}</Text>
+              </View>
+              <View style={styles.headerActions}>
+                <Pressable
+                  onPress={() => setGenerationDialogOpen(true)}
+                  style={({ pressed }) => [
+                    styles.generationButton,
+                    pressed && styles.generationButtonPressed,
+                  ]}
+                >
+                  <Text style={styles.generationButtonText}>世代を設定</Text>
+                </Pressable>
+              </View>
             </View>
-            <Pressable
-              onPress={() => setGenerationDialogOpen(true)}
-              style={({ pressed }) => [
-                styles.generationButton,
-                pressed && styles.generationButtonPressed,
-              ]}
-            >
-              <Text style={styles.generationButtonText}>世代を設定</Text>
-            </Pressable>
-          </View>
+          ) : null}
 
-          <View style={styles.toolPane}>
+          <View style={[styles.toolPane, isDialog && styles.toolPaneDialog]}>
             <View style={styles.tabRow}>
               <Pressable
                 onPress={() => setTab("damage")}
@@ -347,6 +391,19 @@ export function SimulatorScreen() {
                   素早さ比較
                 </Text>
               </Pressable>
+              {isDialog && onClose ? (
+                <Pressable
+                  onPress={onClose}
+                  accessibilityRole="button"
+                  accessibilityLabel="閉じる"
+                  style={({ pressed }) => [
+                    styles.tabClose,
+                    pressed && styles.generationButtonPressed,
+                  ]}
+                >
+                  <Text style={styles.tabCloseText}>×</Text>
+                </Pressable>
+              ) : null}
             </View>
 
             <View style={styles.toolBody}>
@@ -362,30 +419,30 @@ export function SimulatorScreen() {
                 <DamageCalcDialog
                   visible
                   presentation="embedded"
-                  showSprites={false}
-                  showPartyActions={false}
+                  showSprites={showSprites}
+                  showPartyActions={showPartyActions}
                   speciesPool={speciesPool}
                   levelCapMode={levelCapMode}
                   moveGenerationOptions={moveGenerationOptions}
-                  partyBuildsBySpeciesId={{}}
-                  partyDexNos={[]}
+                  partyBuildsBySpeciesId={partyBuildsBySpeciesId}
+                  partyDexNos={partyDexNos}
                   rulesGeneration={rulesGeneration}
-                  onClose={() => undefined}
-                  onApplyToParty={() => undefined}
+                  onClose={onClose ?? (() => undefined)}
+                  onApplyToParty={onApplyToParty ?? (() => undefined)}
                 />
               ) : (
                 <SpeedCompareDialog
                   visible
                   presentation="embedded"
-                  showSprites={false}
-                  showPartyActions={false}
+                  showSprites={showSprites}
+                  showPartyActions={showPartyActions}
                   speciesPool={speciesPool}
                   levelCapMode={levelCapMode}
-                  partyBuildsBySpeciesId={{}}
-                  partyDexNos={[]}
+                  partyBuildsBySpeciesId={partyBuildsBySpeciesId}
+                  partyDexNos={partyDexNos}
                   rulesGeneration={rulesGeneration}
-                  onClose={() => undefined}
-                  onApplyToParty={() => undefined}
+                  onClose={onClose ?? (() => undefined)}
+                  onApplyToParty={onApplyToParty ?? (() => undefined)}
                 />
               )}
             </View>
@@ -459,20 +516,93 @@ export function SimulatorScreen() {
           </View>
         </View>
       </Modal>
+    </>
+  );
+
+  const body = isDialog ? (
+    <View style={styles.dialogContent}>{main}</View>
+  ) : (
+    <MatchScreenBackground source={defaultMatchBackground}>
+      {main}
     </MatchScreenBackground>
   );
+
+  if (isDialog) {
+    return (
+      <Modal
+        visible={visible}
+        transparent
+        animationType="fade"
+        onRequestClose={onClose}
+      >
+        <View style={styles.dialogBackdrop}>
+          <View style={styles.dialogShell}>{body}</View>
+        </View>
+      </Modal>
+    );
+  }
+
+  return body;
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
+  safeArea: { flex: 1, minHeight: 0 },
   layout: {
     flex: 1,
+    minHeight: 0,
     maxWidth: 1100,
     width: "100%",
     alignSelf: "center",
     paddingHorizontal: 12,
     paddingBottom: 12,
     gap: 10,
+  },
+  layoutDialog: {
+    paddingTop: 0,
+    paddingHorizontal: 0,
+    paddingBottom: 0,
+    gap: 0,
+    maxWidth: "100%",
+  },
+  dialogBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(28, 36, 24, 0.55)",
+    justifyContent: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+  },
+  dialogShell: {
+    flex: 1,
+    maxWidth: 1100,
+    width: "100%",
+    alignSelf: "center",
+    maxHeight: "96%",
+    borderRadius: 18,
+    overflow: "hidden",
+    backgroundColor: "#fffdf8",
+  },
+  dialogContent: {
+    flex: 1,
+    minHeight: 0,
+    backgroundColor: "#fffdf8",
+  },
+  toolPaneDialog: {
+    borderRadius: 0,
+    borderWidth: 0,
+    backgroundColor: "#fffdf8",
+  },
+  tabClose: {
+    minWidth: 48,
+    paddingHorizontal: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#c62828",
+  },
+  tabCloseText: {
+    fontSize: 22,
+    fontWeight: "900",
+    color: "#ffffff",
+    lineHeight: 24,
   },
   headerPanel: {
     flexDirection: "row",
@@ -492,6 +622,13 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 4,
     minWidth: 0,
+  },
+  headerActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    alignItems: "flex-start",
+    justifyContent: "flex-end",
   },
   kicker: {
     fontSize: 12,
@@ -517,6 +654,19 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
+  },
+  closeButton: {
+    borderWidth: 1,
+    borderColor: "#cfc6b6",
+    backgroundColor: "#fffdf8",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  closeButtonText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#1f6b4a",
   },
   generationButtonPressed: { opacity: 0.85 },
   generationButtonText: {
@@ -691,6 +841,7 @@ const styles = StyleSheet.create({
   toolBody: {
     flex: 1,
     minHeight: 0,
+    backgroundColor: "#fffdf8",
   },
   centerBox: {
     flex: 1,

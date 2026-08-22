@@ -1351,9 +1351,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
     backgroundColor: "#fffdf8",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#ddd4c4",
+    borderRadius: 0,
+    borderWidth: 0,
     overflow: "hidden",
   },
   headerRow: {
@@ -1390,7 +1389,7 @@ const styles = StyleSheet.create({
   bodyContent: {
     padding: 14,
     gap: 12,
-    paddingBottom: 28,
+    paddingBottom: 48,
   },
   stickySelectedBar: {
     flexDirection: "row",

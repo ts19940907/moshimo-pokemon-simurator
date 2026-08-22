@@ -12,7 +12,12 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import type { RestrictionMode, LevelCapMode, OpponentType } from "../match-setup/types";
+import type {
+  Generation,
+  RestrictionMode,
+  LevelCapMode,
+  OpponentType,
+} from "../match-setup/types";
 import {
   moveGenerationFilterFromParams,
   pokemonGenerationFilterFromParams,
@@ -50,10 +55,9 @@ import {
 } from "../pokemon/types";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
 import { SetPokemonDialog } from "./set/SetPokemonDialog";
-import { DamageCalcDialog } from "../battle/DamageCalcDialog";
-import { SpeedCompareDialog } from "../battle/SpeedCompareDialog";
 import { Gen1TypeChartDialog } from "../battle/Gen1TypeChartDialog";
 import { generateCpuParty } from "../battle/cpuTeam";
+import { SimulatorScreen } from "./SimulatorScreen";
 import { matchBackgroundForRules } from "../match-setup/backgrounds";
 import { MatchScreenBackground } from "../match-setup/MatchScreenBackground";
 import { parseRulesGeneration } from "../match-setup/params";
@@ -887,8 +891,7 @@ export function SelectPokemonScreen() {
   const [movesRequiredOpen, setMovesRequiredOpen] = useState(false);
   const [partyRequiredOpen, setPartyRequiredOpen] = useState(false);
   const [typeChartOpen, setTypeChartOpen] = useState(false);
-  const [damageCalcOpen, setDamageCalcOpen] = useState(false);
-  const [speedCompareOpen, setSpeedCompareOpen] = useState(false);
+  const [simulatorOpen, setSimulatorOpen] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [cpuGenerating, setCpuGenerating] = useState(false);
   const [nameQuery, setNameQuery] = useState("");
@@ -1525,23 +1528,15 @@ export function SelectPokemonScreen() {
             <View style={styles.toolButtonRow}>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => setDamageCalcOpen(true)}
+                onPress={() => setSimulatorOpen(true)}
                 style={({ pressed }) => [
                   styles.toolButton,
                   pressed && styles.pressed,
                 ]}
               >
-                <Text style={styles.toolButtonText}>ダメージ計算</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setSpeedCompareOpen(true)}
-                style={({ pressed }) => [
-                  styles.toolButton,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text style={styles.toolButtonText}>素早さ比較</Text>
+                <Text style={styles.toolButtonText}>
+                  ダメージ計算と素早さ比較
+                </Text>
               </Pressable>
             </View>
 
@@ -1700,34 +1695,16 @@ export function SelectPokemonScreen() {
         onClose={() => setTypeChartOpen(false)}
       />
 
-      <DamageCalcDialog
-        visible={damageCalcOpen}
-        speciesPool={species}
+      <SimulatorScreen
+        presentation="dialog"
+        visible={simulatorOpen}
+        showSprites
+        showPartyActions
         levelCapMode={levelCapMode}
-        moveGenerationOptions={moveGenerationOptions}
+        initialRulesGeneration={(Number(params.rulesGeneration) || 1) as Generation}
         partyBuildsBySpeciesId={buildsBySpeciesId}
         partyDexNos={selectedDexNos}
-        onClose={() => setDamageCalcOpen(false)}
-        onApplyToParty={(build) => {
-          const alreadyInParty = selectedDexNos.includes(build.dexNo);
-          if (!alreadyInParty) {
-            if (selectedDexNos.length >= PARTY_SIZE) return;
-            setSelectedDexNos((current) => [...current, build.dexNo]);
-          }
-          setBuildsBySpeciesId((current) => ({
-            ...current,
-            [build.speciesId]: build,
-          }));
-        }}
-      />
-
-      <SpeedCompareDialog
-        visible={speedCompareOpen}
-        speciesPool={species}
-        levelCapMode={levelCapMode}
-        partyBuildsBySpeciesId={buildsBySpeciesId}
-        partyDexNos={selectedDexNos}
-        onClose={() => setSpeedCompareOpen(false)}
+        onClose={() => setSimulatorOpen(false)}
         onApplyToParty={(build) => {
           const alreadyInParty = selectedDexNos.includes(build.dexNo);
           if (!alreadyInParty) {
