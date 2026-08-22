@@ -1,4 +1,14 @@
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useRef } from "react";
+import {
+  Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { TYPE_BY_ID } from "../pokemon/types";
 import { gen1TypeEffectiveness } from "../battle/gen1TypeChart";
@@ -10,14 +20,14 @@ export const GEN1_TYPE_IDS = [
 
 const CELL = 28;
 const LABEL = 36;
-const MATRIX_WIDTH = LABEL + CELL * GEN1_TYPE_IDS.length;
-const MATRIX_HEIGHT = LABEL + CELL * GEN1_TYPE_IDS.length;
+const BODY_WIDTH = CELL * GEN1_TYPE_IDS.length;
+const BODY_HEIGHT = CELL * GEN1_TYPE_IDS.length;
+const FRAME_HEIGHT = 360;
 
 function cellLabel(mult: number): string {
   if (mult === 0) return "×";
-  if (mult === 0.5) return "½";
-  if (mult === 2) return "2";
-  if (mult === 4) return "4";
+  if (mult < 1) return "△";
+  if (mult > 1) return "◯";
   return "";
 }
 
@@ -35,8 +45,37 @@ type Props = {
 
 /**
  * Attack type (row) → Defense type (column) for Gen1 cartridge chart.
+ * Type name row/column stay fixed while the matrix scrolls both ways.
  */
 export function Gen1TypeChartDialog({ visible, onClose }: Props) {
+  const headerHRef = useRef<ScrollView>(null);
+  const labelsVRef = useRef<ScrollView>(null);
+  const syncing = useRef(false);
+
+  const syncHeaderX = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (syncing.current) return;
+    syncing.current = true;
+    headerHRef.current?.scrollTo({
+      x: event.nativeEvent.contentOffset.x,
+      animated: false,
+    });
+    requestAnimationFrame(() => {
+      syncing.current = false;
+    });
+  };
+
+  const syncLabelsY = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (syncing.current) return;
+    syncing.current = true;
+    labelsVRef.current?.scrollTo({
+      y: event.nativeEvent.contentOffset.y,
+      animated: false,
+    });
+    requestAnimationFrame(() => {
+      syncing.current = false;
+    });
+  };
+
   return (
     <Modal
       visible={visible}
@@ -49,56 +88,99 @@ export function Gen1TypeChartDialog({ visible, onClose }: Props) {
           <View style={styles.header}>
             <Text style={styles.title}>初代タイプ相性表</Text>
             <Pressable onPress={onClose} style={styles.closeBtn} hitSlop={8}>
-              <Text style={styles.closeBtnText}>❌</Text>
+              <Text style={styles.closeBtnText}>×</Text>
             </Pressable>
           </View>
           <Text style={styles.lead}>
             縦＝攻撃タイプ　／　横＝防御タイプ{"\n"}
-            2＝抜群　½＝今ひとつ　×＝無効　（空白＝等倍）
+            ◯＝抜群　△＝今ひとつ　×＝無効　（空白＝等倍）
           </Text>
           <Text style={styles.note}>
-            ※むし→どくは抜群（2倍）。くさ／どくはむし技で4倍になります。
+            ※むし→どくは抜群。くさ／どくはむし技で4倍になります。
           </Text>
-          <ScrollView
-            horizontal
-            bounces={false}
-            showsHorizontalScrollIndicator={false}
-            style={styles.matrixScroll}
-            contentContainerStyle={styles.matrixScrollInner}
-          >
-            <View style={{ width: MATRIX_WIDTH, height: MATRIX_HEIGHT }}>
-              <View style={styles.row}>
-                <View style={[styles.corner, { width: LABEL, height: LABEL }]} />
-                {GEN1_TYPE_IDS.map((defId) => (
-                  <View key={`h-${defId}`} style={styles.headerCell}>
-                    <Text style={styles.headerCellText} numberOfLines={2}>
-                      {TYPE_BY_ID[defId]?.nameJa ?? defId}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-              {GEN1_TYPE_IDS.map((atkId) => (
-                <View key={`r-${atkId}`} style={styles.row}>
-                  <View style={styles.rowLabel}>
-                    <Text style={styles.rowLabelText} numberOfLines={2}>
-                      {TYPE_BY_ID[atkId]?.nameJa ?? atkId}
-                    </Text>
-                  </View>
-                  {GEN1_TYPE_IDS.map((defId) => {
-                    const mult = gen1TypeEffectiveness(atkId, defId, 0);
-                    return (
-                      <View
-                        key={`c-${atkId}-${defId}`}
-                        style={[styles.cell, cellStyle(mult)]}
-                      >
-                        <Text style={styles.cellText}>{cellLabel(mult)}</Text>
-                      </View>
-                    );
-                  })}
+
+          <View style={styles.matrixFrame}>
+            {/* Fixed corner */}
+            <View style={styles.corner} />
+
+            {/* Fixed top headers (scrolls horizontally with body) */}
+            <ScrollView
+              ref={headerHRef}
+              horizontal
+              bounces={false}
+              scrollEnabled={false}
+              showsHorizontalScrollIndicator={false}
+              style={styles.headerStrip}
+              contentContainerStyle={styles.stripContent}
+            >
+              {GEN1_TYPE_IDS.map((defId) => (
+                <View key={`h-${defId}`} style={styles.headerCell}>
+                  <Text style={styles.headerCellText} numberOfLines={2}>
+                    {TYPE_BY_ID[defId]?.nameJa ?? defId}
+                  </Text>
                 </View>
               ))}
-            </View>
-          </ScrollView>
+            </ScrollView>
+
+            {/* Fixed left labels (scrolls vertically with body) */}
+            <ScrollView
+              ref={labelsVRef}
+              bounces={false}
+              scrollEnabled={false}
+              showsVerticalScrollIndicator={false}
+              style={styles.labelStrip}
+              contentContainerStyle={styles.stripContent}
+            >
+              {GEN1_TYPE_IDS.map((atkId) => (
+                <View key={`r-${atkId}`} style={styles.rowLabel}>
+                  <Text style={styles.rowLabelText} numberOfLines={2}>
+                    {TYPE_BY_ID[atkId]?.nameJa ?? atkId}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+
+            {/* Scrollable body */}
+            <ScrollView
+              bounces={false}
+              nestedScrollEnabled
+              style={styles.bodyV}
+              onScroll={syncLabelsY}
+              scrollEventThrottle={16}
+              showsVerticalScrollIndicator
+            >
+              <ScrollView
+                horizontal
+                bounces={false}
+                nestedScrollEnabled
+                onScroll={syncHeaderX}
+                scrollEventThrottle={16}
+                showsHorizontalScrollIndicator
+                contentContainerStyle={styles.stripContent}
+              >
+                <View style={styles.bodyGrid}>
+                  {GEN1_TYPE_IDS.map((atkId) => (
+                    <View key={`br-${atkId}`} style={styles.row}>
+                      {GEN1_TYPE_IDS.map((defId) => {
+                        const mult = gen1TypeEffectiveness(atkId, defId, 0);
+                        return (
+                          <View
+                            key={`c-${atkId}-${defId}`}
+                            style={[styles.cell, cellStyle(mult)]}
+                          >
+                            <Text style={styles.cellText}>
+                              {cellLabel(mult)}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  ))}
+                </View>
+              </ScrollView>
+            </ScrollView>
+          </View>
+
           <Pressable onPress={onClose} style={styles.primaryBtn}>
             <Text style={styles.primaryBtnText}>閉じる</Text>
           </Pressable>
@@ -122,10 +204,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 12,
     gap: 8,
-    width: MATRIX_WIDTH + 24,
-    maxWidth: "100%",
-    // Tall enough to show the full matrix without an inner vertical scrollbar
-    maxHeight: "98%",
+    width: "100%",
+    maxWidth: 520,
+    maxHeight: "96%",
   },
   header: {
     flexDirection: "row",
@@ -144,9 +225,14 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#efe8dc",
+    backgroundColor: "#c62828",
   },
-  closeBtnText: { fontSize: 16 },
+  closeBtnText: {
+    fontSize: 20,
+    fontWeight: "900",
+    color: "#ffffff",
+    lineHeight: 22,
+  },
   lead: {
     fontSize: 11,
     lineHeight: 15,
@@ -159,16 +245,67 @@ const styles = StyleSheet.create({
     color: "#8a5a2a",
     fontWeight: "700",
   },
-  matrixScroll: {
-    // Fixed to matrix height so vertical scrollbar does not appear by default
-    height: MATRIX_HEIGHT,
+  matrixFrame: {
+    height: FRAME_HEIGHT,
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: "#fffdf8",
+    position: "relative",
+  },
+  corner: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    width: LABEL,
+    height: LABEL,
+    backgroundColor: "#f3efe6",
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: "#ddd4c4",
+    zIndex: 4,
+  },
+  headerStrip: {
+    position: "absolute",
+    top: 0,
+    left: LABEL,
+    right: 0,
+    height: LABEL,
+    zIndex: 3,
+    backgroundColor: "#efe8dc",
+  },
+  labelStrip: {
+    position: "absolute",
+    top: LABEL,
+    left: 0,
+    bottom: 0,
+    width: LABEL,
+    zIndex: 2,
+    backgroundColor: "#efe8dc",
+  },
+  bodyV: {
+    position: "absolute",
+    top: LABEL,
+    left: LABEL,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+  },
+  stripContent: {
     flexGrow: 0,
+    alignItems: "flex-start",
   },
-  matrixScrollInner: {
-    flexGrow: 1,
+  bodyGrid: {
+    width: BODY_WIDTH,
+    height: BODY_HEIGHT,
   },
-  row: { flexDirection: "row", alignItems: "stretch" },
-  corner: { backgroundColor: "#f3efe6" },
+  row: {
+    flexDirection: "row",
+    width: BODY_WIDTH,
+    height: CELL,
+  },
   headerCell: {
     width: CELL,
     height: LABEL,

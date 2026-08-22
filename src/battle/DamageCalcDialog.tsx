@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -14,6 +14,10 @@ import type { GenerationFilterOptions } from "../match-setup/generationFilter";
 import type { LevelCapMode } from "../match-setup/types";
 import { calcGen1Stats } from "../party/gen1Stats";
 import {
+  IvStatEditor,
+  StatExpEditor,
+} from "../party/StatValueEditor";
+import {
   createDefaultBuild,
   GEN1_STAT_LABELS,
   maxLevelForCap,
@@ -27,8 +31,9 @@ import {
   PARTY_SIZE,
   TYPE_COLORS,
   typeFilterOptions,
-  typeNameJa,
 } from "../pokemon/catalog";
+import { PokemonAutocompleteField } from "../pokemon/PokemonAutocompleteField";
+import { MoveTypeBadge, PokemonTypeBadges } from "../pokemon/TypeBadges";
 import type { Move, MoveDamageClass } from "../pokemon/moves";
 import { fetchMovesForPokemon } from "../pokemon/moveRepository";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
@@ -314,28 +319,6 @@ function StageStepper({
   );
 }
 
-function StatField({
-  label,
-  value,
-  onChangeText,
-}: {
-  label: string;
-  value: number;
-  onChangeText: (text: string) => void;
-}) {
-  return (
-    <View style={styles.statField}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        style={styles.statInput}
-        keyboardType="number-pad"
-        value={String(value)}
-        onChangeText={onChangeText}
-      />
-    </View>
-  );
-}
-
 function CheckRow({
   label,
   checked,
@@ -427,6 +410,27 @@ export function DamageCalcDialog({
     useState<StatFiltersState>(EMPTY_STAT_FILTERS);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [page, setPage] = useState(0);
+  const [attackerAcQuery, setAttackerAcQuery] = useState("");
+  const [defenderAcQuery, setDefenderAcQuery] = useState("");
+  const [attackerAcOpen, setAttackerAcOpen] = useState(false);
+  const [defenderAcOpen, setDefenderAcOpen] = useState(false);
+  const moveComboRef = useRef<View>(null);
+
+  useEffect(() => {
+    if (!pickingMove) return;
+    if (typeof document === "undefined") return;
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target;
+      const node = moveComboRef.current as unknown as HTMLElement | null;
+      if (!(target instanceof Node) || !node) {
+        setPickingMove(false);
+        return;
+      }
+      if (!node.contains(target)) setPickingMove(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [pickingMove]);
 
   const isDirty =
     attacker.species != null ||
@@ -454,6 +458,10 @@ export function DamageCalcDialog({
     setLightScreen(false);
     setPickingSide(null);
     setPendingSpecies(null);
+    setAttackerAcQuery("");
+    setDefenderAcQuery("");
+    setAttackerAcOpen(false);
+    setDefenderAcOpen(false);
   };
 
   const clearPickerFilters = () => {
@@ -613,9 +621,51 @@ export function DamageCalcDialog({
         specialStage: 0,
       });
     }
+    if (side === "attacker") {
+      setAttackerAcQuery(pokemon.name_ja);
+      setAttackerAcOpen(false);
+    } else {
+      setDefenderAcQuery(pokemon.name_ja);
+      setDefenderAcOpen(false);
+    }
     setPickingSide(null);
     setPendingSpecies(null);
     setImportConfirmOpen(false);
+  };
+
+  const clearSideSpecies = (side: PickSide) => {
+    if (side === "attacker") {
+      setAttacker(emptySide());
+      setMoveId(null);
+      setMoves([]);
+      setMoveError(null);
+      setPickingMove(false);
+      setAttackerAcQuery("");
+      setAttackerAcOpen(false);
+    } else {
+      setDefender(emptySide());
+      setDefenderAcQuery("");
+      setDefenderAcOpen(false);
+    }
+  };
+
+  const pickSpeciesForSide = (side: PickSide, pokemon: PokemonSpecies) => {
+    const existing = partyBuildsBySpeciesId[pokemon.id];
+    if (existing && showPartyActions) {
+      setPickingSide(side);
+      setPendingSpecies(pokemon);
+      setImportConfirmOpen(true);
+      return;
+    }
+    applySpecies(side, pokemon, false);
+  };
+
+  const sideAcSuggestions = (query: string, open: boolean) => {
+    const trimmed = query.trim();
+    if (!open || trimmed.length < 1) return [] as PokemonSpecies[];
+    return speciesPool
+      .filter((pokemon) => matchesNameQuery(pokemon, trimmed))
+      .slice(0, 8);
   };
 
   const handlePickSpecies = (pokemon: PokemonSpecies) => {
@@ -640,32 +690,25 @@ export function DamageCalcDialog({
     });
   };
 
-  const patchIv = (
+  const setIvValue = (
     side: PickSide,
     key: keyof Gen1StatBlock,
-    text: string,
-    max: number,
+    value: number,
   ) => {
     patchBuild(side, (build) => ({
       ...build,
-      iv: {
-        ...build.iv,
-        [key]: clamp(parseIntOr(text, build.iv[key]), 0, max),
-      },
+      iv: { ...build.iv, [key]: value },
     }));
   };
 
-  const patchStatExp = (
+  const setStatExpValue = (
     side: PickSide,
     key: keyof Gen1StatBlock,
-    text: string,
+    value: number,
   ) => {
     patchBuild(side, (build) => ({
       ...build,
-      statExp: {
-        ...build.statExp,
-        [key]: clamp(parseIntOr(text, build.statExp[key]), 0, 65535),
-      },
+      statExp: { ...build.statExp, [key]: value },
     }));
   };
 
@@ -1147,6 +1190,7 @@ export function DamageCalcDialog({
                           {formatDexNo(pokemon.dex_no)}
                         </Text>
                         <Text style={styles.pickName}>{pokemon.name_ja}</Text>
+                        <PokemonTypeBadges species={pokemon} />
                         {inParty ? (
                           <Text style={styles.inPartyBadge}>選出中</Text>
                         ) : null}
@@ -1157,104 +1201,213 @@ export function DamageCalcDialog({
               </View>
             </ScrollView>
           ) : (
-            <ScrollView
-              style={styles.body}
-              contentContainerStyle={styles.bodyContent}
-              keyboardShouldPersistTaps="handled"
-            >
-              <View style={styles.columns}>
-                <View style={styles.column}>
-                  <Text style={styles.columnTitle}>攻撃側</Text>
-                  <Pressable
-                    onPress={() => openPicker("attacker")}
-                    style={styles.selectPokemonBtn}
-                  >
-                    {attacker.species ? (
-                      <View style={styles.selectedPokemon}>
-                        <OptionalSprite
-                          show={showSprites}
-                          uri={attacker.species.sprite_url}
-                          size={48}
-                        />
-                        <Text style={styles.selectedName}>
+            <>
+              {embedded &&
+              (attacker.species || defender.species || selectedMove) ? (
+                <View style={styles.stickySelectedBar}>
+                  {attacker.species ? (
+                    <View style={styles.stickySelectedSide}>
+                      <Text style={styles.stickySelectedLabel}>攻撃側</Text>
+                      <View style={styles.stickySelectedBody}>
+                        <Text style={styles.stickySelectedName}>
                           {attacker.species.name_ja}
                         </Text>
+                        <PokemonTypeBadges species={attacker.species} />
                       </View>
-                    ) : (
-                      <Text style={styles.selectPokemonText}>
-                        ポケモンを選ぶ
-                      </Text>
-                    )}
-                  </Pressable>
+                    </View>
+                  ) : null}
+                  {defender.species ? (
+                    <View style={styles.stickySelectedSide}>
+                      <Text style={styles.stickySelectedLabel}>防御側</Text>
+                      <View style={styles.stickySelectedBody}>
+                        <Text style={styles.stickySelectedName}>
+                          {defender.species.name_ja}
+                        </Text>
+                        <PokemonTypeBadges species={defender.species} />
+                      </View>
+                    </View>
+                  ) : null}
+                  {selectedMove ? (
+                    <View style={styles.stickySelectedSide}>
+                      <Text style={styles.stickySelectedLabel}>技</Text>
+                      <View style={styles.stickySelectedBody}>
+                        <View style={styles.stickySelectedMoveRow}>
+                          <Text style={styles.stickySelectedName}>
+                            {selectedMove.name_ja}
+                          </Text>
+                          <MoveTypeBadge typeId={selectedMove.type_id} />
+                        </View>
+                        <Text style={styles.stickySelectedMeta}>
+                          {DAMAGE_CLASS_JA[selectedMove.damage_class]} ／ 威力
+                          {selectedMove.power ?? "—"}
+                        </Text>
+                      </View>
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+              <ScrollView
+                style={embedded ? styles.embeddedBody : styles.body}
+                contentContainerStyle={styles.bodyContent}
+                keyboardShouldPersistTaps="handled"
+              >
+              <View style={styles.columns}>
+                <View
+                  style={[
+                    styles.column,
+                    (attackerAcOpen || pickingMove) && styles.columnAboveSiblings,
+                  ]}
+                >
+                  <Text style={styles.columnTitle}>攻撃側</Text>
+                  {embedded ? (
+                    <View style={styles.autocompleteSlot}>
+                      <PokemonAutocompleteField
+                        value={attackerAcQuery}
+                        onChangeText={(text) => {
+                          setAttackerAcQuery(text);
+                          setAttackerAcOpen(true);
+                          setDefenderAcOpen(false);
+                          if (text.trim() === "") clearSideSpecies("attacker");
+                        }}
+                        suggestions={sideAcSuggestions(
+                          attackerAcQuery,
+                          attackerAcOpen,
+                        )}
+                        suggestOpen={attackerAcOpen}
+                        onOpenSuggest={() => {
+                          setAttackerAcOpen(true);
+                          setDefenderAcOpen(false);
+                          setPickingMove(false);
+                        }}
+                        onCloseSuggest={() => setAttackerAcOpen(false)}
+                        onSelect={(pokemon) =>
+                          pickSpeciesForSide("attacker", pokemon)
+                        }
+                        onPressFilter={() => {
+                          setAttackerAcOpen(false);
+                          openPicker("attacker");
+                        }}
+                        selectedSpecies={attacker.species}
+                        showSprites={showSprites}
+                      />
+                    </View>
+                  ) : (
+                    <Pressable
+                      onPress={() => openPicker("attacker")}
+                      style={styles.selectPokemonBtn}
+                    >
+                      {attacker.species ? (
+                        <View style={styles.selectedPokemon}>
+                          <OptionalSprite
+                            show={showSprites}
+                            uri={attacker.species.sprite_url}
+                            size={48}
+                          />
+                          <View style={styles.selectedPokemonText}>
+                            <Text style={styles.selectedName}>
+                              {attacker.species.name_ja}
+                            </Text>
+                            <PokemonTypeBadges species={attacker.species} />
+                          </View>
+                        </View>
+                      ) : (
+                        <Text style={styles.selectPokemonText}>
+                          ポケモンを選ぶ
+                        </Text>
+                      )}
+                    </Pressable>
+                  )}
 
-                  {attacker.build && attacker.species ? (
-                    <>
-                      <Text style={styles.section}>技（1つ）</Text>
-                      {loadingMoves ? (
-                        <ActivityIndicator color="#1f6b4a" />
-                      ) : null}
-                      {moveError ? (
-                        <Text style={styles.errorText}>{moveError}</Text>
-                      ) : null}
+                  <View style={styles.columnBody}>
+                  <Text style={styles.section}>技（1つ）</Text>
+                  {loadingMoves ? (
+                    <ActivityIndicator color="#1f6b4a" />
+                  ) : null}
+                  {moveError ? (
+                    <Text style={styles.errorText}>{moveError}</Text>
+                  ) : null}
+                  <View
+                    ref={moveComboRef}
+                    collapsable={false}
+                    style={styles.moveComboWrap}
+                  >
+                    <Pressable
+                      disabled={!attacker.species || loadingMoves}
+                      onPress={() => {
+                        if (!attacker.species || loadingMoves) return;
+                        setPickingMove((v) => !v);
+                        setAttackerAcOpen(false);
+                        setDefenderAcOpen(false);
+                      }}
+                      style={[
+                        styles.comboBox,
+                        (!attacker.species || loadingMoves) &&
+                          styles.comboBoxDisabled,
+                      ]}
+                    >
                       {selectedMove ? (
-                        <View style={styles.moveSelected}>
+                        <View style={styles.moveSelectedTop}>
                           <Text style={styles.moveName}>
                             {selectedMove.name_ja}
                           </Text>
-                          <Text style={styles.moveMeta}>
-                            {typeNameJa(selectedMove.type_id)} ／{" "}
-                            {DAMAGE_CLASS_JA[selectedMove.damage_class]} ／ 威力
-                            {selectedMove.power ?? "—"}
-                          </Text>
+                          <MoveTypeBadge typeId={selectedMove.type_id} />
                         </View>
                       ) : (
-                        <Text style={styles.muted}>未選択</Text>
-                      )}
-                      <Pressable
-                        onPress={() => setPickingMove((v) => !v)}
-                        style={styles.chip}
-                      >
-                        <Text style={styles.chipText}>
-                          {pickingMove ? "候補を閉じる" : "候補から選ぶ"}
+                        <Text style={styles.comboPlaceholder}>
+                          {!attacker.species
+                            ? "ポケモンを選んでください"
+                            : "技を選ぶ"}
                         </Text>
-                      </Pressable>
-                      {pickingMove ? (
-                        <ScrollView
-                          style={styles.moveList}
-                          nestedScrollEnabled
-                          keyboardShouldPersistTaps="handled"
-                        >
-                          {damagingMoves.length === 0 ? (
-                            <Text style={styles.muted}>
-                              ダメージ技がありません。
-                            </Text>
-                          ) : (
-                            damagingMoves.map((move) => (
-                              <Pressable
-                                key={move.id}
-                                onPress={() => {
-                                  setMoveId(move.id);
-                                  setPickingMove(false);
-                                }}
-                                style={[
-                                  styles.moveItem,
-                                  move.id === moveId && styles.moveItemSelected,
-                                ]}
-                              >
+                      )}
+                    </Pressable>
+                    {selectedMove ? (
+                      <Text style={styles.moveMeta}>
+                        {DAMAGE_CLASS_JA[selectedMove.damage_class]} ／ 威力
+                        {selectedMove.power ?? "—"}
+                      </Text>
+                    ) : null}
+                    {pickingMove && attacker.species ? (
+                      <ScrollView
+                        style={styles.moveList}
+                        nestedScrollEnabled
+                        keyboardShouldPersistTaps="handled"
+                      >
+                        {damagingMoves.length === 0 ? (
+                          <Text style={styles.muted}>
+                            ダメージ技がありません。
+                          </Text>
+                        ) : (
+                          damagingMoves.map((move) => (
+                            <Pressable
+                              key={move.id}
+                              onPress={() => {
+                                setMoveId(move.id);
+                                setPickingMove(false);
+                              }}
+                              style={[
+                                styles.moveItem,
+                                move.id === moveId && styles.moveItemSelected,
+                              ]}
+                            >
+                              <View style={styles.moveItemTop}>
                                 <Text style={styles.moveName}>
                                   {move.name_ja}
                                 </Text>
-                                <Text style={styles.moveMeta}>
-                                  {typeNameJa(move.type_id)} ／{" "}
-                                  {DAMAGE_CLASS_JA[move.damage_class]} ／ 威力
-                                  {move.power ?? "—"}
-                                </Text>
-                              </Pressable>
-                            ))
-                          )}
-                        </ScrollView>
-                      ) : null}
+                                <MoveTypeBadge typeId={move.type_id} />
+                              </View>
+                              <Text style={styles.moveMeta}>
+                                {DAMAGE_CLASS_JA[move.damage_class]} ／ 威力
+                                {move.power ?? "—"}
+                              </Text>
+                            </Pressable>
+                          ))
+                        )}
+                      </ScrollView>
+                    ) : null}
+                  </View>
 
+                  {attacker.build && attacker.species ? (
+                    <>
                       {showAttackerStats && !pickingMove ? (
                         <>
                           <Text style={styles.section}>
@@ -1280,19 +1433,19 @@ export function DamageCalcDialog({
                             <>
                               <Text style={styles.section}>個体値（0〜15）</Text>
                               {isPhysicalMove ? (
-                                <StatField
+                                <IvStatEditor
                                   label={GEN1_STAT_LABELS.attack}
                                   value={attacker.build.iv.attack}
-                                  onChangeText={(t) =>
-                                    patchIv("attacker", "attack", t, 15)
+                                  onChange={(v) =>
+                                    setIvValue("attacker", "attack", v)
                                   }
                                 />
                               ) : (
-                                <StatField
+                                <IvStatEditor
                                   label={GEN1_STAT_LABELS.special}
                                   value={attacker.build.iv.special}
-                                  onChangeText={(t) =>
-                                    patchIv("attacker", "special", t, 15)
+                                  onChange={(v) =>
+                                    setIvValue("attacker", "special", v)
                                   }
                                 />
                               )}
@@ -1300,20 +1453,29 @@ export function DamageCalcDialog({
                               <Text style={styles.section}>
                                 努力値（0〜65535）
                               </Text>
+                              <Text style={styles.sectionHint}>
+                                Lv50 ±1 は、レベル50での実数値が1変わる基礎ポイントに合わせます。
+                              </Text>
                               {isPhysicalMove ? (
-                                <StatField
+                                <StatExpEditor
                                   label={GEN1_STAT_LABELS.attack}
                                   value={attacker.build.statExp.attack}
-                                  onChangeText={(t) =>
-                                    patchStatExp("attacker", "attack", t)
+                                  species={attacker.species}
+                                  statKey="attack"
+                                  iv={attacker.build.iv.attack}
+                                  onChange={(v) =>
+                                    setStatExpValue("attacker", "attack", v)
                                   }
                                 />
                               ) : (
-                                <StatField
+                                <StatExpEditor
                                   label={GEN1_STAT_LABELS.special}
                                   value={attacker.build.statExp.special}
-                                  onChangeText={(t) =>
-                                    patchStatExp("attacker", "special", t)
+                                  species={attacker.species}
+                                  statKey="special"
+                                  iv={attacker.build.iv.special}
+                                  onChange={(v) =>
+                                    setStatExpValue("attacker", "special", v)
                                   }
                                 />
                               )}
@@ -1400,32 +1562,76 @@ export function DamageCalcDialog({
                       ) : null}
                     </>
                   ) : null}
+                  </View>
                 </View>
 
-                <View style={styles.column}>
+                <View
+                  style={[
+                    styles.column,
+                    defenderAcOpen && styles.columnAboveSiblings,
+                  ]}
+                >
                   <Text style={styles.columnTitle}>防御側</Text>
-                  <Pressable
-                    onPress={() => openPicker("defender")}
-                    style={styles.selectPokemonBtn}
-                  >
-                    {defender.species ? (
-                      <View style={styles.selectedPokemon}>
-                        <OptionalSprite
-                          show={showSprites}
-                          uri={defender.species.sprite_url}
-                          size={48}
-                        />
-                        <Text style={styles.selectedName}>
-                          {defender.species.name_ja}
+                  {embedded ? (
+                    <View style={styles.autocompleteSlot}>
+                      <PokemonAutocompleteField
+                        value={defenderAcQuery}
+                        onChangeText={(text) => {
+                          setDefenderAcQuery(text);
+                          setDefenderAcOpen(true);
+                          setAttackerAcOpen(false);
+                          if (text.trim() === "") clearSideSpecies("defender");
+                        }}
+                        suggestions={sideAcSuggestions(
+                          defenderAcQuery,
+                          defenderAcOpen,
+                        )}
+                        suggestOpen={defenderAcOpen}
+                        onOpenSuggest={() => {
+                          setDefenderAcOpen(true);
+                          setAttackerAcOpen(false);
+                          setPickingMove(false);
+                        }}
+                        onCloseSuggest={() => setDefenderAcOpen(false)}
+                        onSelect={(pokemon) =>
+                          pickSpeciesForSide("defender", pokemon)
+                        }
+                        onPressFilter={() => {
+                          setDefenderAcOpen(false);
+                          openPicker("defender");
+                        }}
+                        selectedSpecies={defender.species}
+                        showSprites={showSprites}
+                      />
+                    </View>
+                  ) : (
+                    <Pressable
+                      onPress={() => openPicker("defender")}
+                      style={styles.selectPokemonBtn}
+                    >
+                      {defender.species ? (
+                        <View style={styles.selectedPokemon}>
+                          <OptionalSprite
+                            show={showSprites}
+                            uri={defender.species.sprite_url}
+                            size={48}
+                          />
+                          <View style={styles.selectedPokemonText}>
+                            <Text style={styles.selectedName}>
+                              {defender.species.name_ja}
+                            </Text>
+                            <PokemonTypeBadges species={defender.species} />
+                          </View>
+                        </View>
+                      ) : (
+                        <Text style={styles.selectPokemonText}>
+                          ポケモンを選ぶ
                         </Text>
-                      </View>
-                    ) : (
-                      <Text style={styles.selectPokemonText}>
-                        ポケモンを選ぶ
-                      </Text>
-                    )}
-                  </Pressable>
+                      )}
+                    </Pressable>
+                  )}
 
+                  <View style={styles.columnBody}>
                   {defender.build && defender.species && !selectedMove ? (
                     <Text style={styles.muted}>
                       攻撃側の技を選ぶと、耐久の設定が表示されます。
@@ -1454,53 +1660,59 @@ export function DamageCalcDialog({
                       />
 
                       <Text style={styles.section}>個体値（0〜15）</Text>
-                      <StatField
+                      <IvStatEditor
                         label={GEN1_STAT_LABELS.hp}
                         value={defender.build!.iv.hp}
-                        onChangeText={(t) => patchIv("defender", "hp", t, 15)}
+                        onChange={(v) => setIvValue("defender", "hp", v)}
                       />
                       {isPhysicalMove ? (
-                        <StatField
+                        <IvStatEditor
                           label={GEN1_STAT_LABELS.defense}
                           value={defender.build!.iv.defense}
-                          onChangeText={(t) =>
-                            patchIv("defender", "defense", t, 15)
-                          }
+                          onChange={(v) => setIvValue("defender", "defense", v)}
                         />
                       ) : null}
                       {isSpecialMove ? (
-                        <StatField
+                        <IvStatEditor
                           label={GEN1_STAT_LABELS.special}
                           value={defender.build!.iv.special}
-                          onChangeText={(t) =>
-                            patchIv("defender", "special", t, 15)
-                          }
+                          onChange={(v) => setIvValue("defender", "special", v)}
                         />
                       ) : null}
 
                       <Text style={styles.section}>努力値（0〜65535）</Text>
-                      <StatField
+                      <Text style={styles.sectionHint}>
+                        Lv50 ±1 は、レベル50での実数値が1変わる基礎ポイントに合わせます。
+                      </Text>
+                      <StatExpEditor
                         label={GEN1_STAT_LABELS.hp}
                         value={defender.build!.statExp.hp}
-                        onChangeText={(t) =>
-                          patchStatExp("defender", "hp", t)
-                        }
+                        species={defender.species!}
+                        statKey="hp"
+                        iv={defender.build!.iv.hp}
+                        onChange={(v) => setStatExpValue("defender", "hp", v)}
                       />
                       {isPhysicalMove ? (
-                        <StatField
+                        <StatExpEditor
                           label={GEN1_STAT_LABELS.defense}
                           value={defender.build!.statExp.defense}
-                          onChangeText={(t) =>
-                            patchStatExp("defender", "defense", t)
+                          species={defender.species!}
+                          statKey="defense"
+                          iv={defender.build!.iv.defense}
+                          onChange={(v) =>
+                            setStatExpValue("defender", "defense", v)
                           }
                         />
                       ) : null}
                       {isSpecialMove ? (
-                        <StatField
+                        <StatExpEditor
                           label={GEN1_STAT_LABELS.special}
                           value={defender.build!.statExp.special}
-                          onChangeText={(t) =>
-                            patchStatExp("defender", "special", t)
+                          species={defender.species!}
+                          statKey="special"
+                          iv={defender.build!.iv.special}
+                          onChange={(v) =>
+                            setStatExpValue("defender", "special", v)
                           }
                         />
                       ) : null}
@@ -1631,6 +1843,7 @@ export function DamageCalcDialog({
                       ) : null}
                     </>
                   ) : null}
+                  </View>
                 </View>
               </View>
 
@@ -1670,6 +1883,7 @@ export function DamageCalcDialog({
                 ) : null}
               </View>
             </ScrollView>
+            </>
           )}
         </View>
       </View>
@@ -1866,9 +2080,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
     backgroundColor: "#fffdf8",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#ddd4c4",
+    borderRadius: 0,
+    borderWidth: 0,
     overflow: "hidden",
   },
   headerRow: {
@@ -1898,15 +2111,75 @@ const styles = StyleSheet.create({
   body: {
     maxHeight: 640,
   },
+  embeddedBody: {
+    flex: 1,
+    minHeight: 0,
+  },
   bodyContent: {
     padding: 14,
     gap: 12,
-    paddingBottom: 28,
+    paddingBottom: 48,
+  },
+  stickySelectedBar: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 7,
+    backgroundColor: "#fffdf8",
+    paddingHorizontal: 14,
+    paddingTop: 9,
+    paddingBottom: 9,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee6d8",
+    // Outside ScrollView: always above autocomplete / form fields.
+    zIndex: 30,
+    elevation: 8,
+  },
+  stickySelectedSide: {
+    flexGrow: 1,
+    flexBasis: 140,
+    minWidth: 120,
+    gap: 3,
+    backgroundColor: "#f7f3ea",
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: "#e5dccb",
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+  },
+  stickySelectedLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#1f6b4a",
+  },
+  stickySelectedBody: { gap: 3 },
+  stickySelectedName: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#1d1a16",
+  },
+  stickySelectedMoveRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 5,
+  },
+  stickySelectedMeta: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#8a8276",
+  },
+  stickySelectedEmpty: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#8a8276",
   },
   columns: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
+    position: "relative",
+    // Above result box; below sticky bar. Constant (no focus toggle).
+    zIndex: 2,
   },
   column: {
     flexGrow: 1,
@@ -1918,6 +2191,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e5dccb",
     padding: 12,
+    overflow: "visible",
+    zIndex: 1,
+    position: "relative",
+  },
+  // Open AC/move list must beat later sibling columns (e.g. 防御側).
+  columnAboveSiblings: {
+    zIndex: 20,
+    elevation: 20,
+  },
+  /** Keeps autocomplete above later siblings (技 / stats) inside the column. */
+  autocompleteSlot: {
+    zIndex: 40,
+    elevation: 40,
+    position: "relative",
+  },
+  columnBody: {
+    zIndex: 0,
+    position: "relative",
   },
   columnTitle: {
     fontSize: 15,
@@ -1939,10 +2230,38 @@ const styles = StyleSheet.create({
     color: "#8a8276",
     textAlign: "center",
   },
+  comboBox: {
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    borderRadius: 10,
+    backgroundColor: "#fffdf8",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 44,
+    justifyContent: "center",
+  },
+  comboBoxDisabled: {
+    opacity: 0.45,
+    backgroundColor: "#f0ebe3",
+  },
+  comboPlaceholder: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#8a8276",
+  },
+  moveComboWrap: {
+    gap: 4,
+    zIndex: 0,
+    position: "relative",
+  },
   selectedPokemon: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+  },
+  selectedPokemonText: {
+    flex: 1,
+    gap: 2,
   },
   selectedName: {
     fontSize: 16,
@@ -1954,6 +2273,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
     color: "#5c564c",
+  },
+  sectionHint: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#8a8276",
+    marginTop: -2,
   },
   levelInput: {
     borderWidth: 1,
@@ -2073,6 +2398,12 @@ const styles = StyleSheet.create({
   moveSelected: {
     gap: 2,
   },
+  moveSelectedTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
+  },
   moveList: {
     gap: 6,
     maxHeight: 220,
@@ -2091,6 +2422,12 @@ const styles = StyleSheet.create({
   moveItemSelected: {
     borderColor: "#1f6b4a",
     backgroundColor: "#eef7f1",
+  },
+  moveItemTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
   },
   moveName: {
     fontSize: 13,
@@ -2137,12 +2474,15 @@ const styles = StyleSheet.create({
     color: "#8a8276",
   },
   resultBox: {
-    gap: 8,
+    gap: 4,
     backgroundColor: "#eef7f1",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#b7d4c4",
-    padding: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    position: "relative",
+    zIndex: 0,
   },
   resultRange: {
     fontSize: 28,

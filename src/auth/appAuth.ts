@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+
 const STORAGE_KEY = "moshimo.appAuth.v1";
 
 function canUseSessionStorage(): boolean {
@@ -11,6 +13,11 @@ function canUseSessionStorage(): boolean {
   }
 }
 
+/** Persist unlock only on web. Native re-auths each launch (password + biometrics). */
+function canPersistAuthSession(): boolean {
+  return Platform.OS === "web" && canUseSessionStorage();
+}
+
 /** Expected shared password from Expo public env (baked at build time on web). */
 export function getConfiguredAppPassword(): string {
   return (process.env.EXPO_PUBLIC_APP_PASSWORD ?? "").trim();
@@ -22,7 +29,7 @@ export function isAppAuthRequired(): boolean {
 }
 
 export function readStoredAuthSession(): boolean {
-  if (!canUseSessionStorage()) return false;
+  if (!canPersistAuthSession()) return false;
   try {
     return window.sessionStorage.getItem(STORAGE_KEY) === "1";
   } catch {
@@ -31,7 +38,7 @@ export function readStoredAuthSession(): boolean {
 }
 
 export function writeStoredAuthSession(authenticated: boolean): void {
-  if (!canUseSessionStorage()) return;
+  if (!canPersistAuthSession()) return;
   try {
     if (authenticated) {
       window.sessionStorage.setItem(STORAGE_KEY, "1");
