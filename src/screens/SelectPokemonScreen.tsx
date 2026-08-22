@@ -54,6 +54,7 @@ import {
   type TypeId,
 } from "../pokemon/types";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
+import { MoveTypeBadge } from "../pokemon/TypeBadges";
 import { SetPokemonDialog } from "./set/SetPokemonDialog";
 import { Gen1TypeChartDialog } from "../battle/Gen1TypeChartDialog";
 import { generateCpuParty } from "../battle/cpuTeam";
@@ -73,6 +74,10 @@ type DualTypeOrderMode = "any" | "exact";
 
 const MAX_TYPE_FILTERS = 2;
 const MAX_MOVE_FILTERS = 4;
+
+function formatMoveStat(value: number | null, empty = "—") {
+  return value == null ? empty : String(value);
+}
 
 const STAT_FILTERS: { key: StatKey; label: string }[] = [
   { key: "hp", label: "HP" },
@@ -213,6 +218,31 @@ function createBuildWithMoveFilters(
     moveIds[index] = move.id;
   });
   return { ...build, moveIds };
+}
+
+/** Merge filter moves into an existing build. Returns overflow moves that need a slot. */
+function mergeMoveFiltersIntoBuild(
+  build: PartyMemberBuild,
+  moveFilters: Move[],
+): { build: PartyMemberBuild; overflow: Move[] } {
+  if (moveFilters.length === 0) {
+    return { build, overflow: [] };
+  }
+
+  const moveIds = [...build.moveIds] as PartyMemberBuild["moveIds"];
+  const overflow: Move[] = [];
+
+  for (const move of moveFilters) {
+    if (moveIds.includes(move.id)) continue;
+    const emptyIndex = moveIds.findIndex((id) => id == null);
+    if (emptyIndex >= 0) {
+      moveIds[emptyIndex] = move.id;
+    } else {
+      overflow.push(move);
+    }
+  }
+
+  return { build: { ...build, moveIds }, overflow };
 }
 
 type MatchParams = {
@@ -444,10 +474,6 @@ function PagePager({
 }
 
 function SpeciesFilters({
-  nameQuery,
-  onNameQueryChange,
-  suggestions,
-  onPickSuggestion,
   typeFilters,
   onToggleTypeFilter,
   typeOptions,
@@ -470,10 +496,6 @@ function SpeciesFilters({
   resultCount,
   onClear,
 }: {
-  nameQuery: string;
-  onNameQueryChange: (value: string) => void;
-  suggestions: PokemonSpecies[];
-  onPickSuggestion: (pokemon: PokemonSpecies) => void;
   typeFilters: TypeId[];
   onToggleTypeFilter: (typeId: TypeId) => void;
   typeOptions: { id: TypeId; nameJa: string }[];
@@ -500,7 +522,6 @@ function SpeciesFilters({
   onClear: () => void;
 }) {
   const hasFilters =
-    nameQuery.trim().length > 0 ||
     typeFilters.length > 0 ||
     moveFilters.length > 0 ||
     singleTypeOnly ||
@@ -517,35 +538,6 @@ function SpeciesFilters({
           <Pressable onPress={onClear} style={({ pressed }) => pressed && styles.pressed}>
             <Text style={styles.filterClear}>クリア</Text>
           </Pressable>
-        ) : null}
-      </View>
-
-      <View style={styles.searchWrap}>
-        <TextInput
-          value={nameQuery}
-          onChangeText={onNameQueryChange}
-          placeholder="名前・図鑑番号で検索"
-          placeholderTextColor="#9a9286"
-          autoCorrect={false}
-          autoCapitalize="none"
-          style={styles.searchInput}
-        />
-        {suggestions.length > 0 ? (
-          <View style={styles.suggestList}>
-            {suggestions.map((pokemon) => (
-              <Pressable
-                key={`${pokemon.dex_no}-${pokemon.region_type}`}
-                onPress={() => onPickSuggestion(pokemon)}
-                style={({ pressed }) => [
-                  styles.suggestItem,
-                  pressed && styles.suggestItemPressed,
-                ]}
-              >
-                <Text style={styles.suggestDex}>{formatDexNo(pokemon.dex_no)}</Text>
-                <Text style={styles.suggestName}>{pokemon.name_ja}</Text>
-              </Pressable>
-            ))}
-          </View>
         ) : null}
       </View>
 
@@ -887,14 +879,16 @@ export function SelectPokemonScreen() {
     Record<string, PartyMemberBuild>
   >({});
   const [settingSpeciesId, setSettingSpeciesId] = useState<string | null>(null);
-  const [moveNames, setMoveNames] = useState<Record<string, string>>({});
+  const [movesById, setMovesById] = useState<Record<string, Move>>({});
   const [movesRequiredOpen, setMovesRequiredOpen] = useState(false);
   const [partyRequiredOpen, setPartyRequiredOpen] = useState(false);
   const [typeChartOpen, setTypeChartOpen] = useState(false);
   const [simulatorOpen, setSimulatorOpen] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
+  const [partyReviewOpen, setPartyReviewOpen] = useState(false);
   const [cpuGenerating, setCpuGenerating] = useState(false);
   const [nameQuery, setNameQuery] = useState("");
+  const [suggestOpen, setSuggestOpen] = useState(false);
   const [typeFilters, setTypeFilters] = useState<TypeId[]>([]);
   const [singleTypeOnly, setSingleTypeOnly] = useState(false);
   const [dualOrderMode, setDualOrderMode] =
@@ -904,7 +898,6 @@ export function SelectPokemonScreen() {
     useState<StatFiltersState>(EMPTY_STAT_FILTERS);
   const [sortKey, setSortKey] = useState<SortKey>("dex");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
-  const [suggestOpen, setSuggestOpen] = useState(false);
   const [moveFilters, setMoveFilters] = useState<Move[]>([]);
   const [moveQuery, setMoveQuery] = useState("");
   const [moveSuggestOpen, setMoveSuggestOpen] = useState(false);
@@ -913,6 +906,11 @@ export function SelectPokemonScreen() {
   const [moveFilterPokemonIds, setMoveFilterPokemonIds] =
     useState<Set<string> | null>(null);
   const [moveFilterLoading, setMoveFilterLoading] = useState(false);
+  const [moveReplacePrompt, setMoveReplacePrompt] = useState<{
+    speciesId: string;
+    nameJa: string;
+    incoming: Move[];
+  } | null>(null);
 
   useEffect(() => {
     const existing = getSide(side);
@@ -1044,9 +1042,6 @@ export function SelectPokemonScreen() {
 
   const filteredSpecies = useMemo(() => {
     return species.filter((pokemon) => {
-      if (!matchesNameQuery(pokemon, nameQuery)) {
-        return false;
-      }
       if (
         !matchesTypeFilter(
           pokemon,
@@ -1078,7 +1073,6 @@ export function SelectPokemonScreen() {
     });
   }, [
     species,
-    nameQuery,
     typeFilters,
     singleTypeOnly,
     dualOrderMode,
@@ -1095,7 +1089,10 @@ export function SelectPokemonScreen() {
     );
   }, [filteredSpecies, sortKey, sortOrder]);
 
+  const partyFull = selectedDexNos.length >= PARTY_SIZE;
+
   const suggestions = useMemo(() => {
+    if (partyFull) return [] as PokemonSpecies[];
     const trimmed = nameQuery.trim();
     if (!suggestOpen || trimmed.length < 1) {
       return [];
@@ -1103,19 +1100,17 @@ export function SelectPokemonScreen() {
     return species
       .filter((pokemon) => matchesNameQuery(pokemon, trimmed))
       .slice(0, 8);
-  }, [species, nameQuery, suggestOpen]);
+  }, [species, nameQuery, suggestOpen, partyFull]);
 
   const totalPages = Math.max(1, Math.ceil(sortedSpecies.length / PAGE_SIZE));
   const pageItems = sortedSpecies.slice(
     page * PAGE_SIZE,
     page * PAGE_SIZE + PAGE_SIZE,
   );
-  const partyFull = selectedDexNos.length >= PARTY_SIZE;
 
   useEffect(() => {
     setPage(0);
   }, [
-    nameQuery,
     typeFilters,
     singleTypeOnly,
     dualOrderMode,
@@ -1131,17 +1126,16 @@ export function SelectPokemonScreen() {
   }, [totalPages]);
 
   const clearFilters = () => {
-    setNameQuery("");
     setTypeFilters([]);
     setSingleTypeOnly(false);
     setDualOrderMode("any");
     setFinalEvolutionOnly(true);
     setStatFilters(EMPTY_STAT_FILTERS);
-    setSuggestOpen(false);
     setMoveFilters([]);
     setMoveQuery("");
     setMoveSuggestOpen(false);
     setMoveSuggestions([]);
+    setMoveReplacePrompt(null);
   };
 
   const handleToggleTypeFilter = (typeId: TypeId) => {
@@ -1189,6 +1183,98 @@ export function SelectPokemonScreen() {
     });
   };
 
+  /** List tap: add if new; if already selected, apply move filters (never deselect). */
+  const handleListPokemonPress = (pokemon: PokemonSpecies) => {
+    const isSelected = selectedDexNos.includes(pokemon.dex_no);
+
+    if (!isSelected) {
+      if (partyFull) return;
+      setSelectedDexNos((current) => [...current, pokemon.dex_no]);
+      setBuildsBySpeciesId((current) => {
+        if (current[pokemon.id]) return current;
+        return {
+          ...current,
+          [pokemon.id]: createBuildWithMoveFilters(
+            pokemon,
+            levelCapMode,
+            moveFilters,
+          ),
+        };
+      });
+      return;
+    }
+
+    if (moveFilters.length === 0) return;
+
+    const existing =
+      buildsBySpeciesId[pokemon.id] ??
+      createDefaultBuild(pokemon, levelCapMode);
+    const { build: merged, overflow } = mergeMoveFiltersIntoBuild(
+      existing,
+      moveFilters,
+    );
+    setBuildsBySpeciesId((current) => ({
+      ...current,
+      [pokemon.id]: merged,
+    }));
+
+    if (overflow.length > 0) {
+      setMoveReplacePrompt({
+        speciesId: pokemon.id,
+        nameJa: pokemon.name_ja,
+        incoming: overflow,
+      });
+    }
+  };
+
+  const resolveMoveReplace = (slotIndex: number) => {
+    if (!moveReplacePrompt) return;
+    const { speciesId, incoming } = moveReplacePrompt;
+    const [nextMove, ...rest] = incoming;
+    if (!nextMove) {
+      setMoveReplacePrompt(null);
+      return;
+    }
+
+    setBuildsBySpeciesId((current) => {
+      const build = current[speciesId];
+      if (!build) return current;
+      const moveIds = [...build.moveIds] as PartyMemberBuild["moveIds"];
+      moveIds[slotIndex] = nextMove.id;
+      return { ...current, [speciesId]: { ...build, moveIds } };
+    });
+
+    if (rest.length > 0) {
+      setMoveReplacePrompt({
+        speciesId,
+        nameJa: moveReplacePrompt.nameJa,
+        incoming: rest,
+      });
+    } else {
+      setMoveReplacePrompt(null);
+    }
+  };
+
+  const addPokemonFromSuggest = (pokemon: PokemonSpecies) => {
+    if (partyFull) return;
+    if (!selectedDexNos.includes(pokemon.dex_no)) {
+      setSelectedDexNos((current) => [...current, pokemon.dex_no]);
+      setBuildsBySpeciesId((current) => {
+        if (current[pokemon.id]) return current;
+        return {
+          ...current,
+          [pokemon.id]: createBuildWithMoveFilters(
+            pokemon,
+            levelCapMode,
+            moveFilters,
+          ),
+        };
+      });
+    }
+    setNameQuery("");
+    setSuggestOpen(false);
+  };
+
   const selectedPokemon = selectedDexNos
     .map((dexNo) => species.find((pokemon) => pokemon.dex_no === dexNo))
     .filter((pokemon): pokemon is PokemonSpecies => Boolean(pokemon));
@@ -1212,7 +1298,7 @@ export function SelectPokemonScreen() {
       }
     }
     if (ids.size === 0) {
-      setMoveNames({});
+      setMovesById({});
       return;
     }
     let cancelled = false;
@@ -1220,11 +1306,11 @@ export function SelectPokemonScreen() {
       try {
         const moves = await fetchMovesByIds([...ids]);
         if (cancelled) return;
-        const map: Record<string, string> = {};
-        for (const move of moves) map[move.id] = move.name_ja;
-        setMoveNames(map);
+        const map: Record<string, Move> = {};
+        for (const move of moves) map[move.id] = move;
+        setMovesById(map);
       } catch {
-        if (!cancelled) setMoveNames({});
+        if (!cancelled) setMovesById({});
       }
     })();
     return () => {
@@ -1364,6 +1450,52 @@ export function SelectPokemonScreen() {
   return (
     <MatchScreenBackground source={matchBackground}>
       <SafeAreaView style={styles.safeArea}>
+        <View style={styles.topFixedBar}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={requestLeave}
+            style={({ pressed }) => [
+              styles.topNavBack,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.backText}>
+              {isOpponentSide ? "自分の編成へ戻る" : "メニューへ戻る"}
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`手持ちを確認 ${selectedDexNos.length}/${PARTY_SIZE}`}
+            accessibilityState={{ disabled: selectedDexNos.length === 0 }}
+            disabled={selectedDexNos.length === 0}
+            onPress={() => setPartyReviewOpen(true)}
+            style={({ pressed }) => [
+              styles.partyReviewButton,
+              selectedDexNos.length === 0 && styles.partyReviewButtonDisabled,
+              pressed && selectedDexNos.length > 0 && styles.pressed,
+            ]}
+          >
+            <Text
+              style={[
+                styles.partyReviewButtonText,
+                selectedDexNos.length === 0 &&
+                  styles.partyReviewButtonTextDisabled,
+              ]}
+            >
+              手持ちを確認
+            </Text>
+            <Text
+              style={[
+                styles.partyReviewButtonCount,
+                selectedDexNos.length === 0 &&
+                  styles.partyReviewButtonCountDisabled,
+              ]}
+            >
+              {selectedDexNos.length}/{PARTY_SIZE}
+            </Text>
+          </Pressable>
+        </View>
+
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.content}
@@ -1371,15 +1503,6 @@ export function SelectPokemonScreen() {
         >
           <View style={styles.panel}>
             <View style={styles.header}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={requestLeave}
-                style={({ pressed }) => pressed && styles.pressed}
-              >
-                <Text style={styles.backText}>
-                  {isOpponentSide ? "自分の編成へ戻る" : "メニューへ戻る"}
-                </Text>
-              </Pressable>
               <Text style={styles.kicker}>
                 {isOpponentSide ? "相手の編成" : "編成"}
               </Text>
@@ -1388,8 +1511,8 @@ export function SelectPokemonScreen() {
               </Text>
               <Text style={styles.lead}>
                 {isOpponentSide
-                  ? `サイドBを${MIN_PARTY_SIZE}〜${PARTY_SIZE}体選び、その場で個体・技も設定します。同一種族は1体までです。`
-                  : `図鑑順に表示しています。${MIN_PARTY_SIZE}〜${PARTY_SIZE}体選択でき、その場で個体・技を設定できます（同一種族は1体まで）。`}
+                  ? `サイドBを${MIN_PARTY_SIZE}〜${PARTY_SIZE}体選びます。手持ちの確認・設定・解除は「手持ちを確認」から行えます。同一種族は1体までです。`
+                  : `図鑑順に表示しています。${MIN_PARTY_SIZE}〜${PARTY_SIZE}体選択できます。手持ちの確認・設定・解除は「手持ちを確認」から行えます（同一種族は1体まで）。`}
               </Text>
               <Pressable
                 onPress={() => setTypeChartOpen(true)}
@@ -1422,109 +1545,6 @@ export function SelectPokemonScreen() {
 
             {!loading && !errorMessage ? (
               <>
-            <View style={styles.partyBox}>
-              <Text style={styles.partyTitle}>
-                パーティ {selectedDexNos.length}/{PARTY_SIZE}
-              </Text>
-              <Text style={styles.partyHint}>
-                「設定」で個体値・努力値・技を編集、「解除」で選択を外せます。
-              </Text>
-              <View style={styles.partySlots}>
-                {selectedPokemon.map((pokemon) => {
-                  const build = buildsBySpeciesId[pokemon.id];
-                  const stats = build
-                    ? calcGen1Stats(pokemon, build)
-                    : null;
-                  const moveLabel = build
-                    ? build.moveIds
-                        .map((id, i) =>
-                          id
-                            ? moveNames[id] ?? "…"
-                            : `技${i + 1}:なし`,
-                        )
-                        .join(" ／ ")
-                    : "—";
-                  return (
-                    <View
-                      key={pokemon.id}
-                      style={[styles.partySlot, styles.partySlotFilled]}
-                    >
-                      <View style={styles.partySlotHeader}>
-                        <PokemonSprite
-                          uri={pokemon.sprite_url}
-                          size={48}
-                          style={styles.partySpriteFrame}
-                        />
-                        <View style={styles.partySlotHeaderText}>
-                          <Text style={styles.partyName} numberOfLines={1}>
-                            {pokemon.name_ja}
-                          </Text>
-                          <Text style={styles.partyMeta}>
-                            {build
-                              ? `Lv${build.level} ／ ${genderLabel(build.gender)}`
-                              : formatDexNo(pokemon.dex_no)}
-                          </Text>
-                        </View>
-                      </View>
-                      {stats ? (
-                        <Text style={styles.partyStats} numberOfLines={2}>
-                          {summarizeGen1Stats(stats)}
-                        </Text>
-                      ) : null}
-                      <Text style={styles.partyMoves} numberOfLines={2}>
-                        {moveLabel}
-                      </Text>
-                      <View style={styles.partyActions}>
-                        <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel={`${pokemon.name_ja}を設定`}
-                          onPress={() => setSettingSpeciesId(pokemon.id)}
-                          hitSlop={6}
-                          style={({ pressed }) => [
-                            styles.partyActionButton,
-                            styles.partySetButton,
-                            pressed && styles.pressed,
-                          ]}
-                        >
-                          <Text style={styles.partySet}>設定</Text>
-                        </Pressable>
-                        <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel={`${pokemon.name_ja}を解除`}
-                          onPress={() => togglePokemon(pokemon.dex_no)}
-                          hitSlop={6}
-                          style={({ pressed }) => [
-                            styles.partyActionButton,
-                            styles.partyRemoveButton,
-                            pressed && styles.pressed,
-                          ]}
-                        >
-                          <Text style={styles.partyRemove}>解除</Text>
-                        </Pressable>
-                      </View>
-                    </View>
-                  );
-                })}
-                {selectedDexNos.length < PARTY_SIZE ? (
-                  <View style={styles.partyEmptyRow}>
-                    {Array.from(
-                      { length: PARTY_SIZE - selectedDexNos.length },
-                      (_, index) => (
-                        <View
-                          key={`empty-${index}`}
-                          style={styles.partySlotEmpty}
-                        >
-                          <Text style={styles.partyEmpty}>
-                            {selectedDexNos.length + index + 1}
-                          </Text>
-                        </View>
-                      ),
-                    )}
-                  </View>
-                ) : null}
-              </View>
-            </View>
-
             <View style={styles.toolButtonRow}>
               <Pressable
                 accessibilityRole="button"
@@ -1540,17 +1560,72 @@ export function SelectPokemonScreen() {
               </Pressable>
             </View>
 
+            <View
+              style={[
+                styles.partyAddBox,
+                partyFull && styles.partyAddBoxDisabled,
+              ]}
+            >
+              <Text style={styles.partyAddLabel}>名前・図鑑番号で追加</Text>
+              <View style={styles.searchWrap}>
+                <TextInput
+                  value={nameQuery}
+                  editable={!partyFull}
+                  onChangeText={(value) => {
+                    if (partyFull) return;
+                    setNameQuery(value);
+                    setSuggestOpen(true);
+                  }}
+                  onFocus={() => {
+                    if (!partyFull) setSuggestOpen(true);
+                  }}
+                  placeholder={
+                    partyFull
+                      ? "パーティが満員です"
+                      : "名前・図鑑番号で検索して追加"
+                  }
+                  placeholderTextColor="#9a9286"
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                  style={[
+                    styles.searchInput,
+                    partyFull && styles.searchInputDisabled,
+                  ]}
+                />
+                {!partyFull && suggestions.length > 0 ? (
+                  <View style={styles.suggestList}>
+                    {suggestions.map((pokemon) => {
+                      const alreadyIn =
+                        selectedDexNos.includes(pokemon.dex_no);
+                      return (
+                        <Pressable
+                          key={`${pokemon.dex_no}-${pokemon.region_type}`}
+                          disabled={alreadyIn}
+                          onPress={() => addPokemonFromSuggest(pokemon)}
+                          style={({ pressed }) => [
+                            styles.suggestItem,
+                            pressed && !alreadyIn && styles.suggestItemPressed,
+                            alreadyIn && styles.suggestItemDisabled,
+                          ]}
+                        >
+                          <Text style={styles.suggestDex}>
+                            {formatDexNo(pokemon.dex_no)}
+                          </Text>
+                          <Text style={styles.suggestName}>
+                            {pokemon.name_ja}
+                          </Text>
+                          {alreadyIn ? (
+                            <Text style={styles.suggestMoveMeta}>選出中</Text>
+                          ) : null}
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                ) : null}
+              </View>
+            </View>
+
             <SpeciesFilters
-              nameQuery={nameQuery}
-              onNameQueryChange={(value) => {
-                setNameQuery(value);
-                setSuggestOpen(true);
-              }}
-              suggestions={suggestions}
-              onPickSuggestion={(pokemon) => {
-                setNameQuery(pokemon.name_ja);
-                setSuggestOpen(false);
-              }}
               typeFilters={typeFilters}
               onToggleTypeFilter={handleToggleTypeFilter}
               typeOptions={typeOptions}
@@ -1630,7 +1705,7 @@ export function SelectPokemonScreen() {
                       pokemon={pokemon}
                       selected={selected}
                       disabled={partyFull && !selected}
-                      onPress={() => togglePokemon(pokemon.dex_no)}
+                      onPress={() => handleListPokemonPress(pokemon)}
                     />
                   );
                 })
@@ -1672,6 +1747,141 @@ export function SelectPokemonScreen() {
         ) : null}
       </SafeAreaView>
 
+      <Modal
+        visible={partyReviewOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPartyReviewOpen(false)}
+      >
+        <View style={styles.partyReviewBackdrop}>
+          <View style={styles.partyReviewSheet}>
+            <View style={styles.partyReviewHeader}>
+              <Text style={styles.partyReviewTitle}>
+                手持ち {selectedDexNos.length}/{PARTY_SIZE}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setPartyReviewOpen(false)}
+                style={({ pressed }) => pressed && styles.pressed}
+              >
+                <Text style={styles.partyReviewClose}>閉じる</Text>
+              </Pressable>
+            </View>
+            <Text style={styles.partyHint}>
+              「設定」で個体値・努力値・技を編集、「解除」で選択を外せます。図鑑一覧を再タップしても解除されません（技絞り込み中は技を反映します）。
+            </Text>
+            <ScrollView
+              style={styles.partyReviewScroll}
+              contentContainerStyle={styles.partyReviewScrollContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.partySlots}>
+                {selectedPokemon.length === 0 ? (
+                  <View style={styles.partyReviewEmpty}>
+                    <Text style={styles.partyReviewEmptyText}>
+                      まだポケモンが選ばれていません。
+                    </Text>
+                  </View>
+                ) : null}
+                {selectedPokemon.map((pokemon) => {
+                  const build = buildsBySpeciesId[pokemon.id];
+                  const stats = build
+                    ? calcGen1Stats(pokemon, build)
+                    : null;
+                  const moveLabel = build
+                    ? build.moveIds
+                        .map((id, i) =>
+                          id
+                            ? movesById[id]?.name_ja ?? "…"
+                            : `技${i + 1}:なし`,
+                        )
+                        .join(" ／ ")
+                    : "—";
+                  return (
+                    <View
+                      key={pokemon.id}
+                      style={[styles.partySlot, styles.partySlotFilled]}
+                    >
+                      <View style={styles.partySlotHeader}>
+                        <PokemonSprite
+                          uri={pokemon.sprite_url}
+                          size={48}
+                          style={styles.partySpriteFrame}
+                        />
+                        <View style={styles.partySlotHeaderText}>
+                          <Text style={styles.partyName} numberOfLines={1}>
+                            {pokemon.name_ja}
+                          </Text>
+                          <Text style={styles.partyMeta}>
+                            {build
+                              ? `Lv${build.level} ／ ${genderLabel(build.gender)}`
+                              : formatDexNo(pokemon.dex_no)}
+                          </Text>
+                        </View>
+                      </View>
+                      {stats ? (
+                        <Text style={styles.partyStats} numberOfLines={2}>
+                          {summarizeGen1Stats(stats)}
+                        </Text>
+                      ) : null}
+                      <Text style={styles.partyMoves} numberOfLines={2}>
+                        {moveLabel}
+                      </Text>
+                      <View style={styles.partyActions}>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`${pokemon.name_ja}を設定`}
+                          onPress={() => setSettingSpeciesId(pokemon.id)}
+                          hitSlop={6}
+                          style={({ pressed }) => [
+                            styles.partyActionButton,
+                            styles.partySetButton,
+                            pressed && styles.pressed,
+                          ]}
+                        >
+                          <Text style={styles.partySet}>設定</Text>
+                        </Pressable>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`${pokemon.name_ja}を解除`}
+                          onPress={() => togglePokemon(pokemon.dex_no)}
+                          hitSlop={6}
+                          style={({ pressed }) => [
+                            styles.partyActionButton,
+                            styles.partyRemoveButton,
+                            pressed && styles.pressed,
+                          ]}
+                        >
+                          <Text style={styles.partyRemove}>解除</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  );
+                })}
+                {selectedDexNos.length > 0 &&
+                selectedDexNos.length < PARTY_SIZE ? (
+                  <View style={styles.partyEmptyRow}>
+                    {Array.from(
+                      { length: PARTY_SIZE - selectedDexNos.length },
+                      (_, index) => (
+                        <View
+                          key={`empty-${index}`}
+                          style={styles.partySlotEmpty}
+                        >
+                          <Text style={styles.partyEmpty}>
+                            {selectedDexNos.length + index + 1}
+                          </Text>
+                        </View>
+                      ),
+                    )}
+                  </View>
+                ) : null}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {settingPokemon && settingBuild ? (
         <SetPokemonDialog
           visible
@@ -1689,6 +1899,72 @@ export function SelectPokemonScreen() {
           }}
         />
       ) : null}
+
+      <Modal
+        visible={moveReplacePrompt != null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMoveReplacePrompt(null)}
+      >
+        <View style={styles.confirmBackdrop}>
+          <View style={styles.confirmSheet}>
+            <Text style={styles.confirmTitle}>技スロットを選択</Text>
+            <Text style={styles.confirmBody}>
+              {moveReplacePrompt?.nameJa ?? "このポケモン"}
+              の技が4つ埋まっています。{"\n"}「
+              {moveReplacePrompt?.incoming[0]?.name_ja ?? "技"}
+              」に入れ替えるスロットを選んでください。
+              {(moveReplacePrompt?.incoming.length ?? 0) > 1
+                ? `\n（残り${(moveReplacePrompt?.incoming.length ?? 1) - 1}件）`
+                : ""}
+            </Text>
+            <View style={styles.moveReplaceList}>
+              {(
+                moveReplacePrompt
+                  ? buildsBySpeciesId[moveReplacePrompt.speciesId]?.moveIds
+                  : null
+              )?.map((moveId, index) => {
+                const move = moveId ? movesById[moveId] : null;
+                return (
+                  <Pressable
+                    key={`replace-slot-${index}`}
+                    onPress={() => resolveMoveReplace(index)}
+                    style={({ pressed }) => [
+                      styles.moveReplaceSlot,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <View style={styles.moveReplaceSlotTop}>
+                      <Text style={styles.moveReplaceSlotLabel}>
+                        技{index + 1}
+                      </Text>
+                      {move ? <MoveTypeBadge typeId={move.type_id} /> : null}
+                    </View>
+                    <Text style={styles.moveReplaceSlotName}>
+                      {moveId
+                        ? move?.name_ja ?? "（読み込み中…）"
+                        : "（空）"}
+                    </Text>
+                    {move ? (
+                      <Text style={styles.moveReplaceSlotMeta}>
+                        威力 {formatMoveStat(move.power)} ／ 命中{" "}
+                        {formatMoveStat(move.accuracy)} ／ PP{" "}
+                        {formatMoveStat(move.pp)}
+                      </Text>
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Pressable
+              onPress={() => setMoveReplacePrompt(null)}
+              style={styles.confirmSecondary}
+            >
+              <Text style={styles.confirmSecondaryText}>キャンセル</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       <Gen1TypeChartDialog
         visible={typeChartOpen}
@@ -1848,6 +2124,21 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "rgba(31, 107, 74, 0.18)",
   },
+  topFixedBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 10,
+    maxWidth: 720,
+    width: "100%",
+    alignSelf: "center",
+    backgroundColor: "rgba(255, 252, 245, 0.96)",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(31, 107, 74, 0.18)",
+  },
   panel: {
     backgroundColor: "rgba(255, 252, 245, 0.94)",
     borderRadius: 20,
@@ -1860,6 +2151,37 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: 6,
+  },
+  topNavBack: {
+    flexShrink: 1,
+  },
+  partyReviewButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#1f6b4a",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  partyReviewButtonDisabled: {
+    backgroundColor: "#9bb5a8",
+  },
+  partyReviewButtonText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#fffdf8",
+  },
+  partyReviewButtonTextDisabled: {
+    color: "#e8efe9",
+  },
+  partyReviewButtonCount: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#cfe3d6",
+  },
+  partyReviewButtonCountDisabled: {
+    color: "#d7e3db",
   },
   backText: {
     fontSize: 14,
@@ -1906,11 +2228,57 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#a12828",
   },
-  partyBox: {
-    backgroundColor: "#eef7f1",
-    borderRadius: 12,
-    padding: 12,
+  partyReviewBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(20, 18, 14, 0.45)",
+    justifyContent: "flex-end",
+  },
+  partyReviewSheet: {
+    maxHeight: "88%",
+    backgroundColor: "#fffdf8",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 28,
     gap: 10,
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+  },
+  partyReviewHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  partyReviewTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#1d1a16",
+  },
+  partyReviewClose: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#1f6b4a",
+  },
+  partyReviewScroll: {
+    flexGrow: 0,
+  },
+  partyReviewScrollContent: {
+    paddingBottom: 8,
+  },
+  partyReviewEmpty: {
+    backgroundColor: "#eef7f1",
+    borderRadius: 10,
+    paddingVertical: 24,
+    paddingHorizontal: 14,
+    alignItems: "center",
+  },
+  partyReviewEmptyText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#5c564c",
+    textAlign: "center",
   },
   toolButtonRow: {
     flexDirection: "row",
@@ -1927,11 +2295,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
     color: "#fffdf8",
-  },
-  partyTitle: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#1f6b4a",
   },
   partyHint: {
     fontSize: 12,
@@ -2166,6 +2529,27 @@ const styles = StyleSheet.create({
     borderColor: "#e5dccb",
     padding: 12,
     gap: 10,
+  },
+  partyAddBox: {
+    backgroundColor: "#fffdf8",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5dccb",
+    padding: 12,
+    gap: 8,
+    zIndex: 4,
+  },
+  partyAddBoxDisabled: {
+    opacity: 0.55,
+  },
+  partyAddLabel: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#1f6b4a",
+  },
+  searchInputDisabled: {
+    backgroundColor: "#f0ebe3",
+    color: "#8a8276",
   },
   sortBox: {
     backgroundColor: "#f7f3ea",
@@ -2577,6 +2961,37 @@ const styles = StyleSheet.create({
   },
   confirmTitle: { fontSize: 17, fontWeight: "800", color: "#1d1a16" },
   confirmBody: { fontSize: 14, lineHeight: 20, color: "#5c564c" },
+  moveReplaceList: { gap: 8, marginTop: 4 },
+  moveReplaceSlot: {
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: "#f7f3ea",
+    gap: 4,
+  },
+  moveReplaceSlotTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  moveReplaceSlotLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#5c564c",
+  },
+  moveReplaceSlotName: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#1d1a16",
+  },
+  moveReplaceSlotMeta: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#5c564c",
+  },
   confirmActions: { flexDirection: "row", gap: 10, marginTop: 4 },
   confirmSecondary: {
     flex: 1,
