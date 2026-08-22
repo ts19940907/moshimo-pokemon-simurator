@@ -72,7 +72,6 @@ type StatFiltersState = Record<StatKey, StatFilterEntry>;
 /** When 2 types are selected: ignore order vs type1/type2 order. */
 type DualTypeOrderMode = "any" | "exact";
 
-const MAX_TYPE_FILTERS = 2;
 const MAX_MOVE_FILTERS = 4;
 
 function formatMoveStat(value: number | null, empty = "—") {
@@ -170,14 +169,25 @@ function matchesTypeFilter(
   );
 }
 
-function toggleTypeFilter(current: TypeId[], typeId: TypeId): TypeId[] {
-  if (current.includes(typeId)) {
-    return current.filter((id) => id !== typeId);
+function setTypeFilterAt(
+  current: TypeId[],
+  slot: 0 | 1,
+  typeId: TypeId | null,
+): TypeId[] {
+  if (slot === 0) {
+    if (typeId == null) return [];
+    const second = current[1];
+    if (second != null && second !== typeId) {
+      return [typeId, second];
+    }
+    return [typeId];
   }
-  if (current.length >= MAX_TYPE_FILTERS) {
-    return current;
-  }
-  return [...current, typeId];
+
+  const first = current[0];
+  if (first == null) return [];
+  if (typeId == null) return [first];
+  if (typeId === first) return [first];
+  return [first, typeId];
 }
 
 function compareSpeciesBySort(
@@ -473,9 +483,131 @@ function PagePager({
   );
 }
 
+function TypeFilterComboBox({
+  label,
+  value,
+  options,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: TypeId | null;
+  options: { id: TypeId; nameJa: string }[];
+  disabled?: boolean;
+  onChange: (typeId: TypeId | null) => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const selected = value != null ? options.find((row) => row.id === value) : null;
+  const color = selected ? (TYPE_COLORS[selected.nameJa] ?? "#1f6b4a") : null;
+
+  return (
+    <View style={styles.typeComboWrap}>
+      <Text style={styles.typeComboLabel}>{label}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${label}を選択`}
+        disabled={disabled}
+        onPress={() => setMenuOpen(true)}
+        style={({ pressed }) => [
+          styles.typeComboSelect,
+          color ? { borderColor: color } : null,
+          selected && styles.typeComboSelectFilled,
+          disabled && styles.typeComboSelectDisabled,
+          pressed && !disabled && styles.pressed,
+        ]}
+      >
+        <Text
+          style={[
+            styles.typeComboSelectText,
+            selected && color ? { color } : null,
+            !selected && styles.typeComboPlaceholder,
+          ]}
+          numberOfLines={1}
+        >
+          {selected?.nameJa ?? "指定なし"}
+        </Text>
+        <Text style={styles.typeComboCaret}>▾</Text>
+      </Pressable>
+
+      <Modal
+        visible={menuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuOpen(false)}
+      >
+        <View style={styles.pageMenuBackdrop}>
+          <Pressable
+            style={styles.pageMenuDismiss}
+            onPress={() => setMenuOpen(false)}
+          />
+          <View style={styles.pageMenuSheet}>
+            <Text style={styles.pageMenuTitle}>{label}</Text>
+            <ScrollView style={styles.pageMenuList}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  onChange(null);
+                  setMenuOpen(false);
+                }}
+                style={[
+                  styles.pageMenuItem,
+                  value == null && styles.pageMenuItemSelected,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.pageMenuItemText,
+                    value == null && styles.pageMenuItemTextSelected,
+                  ]}
+                >
+                  指定なし
+                </Text>
+              </Pressable>
+              {options.map((type) => {
+                const isSelected = type.id === value;
+                const typeColor = TYPE_COLORS[type.nameJa] ?? "#888";
+                return (
+                  <Pressable
+                    key={type.id}
+                    accessibilityRole="button"
+                    onPress={() => {
+                      onChange(type.id);
+                      setMenuOpen(false);
+                    }}
+                    style={[
+                      styles.pageMenuItem,
+                      styles.typeComboMenuItem,
+                      isSelected && styles.pageMenuItemSelected,
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.typeComboSwatch,
+                        { backgroundColor: typeColor },
+                      ]}
+                    />
+                    <Text
+                      style={[
+                        styles.pageMenuItemText,
+                        isSelected && styles.pageMenuItemTextSelected,
+                      ]}
+                    >
+                      {type.nameJa}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
 function SpeciesFilters({
   typeFilters,
-  onToggleTypeFilter,
+  onSetTypeFilter,
   typeOptions,
   singleTypeOnly,
   onSingleTypeOnlyChange,
@@ -497,7 +629,7 @@ function SpeciesFilters({
   onClear,
 }: {
   typeFilters: TypeId[];
-  onToggleTypeFilter: (typeId: TypeId) => void;
+  onSetTypeFilter: (slot: 0 | 1, typeId: TypeId | null) => void;
   typeOptions: { id: TypeId; nameJa: string }[];
   singleTypeOnly: boolean;
   onSingleTypeOnlyChange: (value: boolean) => void;
@@ -530,6 +662,11 @@ function SpeciesFilters({
       ({ key }) => parseStatThreshold(statFilters[key].value) != null,
     );
 
+  const type1 = typeFilters[0] ?? null;
+  const type2 = typeFilters[1] ?? null;
+  const type1Options = typeOptions;
+  const type2Options = typeOptions.filter((type) => type.id !== type1);
+
   return (
     <View style={styles.filterBox}>
       <View style={styles.filterHeader}>
@@ -542,41 +679,22 @@ function SpeciesFilters({
       </View>
 
       <Text style={styles.filterLabel}>
-        タイプ（最大2つ・選んだ順がタイプ1→タイプ2）
+        タイプ（最大2つ・タイプ1→タイプ2）
       </Text>
-      <View style={styles.typeChipRow}>
-        {typeOptions.map((type) => {
-          const selectedIndex = typeFilters.indexOf(type.id);
-          const selected = selectedIndex >= 0;
-          const blocked =
-            !selected && typeFilters.length >= MAX_TYPE_FILTERS;
-          return (
-            <Pressable
-              key={type.id}
-              disabled={blocked}
-              onPress={() => onToggleTypeFilter(type.id)}
-              style={[
-                styles.typeChip,
-                {
-                  backgroundColor: selected
-                    ? (TYPE_COLORS[type.nameJa] ?? "#888")
-                    : "#fffdf8",
-                  borderColor: TYPE_COLORS[type.nameJa] ?? "#888",
-                },
-                blocked && styles.typeChipBlocked,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.typeChipText,
-                  selected && styles.typeChipTextSelected,
-                ]}
-              >
-                {selected ? `${selectedIndex + 1}.${type.nameJa}` : type.nameJa}
-              </Text>
-            </Pressable>
-          );
-        })}
+      <View style={styles.typeComboRow}>
+        <TypeFilterComboBox
+          label="タイプ1"
+          value={type1}
+          options={type1Options}
+          onChange={(typeId) => onSetTypeFilter(0, typeId)}
+        />
+        <TypeFilterComboBox
+          label="タイプ2"
+          value={type2}
+          options={type2Options}
+          disabled={type1 == null}
+          onChange={(typeId) => onSetTypeFilter(1, typeId)}
+        />
       </View>
 
       {typeFilters.length === 1 ? (
@@ -1138,9 +1256,9 @@ export function SelectPokemonScreen() {
     setMoveReplacePrompt(null);
   };
 
-  const handleToggleTypeFilter = (typeId: TypeId) => {
+  const handleSetTypeFilter = (slot: 0 | 1, typeId: TypeId | null) => {
     setTypeFilters((current) => {
-      const next = toggleTypeFilter(current, typeId);
+      const next = setTypeFilterAt(current, slot, typeId);
       if (next.length !== 1) {
         setSingleTypeOnly(false);
       }
@@ -1627,7 +1745,7 @@ export function SelectPokemonScreen() {
 
             <SpeciesFilters
               typeFilters={typeFilters}
-              onToggleTypeFilter={handleToggleTypeFilter}
+              onSetTypeFilter={handleSetTypeFilter}
               typeOptions={typeOptions}
               singleTypeOnly={singleTypeOnly}
               onSingleTypeOnlyChange={setSingleTypeOnly}
@@ -2688,27 +2806,62 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#5c564c",
   },
-  typeChipRow: {
+  typeComboRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
+    gap: 10,
   },
-  typeChip: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+  typeComboWrap: {
+    flex: 1,
+    gap: 4,
   },
-  typeChipText: {
+  typeComboLabel: {
     fontSize: 11,
-    fontWeight: "800",
+    fontWeight: "700",
     color: "#5c564c",
   },
-  typeChipTextSelected: {
-    color: "#ffffff",
+  typeComboSelect: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 6,
+    borderWidth: 1,
+    borderColor: "#cfc6b6",
+    borderRadius: 10,
+    backgroundColor: "#fffdf8",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 42,
   },
-  typeChipBlocked: {
-    opacity: 0.35,
+  typeComboSelectFilled: {
+    backgroundColor: "#eef7f1",
+  },
+  typeComboSelectDisabled: {
+    opacity: 0.45,
+    backgroundColor: "#f0ebe3",
+  },
+  typeComboSelectText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#1d1a16",
+  },
+  typeComboPlaceholder: {
+    color: "#9a9286",
+    fontWeight: "600",
+  },
+  typeComboCaret: {
+    fontSize: 12,
+    color: "#5c564c",
+  },
+  typeComboMenuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  typeComboSwatch: {
+    width: 14,
+    height: 14,
+    borderRadius: 4,
   },
   checkRow: {
     flexDirection: "row",
