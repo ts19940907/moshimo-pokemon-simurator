@@ -12,6 +12,10 @@ import {
 import type { LevelCapMode } from "../match-setup/types";
 import { calcGen1Stats } from "../party/gen1Stats";
 import {
+  IvStatEditor,
+  StatExpEditor,
+} from "../party/StatValueEditor";
+import {
   createDefaultBuild,
   GEN1_STAT_LABELS,
   maxLevelForCap,
@@ -25,6 +29,8 @@ import {
   TYPE_COLORS,
   typeFilterOptions,
 } from "../pokemon/catalog";
+import { PokemonAutocompleteField } from "../pokemon/PokemonAutocompleteField";
+import { PokemonTypeBadges } from "../pokemon/TypeBadges";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
 import {
   TYPE_BY_ID,
@@ -253,28 +259,6 @@ function StageStepper({
   );
 }
 
-function StatField({
-  label,
-  value,
-  onChangeText,
-}: {
-  label: string;
-  value: number;
-  onChangeText: (text: string) => void;
-}) {
-  return (
-    <View style={styles.statField}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        style={styles.statInput}
-        keyboardType="number-pad"
-        value={String(value)}
-        onChangeText={onChangeText}
-      />
-    </View>
-  );
-}
-
 function CheckRow({
   label,
   checked,
@@ -357,6 +341,10 @@ export function SpeedCompareDialog({
     useState<StatFiltersState>(EMPTY_STAT_FILTERS);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [page, setPage] = useState(0);
+  const [selfAcQuery, setSelfAcQuery] = useState("");
+  const [foeAcQuery, setFoeAcQuery] = useState("");
+  const [selfAcOpen, setSelfAcOpen] = useState(false);
+  const [foeAcOpen, setFoeAcOpen] = useState(false);
 
   const isDirty =
     self.species != null ||
@@ -370,6 +358,10 @@ export function SpeedCompareDialog({
     setSelf(emptySide());
     setFoe(emptySide());
     setPickingSide(null);
+    setSelfAcQuery("");
+    setFoeAcQuery("");
+    setSelfAcOpen(false);
+    setFoeAcOpen(false);
     setPendingSpecies(null);
   };
 
@@ -481,9 +473,47 @@ export function SpeedCompareDialog({
     };
     if (side === "self") setSelf(next);
     else setFoe(next);
+    if (side === "self") {
+      setSelfAcQuery(pokemon.name_ja);
+      setSelfAcOpen(false);
+    } else {
+      setFoeAcQuery(pokemon.name_ja);
+      setFoeAcOpen(false);
+    }
     setPickingSide(null);
     setPendingSpecies(null);
     setImportConfirmOpen(false);
+  };
+
+  const clearSideSpecies = (side: PickSide) => {
+    if (side === "self") {
+      setSelf(emptySide());
+      setSelfAcQuery("");
+      setSelfAcOpen(false);
+    } else {
+      setFoe(emptySide());
+      setFoeAcQuery("");
+      setFoeAcOpen(false);
+    }
+  };
+
+  const pickSpeciesForSide = (side: PickSide, pokemon: PokemonSpecies) => {
+    const existing = partyBuildsBySpeciesId[pokemon.id];
+    if (existing && showPartyActions) {
+      setPickingSide(side);
+      setPendingSpecies(pokemon);
+      setImportConfirmOpen(true);
+      return;
+    }
+    applySpecies(side, pokemon, false);
+  };
+
+  const sideAcSuggestions = (query: string, open: boolean) => {
+    const trimmed = query.trim();
+    if (!open || trimmed.length < 1) return [] as PokemonSpecies[];
+    return speciesPool
+      .filter((pokemon) => matchesNameQuery(pokemon, trimmed))
+      .slice(0, 8);
   };
 
   const handlePickSpecies = (pokemon: PokemonSpecies) => {
@@ -632,24 +662,48 @@ export function SpeedCompareDialog({
     const title = side === "self" ? "自分" : "相手";
     const paraDisabled =
       draft.species != null && !canBeParalyzed(draft.species);
+    const acQuery = side === "self" ? selfAcQuery : foeAcQuery;
+    const acOpen = side === "self" ? selfAcOpen : foeAcOpen;
+    const setAcQuery = side === "self" ? setSelfAcQuery : setFoeAcQuery;
+    const setAcOpen = side === "self" ? setSelfAcOpen : setFoeAcOpen;
 
     return (
-      <View style={styles.column}>
+      <View
+        style={[
+          styles.column,
+          acOpen && styles.columnAboveSiblings,
+        ]}
+      >
         <Text style={styles.columnTitle}>{title}</Text>
-        <Pressable
-          onPress={() => openPicker(side)}
-          style={styles.selectPokemonBtn}
-        >
-          {draft.species ? (
-            <View style={styles.selectedPokemon}>
-              <OptionalSprite show={showSprites} uri={draft.species.sprite_url} size={48} />
-              <Text style={styles.selectedName}>{draft.species.name_ja}</Text>
-            </View>
-          ) : (
-            <Text style={styles.selectPokemonText}>ポケモンを選ぶ</Text>
-          )}
-        </Pressable>
+        <View style={styles.autocompleteSlot}>
+          <PokemonAutocompleteField
+            value={acQuery}
+            onChangeText={(text) => {
+              setAcQuery(text);
+              setAcOpen(true);
+              if (side === "self") setFoeAcOpen(false);
+              else setSelfAcOpen(false);
+              if (text.trim() === "") clearSideSpecies(side);
+            }}
+            suggestions={sideAcSuggestions(acQuery, acOpen)}
+            suggestOpen={acOpen}
+            onOpenSuggest={() => {
+              setAcOpen(true);
+              if (side === "self") setFoeAcOpen(false);
+              else setSelfAcOpen(false);
+            }}
+            onCloseSuggest={() => setAcOpen(false)}
+            onSelect={(pokemon) => pickSpeciesForSide(side, pokemon)}
+            onPressFilter={() => {
+              setAcOpen(false);
+              openPicker(side);
+            }}
+            selectedSpecies={draft.species}
+            showSprites={showSprites}
+          />
+        </View>
 
+        <View style={styles.columnBody}>
         {draft.build && draft.species ? (
           <>
             <Text style={styles.section}>レベル（1〜{maxLevel}）</Text>
@@ -666,31 +720,31 @@ export function SpeedCompareDialog({
             />
 
             <Text style={styles.section}>個体値（0〜15）</Text>
-            <StatField
+            <IvStatEditor
               label={GEN1_STAT_LABELS.speed}
               value={draft.build.iv.speed}
-              onChangeText={(t) =>
+              onChange={(v) =>
                 patchBuild((b) => ({
                   ...b,
-                  iv: {
-                    ...b.iv,
-                    speed: clamp(parseIntOr(t, b.iv.speed), 0, 15),
-                  },
+                  iv: { ...b.iv, speed: v },
                 }))
               }
             />
 
             <Text style={styles.section}>努力値（0〜65535）</Text>
-            <StatField
+            <Text style={styles.sectionHint}>
+              Lv50 ±1 は、レベル50での実数値が1変わる基礎ポイントに合わせます。
+            </Text>
+            <StatExpEditor
               label={GEN1_STAT_LABELS.speed}
               value={draft.build.statExp.speed}
-              onChangeText={(t) =>
+              species={draft.species}
+              statKey="speed"
+              iv={draft.build.iv.speed}
+              onChange={(v) =>
                 patchBuild((b) => ({
                   ...b,
-                  statExp: {
-                    ...b.statExp,
-                    speed: clamp(parseIntOr(t, b.statExp.speed), 0, 65535),
-                  },
+                  statExp: { ...b.statExp, speed: v },
                 }))
               }
             />
@@ -752,6 +806,7 @@ export function SpeedCompareDialog({
             ) : null}
           </>
         ) : null}
+        </View>
       </View>
     );
   };
@@ -1008,6 +1063,7 @@ export function SpeedCompareDialog({
                           {formatDexNo(pokemon.dex_no)}
                         </Text>
                         <Text style={styles.pickName}>{pokemon.name_ja}</Text>
+                        <PokemonTypeBadges species={pokemon} />
                         {inParty ? (
                           <Text style={styles.inPartyBadge}>選出中</Text>
                         ) : null}
@@ -1018,11 +1074,38 @@ export function SpeedCompareDialog({
               </View>
             </ScrollView>
           ) : (
-            <ScrollView
-              style={styles.body}
-              contentContainerStyle={styles.bodyContent}
-              keyboardShouldPersistTaps="handled"
-            >
+            <>
+              {self.species || foe.species ? (
+                <View style={styles.stickySelectedBar}>
+                  {self.species ? (
+                    <View style={styles.stickySelectedSide}>
+                      <Text style={styles.stickySelectedLabel}>自分</Text>
+                      <View style={styles.stickySelectedBody}>
+                        <Text style={styles.stickySelectedName}>
+                          {self.species.name_ja}
+                        </Text>
+                        <PokemonTypeBadges species={self.species} />
+                      </View>
+                    </View>
+                  ) : null}
+                  {foe.species ? (
+                    <View style={styles.stickySelectedSide}>
+                      <Text style={styles.stickySelectedLabel}>相手</Text>
+                      <View style={styles.stickySelectedBody}>
+                        <Text style={styles.stickySelectedName}>
+                          {foe.species.name_ja}
+                        </Text>
+                        <PokemonTypeBadges species={foe.species} />
+                      </View>
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+              <ScrollView
+                style={embedded ? styles.embeddedBody : styles.body}
+                contentContainerStyle={styles.bodyContent}
+                keyboardShouldPersistTaps="handled"
+              >
               <View style={styles.columns}>
                 {renderSideColumn(
                   "self",
@@ -1075,6 +1158,7 @@ export function SpeedCompareDialog({
                 ) : null}
               </View>
             </ScrollView>
+            </>
           )}
         </View>
       </View>
@@ -1299,15 +1383,64 @@ const styles = StyleSheet.create({
   body: {
     maxHeight: 640,
   },
+  embeddedBody: {
+    flex: 1,
+    minHeight: 0,
+  },
   bodyContent: {
     padding: 14,
     gap: 12,
     paddingBottom: 28,
   },
+  stickySelectedBar: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 7,
+    backgroundColor: "#fffdf8",
+    paddingHorizontal: 14,
+    paddingTop: 9,
+    paddingBottom: 9,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee6d8",
+    // Outside ScrollView: always above autocomplete / form fields.
+    zIndex: 30,
+    elevation: 8,
+  },
+  stickySelectedSide: {
+    flexGrow: 1,
+    flexBasis: 140,
+    minWidth: 120,
+    gap: 3,
+    backgroundColor: "#f7f3ea",
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: "#e5dccb",
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+  },
+  stickySelectedLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#1f6b4a",
+  },
+  stickySelectedBody: { gap: 3 },
+  stickySelectedName: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#1d1a16",
+  },
+  stickySelectedEmpty: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#8a8276",
+  },
   columns: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
+    position: "relative",
+    // Above result box; below sticky bar. Constant (no focus toggle).
+    zIndex: 2,
   },
   column: {
     flexGrow: 1,
@@ -1319,6 +1452,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e5dccb",
     padding: 12,
+    overflow: "visible",
+    zIndex: 1,
+    position: "relative",
+  },
+  // Open AC must beat later sibling columns (e.g. 相手).
+  columnAboveSiblings: {
+    zIndex: 20,
+    elevation: 20,
+  },
+  autocompleteSlot: {
+    zIndex: 40,
+    elevation: 40,
+    position: "relative",
+  },
+  columnBody: {
+    zIndex: 0,
+    position: "relative",
   },
   columnTitle: {
     fontSize: 15,
@@ -1345,6 +1495,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
+  selectedPokemonText: {
+    flex: 1,
+    gap: 2,
+  },
   selectedName: {
     fontSize: 16,
     fontWeight: "800",
@@ -1355,6 +1509,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
     color: "#5c564c",
+  },
+  sectionHint: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#8a8276",
+    marginTop: -2,
   },
   levelInput: {
     borderWidth: 1,
@@ -1485,12 +1645,15 @@ const styles = StyleSheet.create({
     color: "#8a8276",
   },
   resultBox: {
-    gap: 8,
+    gap: 4,
     backgroundColor: "#eef7f1",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#b7d4c4",
-    padding: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    position: "relative",
+    zIndex: 0,
   },
   verdict: {
     fontSize: 24,

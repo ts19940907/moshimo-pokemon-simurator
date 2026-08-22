@@ -205,7 +205,8 @@ export function SimulatorScreen() {
   const [moveGenerations, setMoveGenerations] = useState<Generation[]>([
     implementedGeneration,
   ]);
-  const levelCapMode: LevelCapMode = "max_50";
+  /** Simulator tools allow Lv1–100. */
+  const levelCapMode: LevelCapMode = "unlimited";
 
   const [allSpecies, setAllSpecies] = useState<PokemonSpecies[]>([]);
   const [loading, setLoading] = useState(true);
@@ -484,6 +485,8 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.7)",
+    zIndex: 4,
+    elevation: 4,
   },
   headerTextCol: {
     flex: 1,
@@ -658,11 +661,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.7)",
     overflow: "hidden",
+    zIndex: 1,
   },
   tabRow: {
     flexDirection: "row",
     borderBottomWidth: 1,
     borderBottomColor: "#e5dccb",
+    zIndex: 3,
+    elevation: 3,
+    backgroundColor: "#f7f3ea",
   },
   tab: {
     flex: 1,
