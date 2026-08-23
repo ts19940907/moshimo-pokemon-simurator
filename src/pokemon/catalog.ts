@@ -69,7 +69,12 @@ export const PRE_GEN6_TYPE_IDS: ReadonlySet<TypeId> = new Set([18]);
 
 export type TypeFilterOption = { id: TypeId; nameJa: string };
 
-/** Type chips for species/move filters. Gen1 omits Dark/Steel/Fairy; Gen2–5 omit Fairy. */
+/**
+ * Type options for species/move filters.
+ * Gen1: Normal…Dragon (no Dark/Steel/Fairy).
+ * Gen2–5: Normal…Steel (includes Dark/Steel, no Fairy).
+ * Gen6+: all types including Fairy.
+ */
 export function typeFilterOptions(rulesGeneration: number): TypeFilterOption[] {
   return Object.entries(TYPE_BY_ID)
     .filter(([id]) => {
