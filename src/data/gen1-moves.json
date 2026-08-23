@@ -3113,7 +3113,7 @@
     "accuracy": 100,
     "pp": 20,
     "priority": 0,
-    "description": "2〜3ターン連続で攻撃し、その後こんらんする。",
+    "description": "数ターンいかりをくりだす。攻撃を受けるたびこうげきが上がる。",
     "effect_category": "damage",
     "effect_meta": {
       "ailment": null,
