@@ -5,7 +5,7 @@ import type {
   RestrictionMode,
   VisibilityMode,
 } from "./types";
-import { generations, implementedGeneration } from "./types";
+import { generations, isGenerationImplemented } from "./types";
 
 export const generationOptions: {
   value: Generation;
@@ -14,10 +14,10 @@ export const generationOptions: {
 }[] = generations.map((generation) => ({
   value: generation,
   title: generation === 1 ? "初代" : `第${generation}世代`,
-  disabled: generation !== implementedGeneration,
+  disabled: !isGenerationImplemented(generation),
 }));
 
-/** Debut-generation checkboxes (Gen2+ disabled until those seeds exist). */
+/** Debut-generation checkboxes (unimplemented gens stay disabled). */
 export const poolGenerationOptions: {
   value: Generation;
   title: string;
@@ -25,7 +25,7 @@ export const poolGenerationOptions: {
 }[] = generations.map((generation) => ({
   value: generation,
   title: generation === 1 ? "初代" : `第${generation}世代`,
-  disabled: generation !== implementedGeneration,
+  disabled: !isGenerationImplemented(generation),
 }));
 
 export const restrictionOptions: {

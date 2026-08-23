@@ -308,7 +308,7 @@ export function MenuScreen() {
               <Text style={styles.kicker}>メニュー</Text>
               <Text style={styles.title}>対戦設定</Text>
               <Text style={styles.lead}>
-                対戦ルールは世代ルール、ポケモン／技は初登場世代の複数選択か「対戦ルールに合わせる」で選べます。ダメージ計算はいま初代のみ実装しています。
+                対戦ルールは世代ルール、ポケモン／技は初登場世代の複数選択か「対戦ルールに合わせる」で選べます。対戦ルールは初代と第2世代を選択できます。ダメージ計算などの細部は世代ごとに段階実装中です。
               </Text>
             </View>
 
