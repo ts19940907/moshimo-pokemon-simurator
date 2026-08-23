@@ -1272,6 +1272,7 @@ export function SelectPokemonScreen() {
 
     const isSelected = selectedDexNos.includes(dexNo);
     if (isSelected) {
+      const remaining = selectedDexNos.length - 1;
       setSelectedDexNos((current) => current.filter((id) => id !== dexNo));
       setBuildsBySpeciesId((current) => {
         const next = { ...current };
@@ -1282,6 +1283,7 @@ export function SelectPokemonScreen() {
         return next;
       });
       if (settingSpeciesId === pokemon.id) setSettingSpeciesId(null);
+      if (remaining <= 0) setPartyReviewOpen(false);
       return;
     }
 
@@ -1557,7 +1559,40 @@ export function SelectPokemonScreen() {
     });
   };
 
+  const discardOpponentSelectionAndLeave = () => {
+    setSideParty("b", null);
+    setSelectedDexNos([]);
+    setBuildsBySpeciesId({});
+    setLeaveConfirmOpen(false);
+    leaveBack();
+  };
+
+  const keepOpponentSelectionAndLeave = () => {
+    if (orderedMembers.length > 0) {
+      setSideParty("b", {
+        members: orderedMembers,
+        levelCapMode,
+        rulesGeneration,
+      });
+    } else {
+      setSideParty("b", null);
+    }
+    setLeaveConfirmOpen(false);
+    leaveBack();
+  };
+
   const requestLeave = () => {
+    if (isOpponentSide) {
+      if (selectedDexNos.length > 0) {
+        setLeaveConfirmOpen(true);
+        return;
+      }
+      // 手持ちが空なら相手サイドの保持分も破棄して戻る
+      setSideParty("b", null);
+      leaveBack();
+      return;
+    }
+
     if (selectedDexNos.length > 0) {
       setLeaveConfirmOpen(true);
       return;
@@ -2174,29 +2209,54 @@ export function SelectPokemonScreen() {
       >
         <View style={styles.confirmBackdrop}>
           <View style={styles.confirmSheet}>
-            <Text style={styles.confirmTitle}>選択の破棄</Text>
+            <Text style={styles.confirmTitle}>
+              {isOpponentSide ? "相手の選択" : "選択の破棄"}
+            </Text>
             <Text style={styles.confirmBody}>
               {isOpponentSide
-                ? "相手のポケモンが選択されています。このまま戻ると、選択内容は破棄されます。よろしいですか？"
+                ? "相手のポケモンが選択されています。自分の編成へ戻る前に、相手の選択をどうしますか？"
                 : "ポケモンが選択されています。このままメニューへ戻ると、選択内容は破棄されます。よろしいですか？"}
             </Text>
-            <View style={styles.confirmActions}>
-              <Pressable
-                onPress={() => setLeaveConfirmOpen(false)}
-                style={styles.confirmSecondary}
-              >
-                <Text style={styles.confirmSecondaryText}>キャンセル</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  setLeaveConfirmOpen(false);
-                  leaveBack();
-                }}
-                style={styles.confirmPrimary}
-              >
-                <Text style={styles.confirmPrimaryText}>OK</Text>
-              </Pressable>
-            </View>
+            {isOpponentSide ? (
+              <View style={styles.confirmActionsColumn}>
+                <Pressable
+                  onPress={keepOpponentSelectionAndLeave}
+                  style={styles.confirmPrimary}
+                >
+                  <Text style={styles.confirmPrimaryText}>保持して戻る</Text>
+                </Pressable>
+                <Pressable
+                  onPress={discardOpponentSelectionAndLeave}
+                  style={styles.confirmDanger}
+                >
+                  <Text style={styles.confirmDangerText}>破棄して戻る</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setLeaveConfirmOpen(false)}
+                  style={styles.confirmSecondary}
+                >
+                  <Text style={styles.confirmSecondaryText}>キャンセル</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View style={styles.confirmActions}>
+                <Pressable
+                  onPress={() => setLeaveConfirmOpen(false)}
+                  style={styles.confirmSecondary}
+                >
+                  <Text style={styles.confirmSecondaryText}>キャンセル</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setLeaveConfirmOpen(false);
+                    leaveBack();
+                  }}
+                  style={styles.confirmPrimary}
+                >
+                  <Text style={styles.confirmPrimaryText}>OK</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
         </View>
       </Modal>
@@ -3146,6 +3206,7 @@ const styles = StyleSheet.create({
     color: "#5c564c",
   },
   confirmActions: { flexDirection: "row", gap: 10, marginTop: 4 },
+  confirmActionsColumn: { gap: 10, marginTop: 4 },
   confirmSecondary: {
     flex: 1,
     borderWidth: 1,
@@ -3163,4 +3224,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   confirmPrimaryText: { color: "#fff", fontWeight: "800" },
+  confirmDanger: {
+    flex: 1,
+    backgroundColor: "#a13d3d",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  confirmDangerText: { color: "#fff", fontWeight: "800" },
 });

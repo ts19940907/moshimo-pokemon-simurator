@@ -1,4 +1,5 @@
 -- Link Gen1-usable pokemon rows to Gen1 moves (RB/Yellow learnsets)
+-- Includes Gen1 pre-evolution learnsets on evolved forms.
 insert into moshimo.pokemon_moves (pokemon_id, move_id)
 select p.id, '00000000-0000-4000-8001-000000000014'::uuid from moshimo.pokemon p where p.dex_no = 1 and (p.available_generations & 1) <> 0
 union all
@@ -524,6 +525,10 @@ select p.id, '00000000-0000-4000-8001-000000000033'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000081'::uuid from moshimo.pokemon p where p.dex_no = 10 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000033'::uuid from moshimo.pokemon p where p.dex_no = 11 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000081'::uuid from moshimo.pokemon p where p.dex_no = 11 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000106'::uuid from moshimo.pokemon p where p.dex_no = 11 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000013'::uuid from moshimo.pokemon p where p.dex_no = 12 and (p.available_generations & 1) <> 0
@@ -531,6 +536,8 @@ union all
 select p.id, '00000000-0000-4000-8001-000000000016'::uuid from moshimo.pokemon p where p.dex_no = 12 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000018'::uuid from moshimo.pokemon p where p.dex_no = 12 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000033'::uuid from moshimo.pokemon p where p.dex_no = 12 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000036'::uuid from moshimo.pokemon p where p.dex_no = 12 and (p.available_generations & 1) <> 0
 union all
@@ -552,6 +559,8 @@ select p.id, '00000000-0000-4000-8001-000000000078'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000079'::uuid from moshimo.pokemon p where p.dex_no = 12 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000081'::uuid from moshimo.pokemon p where p.dex_no = 12 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000092'::uuid from moshimo.pokemon p where p.dex_no = 12 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000093'::uuid from moshimo.pokemon p where p.dex_no = 12 and (p.available_generations & 1) <> 0
@@ -565,6 +574,8 @@ union all
 select p.id, '00000000-0000-4000-8001-000000000102'::uuid from moshimo.pokemon p where p.dex_no = 12 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000104'::uuid from moshimo.pokemon p where p.dex_no = 12 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000106'::uuid from moshimo.pokemon p where p.dex_no = 12 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000115'::uuid from moshimo.pokemon p where p.dex_no = 12 and (p.available_generations & 1) <> 0
 union all
@@ -584,6 +595,10 @@ select p.id, '00000000-0000-4000-8001-000000000040'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000081'::uuid from moshimo.pokemon p where p.dex_no = 13 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000040'::uuid from moshimo.pokemon p where p.dex_no = 14 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000081'::uuid from moshimo.pokemon p where p.dex_no = 14 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000106'::uuid from moshimo.pokemon p where p.dex_no = 14 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000014'::uuid from moshimo.pokemon p where p.dex_no = 15 and (p.available_generations & 1) <> 0
@@ -596,6 +611,8 @@ select p.id, '00000000-0000-4000-8001-000000000036'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000038'::uuid from moshimo.pokemon p where p.dex_no = 15 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000040'::uuid from moshimo.pokemon p where p.dex_no = 15 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000041'::uuid from moshimo.pokemon p where p.dex_no = 15 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000042'::uuid from moshimo.pokemon p where p.dex_no = 15 and (p.available_generations & 1) <> 0
@@ -603,6 +620,8 @@ union all
 select p.id, '00000000-0000-4000-8001-000000000063'::uuid from moshimo.pokemon p where p.dex_no = 15 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000072'::uuid from moshimo.pokemon p where p.dex_no = 15 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000081'::uuid from moshimo.pokemon p where p.dex_no = 15 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000092'::uuid from moshimo.pokemon p where p.dex_no = 15 and (p.available_generations & 1) <> 0
 union all
@@ -613,6 +632,8 @@ union all
 select p.id, '00000000-0000-4000-8001-000000000102'::uuid from moshimo.pokemon p where p.dex_no = 15 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000104'::uuid from moshimo.pokemon p where p.dex_no = 15 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000106'::uuid from moshimo.pokemon p where p.dex_no = 15 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000115'::uuid from moshimo.pokemon p where p.dex_no = 15 and (p.available_generations & 1) <> 0
 union all
@@ -1104,6 +1125,8 @@ select p.id, '00000000-0000-4000-8001-000000000005'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000006'::uuid from moshimo.pokemon p where p.dex_no = 26 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000021'::uuid from moshimo.pokemon p where p.dex_no = 26 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000025'::uuid from moshimo.pokemon p where p.dex_no = 26 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000034'::uuid from moshimo.pokemon p where p.dex_no = 26 and (p.available_generations & 1) <> 0
@@ -1112,7 +1135,11 @@ select p.id, '00000000-0000-4000-8001-000000000036'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000038'::uuid from moshimo.pokemon p where p.dex_no = 26 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000039'::uuid from moshimo.pokemon p where p.dex_no = 26 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000045'::uuid from moshimo.pokemon p where p.dex_no = 26 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000057'::uuid from moshimo.pokemon p where p.dex_no = 26 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000063'::uuid from moshimo.pokemon p where p.dex_no = 26 and (p.available_generations & 1) <> 0
 union all
@@ -1130,11 +1157,17 @@ select p.id, '00000000-0000-4000-8001-000000000087'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000092'::uuid from moshimo.pokemon p where p.dex_no = 26 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000097'::uuid from moshimo.pokemon p where p.dex_no = 26 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000098'::uuid from moshimo.pokemon p where p.dex_no = 26 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000099'::uuid from moshimo.pokemon p where p.dex_no = 26 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000102'::uuid from moshimo.pokemon p where p.dex_no = 26 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000104'::uuid from moshimo.pokemon p where p.dex_no = 26 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000113'::uuid from moshimo.pokemon p where p.dex_no = 26 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000115'::uuid from moshimo.pokemon p where p.dex_no = 26 and (p.available_generations & 1) <> 0
 union all
@@ -1380,6 +1413,10 @@ select p.id, '00000000-0000-4000-8001-000000000039'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000040'::uuid from moshimo.pokemon p where p.dex_no = 31 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000044'::uuid from moshimo.pokemon p where p.dex_no = 31 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000045'::uuid from moshimo.pokemon p where p.dex_no = 31 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000055'::uuid from moshimo.pokemon p where p.dex_no = 31 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000057'::uuid from moshimo.pokemon p where p.dex_no = 31 and (p.available_generations & 1) <> 0
@@ -1423,6 +1460,8 @@ union all
 select p.id, '00000000-0000-4000-8001-000000000126'::uuid from moshimo.pokemon p where p.dex_no = 31 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000130'::uuid from moshimo.pokemon p where p.dex_no = 31 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000154'::uuid from moshimo.pokemon p where p.dex_no = 31 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000156'::uuid from moshimo.pokemon p where p.dex_no = 31 and (p.available_generations & 1) <> 0
 union all
@@ -1538,6 +1577,8 @@ select p.id, '00000000-0000-4000-8001-000000000025'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000030'::uuid from moshimo.pokemon p where p.dex_no = 34 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000031'::uuid from moshimo.pokemon p where p.dex_no = 34 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000032'::uuid from moshimo.pokemon p where p.dex_no = 34 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000033'::uuid from moshimo.pokemon p where p.dex_no = 34 and (p.available_generations & 1) <> 0
@@ -1551,6 +1592,8 @@ union all
 select p.id, '00000000-0000-4000-8001-000000000038'::uuid from moshimo.pokemon p where p.dex_no = 34 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000040'::uuid from moshimo.pokemon p where p.dex_no = 34 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000043'::uuid from moshimo.pokemon p where p.dex_no = 34 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000055'::uuid from moshimo.pokemon p where p.dex_no = 34 and (p.available_generations & 1) <> 0
 union all
@@ -1589,6 +1632,8 @@ union all
 select p.id, '00000000-0000-4000-8001-000000000104'::uuid from moshimo.pokemon p where p.dex_no = 34 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000115'::uuid from moshimo.pokemon p where p.dex_no = 34 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000116'::uuid from moshimo.pokemon p where p.dex_no = 34 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000117'::uuid from moshimo.pokemon p where p.dex_no = 34 and (p.available_generations & 1) <> 0
 union all
@@ -1682,6 +1727,8 @@ select p.id, '00000000-0000-4000-8001-000000000161'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000164'::uuid from moshimo.pokemon p where p.dex_no = 35 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000001'::uuid from moshimo.pokemon p where p.dex_no = 36 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000003'::uuid from moshimo.pokemon p where p.dex_no = 36 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000005'::uuid from moshimo.pokemon p where p.dex_no = 36 and (p.available_generations & 1) <> 0
@@ -1693,6 +1740,8 @@ union all
 select p.id, '00000000-0000-4000-8001-000000000036'::uuid from moshimo.pokemon p where p.dex_no = 36 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000038'::uuid from moshimo.pokemon p where p.dex_no = 36 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000045'::uuid from moshimo.pokemon p where p.dex_no = 36 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000047'::uuid from moshimo.pokemon p where p.dex_no = 36 and (p.available_generations & 1) <> 0
 union all
@@ -1735,6 +1784,10 @@ union all
 select p.id, '00000000-0000-4000-8001-000000000104'::uuid from moshimo.pokemon p where p.dex_no = 36 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000107'::uuid from moshimo.pokemon p where p.dex_no = 36 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000111'::uuid from moshimo.pokemon p where p.dex_no = 36 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000113'::uuid from moshimo.pokemon p where p.dex_no = 36 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000115'::uuid from moshimo.pokemon p where p.dex_no = 36 and (p.available_generations & 1) <> 0
 union all
@@ -1812,7 +1865,11 @@ select p.id, '00000000-0000-4000-8001-000000000046'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000052'::uuid from moshimo.pokemon p where p.dex_no = 38 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000053'::uuid from moshimo.pokemon p where p.dex_no = 38 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000063'::uuid from moshimo.pokemon p where p.dex_no = 38 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000083'::uuid from moshimo.pokemon p where p.dex_no = 38 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000091'::uuid from moshimo.pokemon p where p.dex_no = 38 and (p.available_generations & 1) <> 0
 union all
@@ -1825,6 +1882,8 @@ union all
 select p.id, '00000000-0000-4000-8001-000000000102'::uuid from moshimo.pokemon p where p.dex_no = 38 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000104'::uuid from moshimo.pokemon p where p.dex_no = 38 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000109'::uuid from moshimo.pokemon p where p.dex_no = 38 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000115'::uuid from moshimo.pokemon p where p.dex_no = 38 and (p.available_generations & 1) <> 0
 union all
@@ -1913,6 +1972,8 @@ union all
 select p.id, '00000000-0000-4000-8001-000000000161'::uuid from moshimo.pokemon p where p.dex_no = 39 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000164'::uuid from moshimo.pokemon p where p.dex_no = 39 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000001'::uuid from moshimo.pokemon p where p.dex_no = 40 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000003'::uuid from moshimo.pokemon p where p.dex_no = 40 and (p.available_generations & 1) <> 0
 union all
@@ -2161,6 +2222,8 @@ union all
 select p.id, '00000000-0000-4000-8001-000000000051'::uuid from moshimo.pokemon p where p.dex_no = 45 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000063'::uuid from moshimo.pokemon p where p.dex_no = 45 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000071'::uuid from moshimo.pokemon p where p.dex_no = 45 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000072'::uuid from moshimo.pokemon p where p.dex_no = 45 and (p.available_generations & 1) <> 0
 union all
@@ -2870,9 +2933,13 @@ select p.id, '00000000-0000-4000-8001-000000000038'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000043'::uuid from moshimo.pokemon p where p.dex_no = 59 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000044'::uuid from moshimo.pokemon p where p.dex_no = 59 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000046'::uuid from moshimo.pokemon p where p.dex_no = 59 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000052'::uuid from moshimo.pokemon p where p.dex_no = 59 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000053'::uuid from moshimo.pokemon p where p.dex_no = 59 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000063'::uuid from moshimo.pokemon p where p.dex_no = 59 and (p.available_generations & 1) <> 0
 union all
@@ -2881,6 +2948,8 @@ union all
 select p.id, '00000000-0000-4000-8001-000000000091'::uuid from moshimo.pokemon p where p.dex_no = 59 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000092'::uuid from moshimo.pokemon p where p.dex_no = 59 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000097'::uuid from moshimo.pokemon p where p.dex_no = 59 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000099'::uuid from moshimo.pokemon p where p.dex_no = 59 and (p.available_generations & 1) <> 0
 union all
@@ -3028,6 +3097,8 @@ select p.id, '00000000-0000-4000-8001-000000000038'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000055'::uuid from moshimo.pokemon p where p.dex_no = 62 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000056'::uuid from moshimo.pokemon p where p.dex_no = 62 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000057'::uuid from moshimo.pokemon p where p.dex_no = 62 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000058'::uuid from moshimo.pokemon p where p.dex_no = 62 and (p.available_generations & 1) <> 0
@@ -3067,6 +3138,10 @@ union all
 select p.id, '00000000-0000-4000-8001-000000000118'::uuid from moshimo.pokemon p where p.dex_no = 62 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000130'::uuid from moshimo.pokemon p where p.dex_no = 62 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000133'::uuid from moshimo.pokemon p where p.dex_no = 62 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000145'::uuid from moshimo.pokemon p where p.dex_no = 62 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000149'::uuid from moshimo.pokemon p where p.dex_no = 62 and (p.available_generations & 1) <> 0
 union all
@@ -3504,6 +3579,10 @@ select p.id, '00000000-0000-4000-8001-000000000014'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000015'::uuid from moshimo.pokemon p where p.dex_no = 71 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000021'::uuid from moshimo.pokemon p where p.dex_no = 71 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000022'::uuid from moshimo.pokemon p where p.dex_no = 71 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000034'::uuid from moshimo.pokemon p where p.dex_no = 71 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000035'::uuid from moshimo.pokemon p where p.dex_no = 71 and (p.available_generations & 1) <> 0
@@ -3517,6 +3596,8 @@ union all
 select p.id, '00000000-0000-4000-8001-000000000063'::uuid from moshimo.pokemon p where p.dex_no = 71 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000072'::uuid from moshimo.pokemon p where p.dex_no = 71 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000074'::uuid from moshimo.pokemon p where p.dex_no = 71 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000075'::uuid from moshimo.pokemon p where p.dex_no = 71 and (p.available_generations & 1) <> 0
 union all
@@ -4512,9 +4593,13 @@ select p.id, '00000000-0000-4000-8001-000000000161'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000164'::uuid from moshimo.pokemon p where p.dex_no = 90 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000033'::uuid from moshimo.pokemon p where p.dex_no = 91 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000036'::uuid from moshimo.pokemon p where p.dex_no = 91 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000038'::uuid from moshimo.pokemon p where p.dex_no = 91 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000043'::uuid from moshimo.pokemon p where p.dex_no = 91 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000048'::uuid from moshimo.pokemon p where p.dex_no = 91 and (p.available_generations & 1) <> 0
 union all
@@ -5128,7 +5213,15 @@ select p.id, '00000000-0000-4000-8001-000000000070'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000072'::uuid from moshimo.pokemon p where p.dex_no = 103 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000073'::uuid from moshimo.pokemon p where p.dex_no = 103 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000076'::uuid from moshimo.pokemon p where p.dex_no = 103 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000077'::uuid from moshimo.pokemon p where p.dex_no = 103 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000078'::uuid from moshimo.pokemon p where p.dex_no = 103 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000079'::uuid from moshimo.pokemon p where p.dex_no = 103 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000092'::uuid from moshimo.pokemon p where p.dex_no = 103 and (p.available_generations & 1) <> 0
 union all
@@ -6122,6 +6215,8 @@ select p.id, '00000000-0000-4000-8001-000000000038'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000055'::uuid from moshimo.pokemon p where p.dex_no = 121 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000056'::uuid from moshimo.pokemon p where p.dex_no = 121 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000057'::uuid from moshimo.pokemon p where p.dex_no = 121 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000058'::uuid from moshimo.pokemon p where p.dex_no = 121 and (p.available_generations & 1) <> 0
@@ -6150,7 +6245,13 @@ select p.id, '00000000-0000-4000-8001-000000000102'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000104'::uuid from moshimo.pokemon p where p.dex_no = 121 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000105'::uuid from moshimo.pokemon p where p.dex_no = 121 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000106'::uuid from moshimo.pokemon p where p.dex_no = 121 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000107'::uuid from moshimo.pokemon p where p.dex_no = 121 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000113'::uuid from moshimo.pokemon p where p.dex_no = 121 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000115'::uuid from moshimo.pokemon p where p.dex_no = 121 and (p.available_generations & 1) <> 0
 union all
@@ -6614,6 +6715,8 @@ select p.id, '00000000-0000-4000-8001-000000000126'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000130'::uuid from moshimo.pokemon p where p.dex_no = 130 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000150'::uuid from moshimo.pokemon p where p.dex_no = 130 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000156'::uuid from moshimo.pokemon p where p.dex_no = 130 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000164'::uuid from moshimo.pokemon p where p.dex_no = 130 and (p.available_generations & 1) <> 0
@@ -6736,6 +6839,8 @@ select p.id, '00000000-0000-4000-8001-000000000039'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000044'::uuid from moshimo.pokemon p where p.dex_no = 134 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000045'::uuid from moshimo.pokemon p where p.dex_no = 134 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000054'::uuid from moshimo.pokemon p where p.dex_no = 134 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000055'::uuid from moshimo.pokemon p where p.dex_no = 134 and (p.available_generations & 1) <> 0
@@ -6768,6 +6873,8 @@ select p.id, '00000000-0000-4000-8001-000000000114'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000115'::uuid from moshimo.pokemon p where p.dex_no = 134 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000116'::uuid from moshimo.pokemon p where p.dex_no = 134 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000117'::uuid from moshimo.pokemon p where p.dex_no = 134 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000129'::uuid from moshimo.pokemon p where p.dex_no = 134 and (p.available_generations & 1) <> 0
@@ -6796,6 +6903,10 @@ select p.id, '00000000-0000-4000-8001-000000000039'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000042'::uuid from moshimo.pokemon p where p.dex_no = 135 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000044'::uuid from moshimo.pokemon p where p.dex_no = 135 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000045'::uuid from moshimo.pokemon p where p.dex_no = 135 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000063'::uuid from moshimo.pokemon p where p.dex_no = 135 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000084'::uuid from moshimo.pokemon p where p.dex_no = 135 and (p.available_generations & 1) <> 0
@@ -6819,6 +6930,8 @@ union all
 select p.id, '00000000-0000-4000-8001-000000000104'::uuid from moshimo.pokemon p where p.dex_no = 135 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000115'::uuid from moshimo.pokemon p where p.dex_no = 135 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000116'::uuid from moshimo.pokemon p where p.dex_no = 135 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000117'::uuid from moshimo.pokemon p where p.dex_no = 135 and (p.available_generations & 1) <> 0
 union all
@@ -6848,6 +6961,8 @@ select p.id, '00000000-0000-4000-8001-000000000043'::uuid from moshimo.pokemon p
 union all
 select p.id, '00000000-0000-4000-8001-000000000044'::uuid from moshimo.pokemon p where p.dex_no = 136 and (p.available_generations & 1) <> 0
 union all
+select p.id, '00000000-0000-4000-8001-000000000045'::uuid from moshimo.pokemon p where p.dex_no = 136 and (p.available_generations & 1) <> 0
+union all
 select p.id, '00000000-0000-4000-8001-000000000052'::uuid from moshimo.pokemon p where p.dex_no = 136 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000053'::uuid from moshimo.pokemon p where p.dex_no = 136 and (p.available_generations & 1) <> 0
@@ -6867,6 +6982,8 @@ union all
 select p.id, '00000000-0000-4000-8001-000000000104'::uuid from moshimo.pokemon p where p.dex_no = 136 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000115'::uuid from moshimo.pokemon p where p.dex_no = 136 and (p.available_generations & 1) <> 0
+union all
+select p.id, '00000000-0000-4000-8001-000000000116'::uuid from moshimo.pokemon p where p.dex_no = 136 and (p.available_generations & 1) <> 0
 union all
 select p.id, '00000000-0000-4000-8001-000000000117'::uuid from moshimo.pokemon p where p.dex_no = 136 and (p.available_generations & 1) <> 0
 union all
