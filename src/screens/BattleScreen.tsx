@@ -29,7 +29,9 @@ import {
   type BattleAction,
   type BattleFieldState,
   type BattleFighter,
+  type BattleStatus,
 } from "../battle/types";
+import { getMoveByPokeapiId } from "../battle/gen1MovePool";
 import { moveGenerationFilterFromParams, parseRulesGeneration } from "../match-setup/params";
 import type { OpponentType } from "../match-setup/types";
 import { calcGen1Stats } from "../party/gen1Stats";
@@ -40,7 +42,7 @@ import {
   type PartyMemberBuild,
   type PartySide,
 } from "../party/types";
-import { formatDexNo, TYPE_COLORS, typeNameJa } from "../pokemon/catalog";
+import { formatDexNo, TYPE_COLORS, getTypes, typeNameJa } from "../pokemon/catalog";
 import type { Move } from "../pokemon/moves";
 import {
   fetchMovesByIds,
@@ -344,6 +346,9 @@ export function BattleScreen() {
   const fieldRef = useRef<BattleFieldState>(createBattleField());
   /** Persist HP across switches (瀕死維持). */
   const hpBySpeciesIdRef = useRef<Record<string, number>>({});
+  /** Gen1: major status / sleep counter persist on the bench. */
+  const statusBySpeciesIdRef = useRef<Record<string, BattleStatus>>({});
+  const sleepTurnsBySpeciesIdRef = useRef<Record<string, number>>({});
   /** Species that have appeared on the field at least once. */
   const seenOnFieldRef = useRef<Set<string>>(new Set());
   const [seenOnFieldTick, setSeenOnFieldTick] = useState(0);
@@ -424,6 +429,8 @@ export function BattleScreen() {
         setSpeciesById(map);
 
         const nextHp: Record<string, number> = {};
+        const nextStatus: Record<string, BattleStatus> = {};
+        const nextSleep: Record<string, number> = {};
         const buildSide = (side: PartySide, speciesId: string | undefined) => {
           if (!speciesId) return null;
           const member = getSide(side)?.members.find(
@@ -433,6 +440,8 @@ export function BattleScreen() {
           if (!member || !species) return null;
           const stats = calcGen1Stats(species, member);
           nextHp[speciesId] = stats.hp;
+          nextStatus[speciesId] = null;
+          nextSleep[speciesId] = 0;
           return buildFighter({
             side,
             member,
@@ -440,6 +449,8 @@ export function BattleScreen() {
             stats,
             currentHp: stats.hp,
             maxHp: stats.hp,
+            status: null,
+            sleepTurns: 0,
           });
         };
 
@@ -453,9 +464,13 @@ export function BattleScreen() {
             const species = map[speciesId];
             if (!member || !species) continue;
             nextHp[speciesId] = calcGen1Stats(species, member).hp;
+            nextStatus[speciesId] = null;
+            nextSleep[speciesId] = 0;
           }
         }
         hpBySpeciesIdRef.current = nextHp;
+        statusBySpeciesIdRef.current = nextStatus;
+        sleepTurnsBySpeciesIdRef.current = nextSleep;
         fieldRef.current = createBattleField();
         cpuKnowledgeRef.current = { revealedMoveIdsBySpeciesId: {} };
         seenOnFieldRef.current = new Set();
@@ -656,15 +671,28 @@ export function BattleScreen() {
   const persistFighterHp = () => {
     for (const side of ["a", "b"] as const) {
       const f = fightersRef.current[side];
-      if (f) hpBySpeciesIdRef.current[f.speciesId] = f.currentHp;
+      if (!f) continue;
+      hpBySpeciesIdRef.current[f.speciesId] = f.currentHp;
+      statusBySpeciesIdRef.current[f.speciesId] = f.status;
+      sleepTurnsBySpeciesIdRef.current[f.speciesId] = f.sleepTurns;
     }
   };
 
   const persistSnapshotHp = (snapshot: { a: number; b: number }) => {
     const fighterA = fightersRef.current.a;
     const fighterB = fightersRef.current.b;
-    if (fighterA) hpBySpeciesIdRef.current[fighterA.speciesId] = snapshot.a;
-    if (fighterB) hpBySpeciesIdRef.current[fighterB.speciesId] = snapshot.b;
+    if (fighterA) {
+      hpBySpeciesIdRef.current[fighterA.speciesId] = snapshot.a;
+      statusBySpeciesIdRef.current[fighterA.speciesId] = fighterA.status;
+      sleepTurnsBySpeciesIdRef.current[fighterA.speciesId] =
+        fighterA.sleepTurns;
+    }
+    if (fighterB) {
+      hpBySpeciesIdRef.current[fighterB.speciesId] = snapshot.b;
+      statusBySpeciesIdRef.current[fighterB.speciesId] = fighterB.status;
+      sleepTurnsBySpeciesIdRef.current[fighterB.speciesId] =
+        fighterB.sleepTurns;
+    }
   };
 
   const openEndDestination = () => {
@@ -764,6 +792,8 @@ export function BattleScreen() {
     const stored = hpBySpeciesIdRef.current[speciesId];
     const hp =
       stored != null ? Math.max(0, Math.min(stats.hp, stored)) : stats.hp;
+    const storedStatus = statusBySpeciesIdRef.current[speciesId] ?? null;
+    const storedSleep = sleepTurnsBySpeciesIdRef.current[speciesId] ?? 0;
     // Gen1: mist / reflect / light screen end on switch-out
     fieldRef.current[side] = {
       mist: false,
@@ -774,6 +804,9 @@ export function BattleScreen() {
     const prev = fightersRef.current[side];
     const other = fightersRef.current[side === "a" ? "b" : "a"];
     if (prev) {
+      statusBySpeciesIdRef.current[prev.speciesId] = prev.status;
+      sleepTurnsBySpeciesIdRef.current[prev.speciesId] = prev.sleepTurns;
+      hpBySpeciesIdRef.current[prev.speciesId] = prev.currentHp;
       prev.volatiles.bindingMove = null;
       prev.volatiles.bindingTurnsLeft = 0;
       prev.volatiles.trapTurns = 0;
@@ -792,6 +825,8 @@ export function BattleScreen() {
       stats,
       currentHp: hp,
       maxHp: stats.hp,
+      status: storedStatus,
+      sleepTurns: storedSleep,
     });
     markSeenOnField(speciesId);
     bumpFighters();
@@ -854,11 +889,12 @@ export function BattleScreen() {
         spendPp(step.ppSpent.speciesId, step.ppSpent.moveId);
       }
       // Apply this beat's HP with its logs so bars drop in attack order.
+      // Badges (status / leech seed / disable) refresh AFTER the matching log
+      // so they appear when the effect message is shown, not before.
       if (step.hpSnapshot) {
         setFieldHp({ a: step.hpSnapshot.a, b: step.hpSnapshot.b });
         persistSnapshotHp(step.hpSnapshot);
       }
-      bumpFighters();
       await sleep(0);
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => {
@@ -870,6 +906,7 @@ export function BattleScreen() {
       } else {
         await sleep(420);
       }
+      bumpFighters();
       if (step.forceSwitchSide) {
         const side = step.forceSwitchSide;
         const ids = side === "a" ? lineup.a : lineup.b;
@@ -1150,19 +1187,32 @@ export function BattleScreen() {
   const onSelectMove = (move: Move) => {
     if (!controllingMember || mustSwitchSide || logPlaying) return;
     const fighter = fightersRef.current[controllingSide];
-    if (fighter?.volatiles.disableMoveId === move.id) {
-      setLog([`${move.name_ja}は　かなしばりで　出せない！`]);
-      return;
-    }
-    const key = ppKey(controllingMember.speciesId, move.id);
-    const remaining = ppRemaining[key] ?? move.pp ?? 0;
-    if (remaining <= 0) {
-      setLog([`${move.name_ja}の　PPが　ない！`]);
-      return;
+    if (move.pokeapi_id !== 165) {
+      if (fighter?.volatiles.disableMoveId === move.id) {
+        setLog([`${move.name_ja}は　かなしばりで　出せない！`]);
+        return;
+      }
+      const key = ppKey(controllingMember.speciesId, move.id);
+      const remaining = ppRemaining[key] ?? move.pp ?? 0;
+      if (remaining <= 0) {
+        setLog([`${move.name_ja}の　PPが　ない！`]);
+        return;
+      }
     }
     // PP is spent only when the move actually executes (after sleep/confusion checks)
     lockAction({ type: "move", move });
   };
+
+  const struggleMove = getMoveByPokeapiId(165) ?? null;
+  const hasUsableEquippedMove = equippedMoves.some((move) => {
+    if (!move || !controllingMember) return false;
+    const fighter = fightersRef.current[controllingSide];
+    if (fighter?.volatiles.disableMoveId === move.id) return false;
+    const key = ppKey(controllingMember.speciesId, move.id);
+    const remaining = ppRemaining[key] ?? move.pp ?? 0;
+    return remaining > 0;
+  });
+  const showStruggle = Boolean(struggleMove) && !hasUsableEquippedMove;
 
   const fighterA = fightersRef.current.a;
   const fighterB = fightersRef.current.b;
@@ -1427,6 +1477,50 @@ export function BattleScreen() {
                             </View>
                           );
                         })}
+                        {showStruggle && struggleMove ? (
+                          <View
+                            style={[
+                              styles.moveSlot,
+                              {
+                                borderColor:
+                                  TYPE_COLORS["ノーマル"] ?? "#8a8172",
+                              },
+                            ]}
+                          >
+                            <Pressable
+                              onPress={() => onSelectMove(struggleMove)}
+                              style={styles.moveSlotMain}
+                            >
+                              <View style={styles.moveSlotTop}>
+                                <View
+                                  style={[
+                                    styles.typeBadge,
+                                    {
+                                      backgroundColor:
+                                        TYPE_COLORS["ノーマル"] ?? "#8a8172",
+                                    },
+                                  ]}
+                                >
+                                  <Text style={styles.typeBadgeText}>
+                                    ノーマル
+                                  </Text>
+                                </View>
+                                <Text style={styles.moveSlotName}>
+                                  {struggleMove.name_ja}
+                                </Text>
+                                <Text style={styles.moveSlotPp}>—</Text>
+                              </View>
+                            </Pressable>
+                            <Pressable
+                              onPress={() => setDetailMove(struggleMove)}
+                              style={styles.moveDetailButton}
+                            >
+                              <Text style={styles.moveDetailButtonText}>
+                                詳細
+                              </Text>
+                            </Pressable>
+                          </View>
+                        ) : null}
                       </View>
                       <Pressable
                         onPress={() => setMenu("root")}
@@ -1664,14 +1758,36 @@ export function BattleScreen() {
                 </Pressable>
               </View>
               {inspectMember ? (
-                <Text style={styles.modalBody}>
-                  {formatDexNo(inspectMember.dexNo)} ／ Lv
-                  {inspectMember.level}
-                  {inspectIsActive ? " ／ 場に出ている" : ""}
-                  {inspectFighter?.volatiles.transformed
-                    ? " ／ へんしん中"
-                    : ""}
-                </Text>
+                <View style={styles.inspectMetaBlock}>
+                  <Text style={styles.modalBody}>
+                    {formatDexNo(inspectMember.dexNo)} ／ Lv
+                    {inspectMember.level}
+                    {inspectIsActive ? " ／ 場に出ている" : ""}
+                    {inspectFighter?.volatiles.transformed
+                      ? " ／ へんしん中"
+                      : ""}
+                  </Text>
+                  {(inspectFighter?.species ?? inspectSpecies) ? (
+                    <View style={styles.inspectTypeRow}>
+                      {getTypes(
+                        inspectFighter?.species ?? inspectSpecies!,
+                      ).map((typeJa) => (
+                        <View
+                          key={typeJa}
+                          style={[
+                            styles.typeBadge,
+                            {
+                              backgroundColor:
+                                TYPE_COLORS[typeJa] ?? "#8a8172",
+                            },
+                          ]}
+                        >
+                          <Text style={styles.typeBadgeText}>{typeJa}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
               ) : (
                 <Text style={styles.modalBody}>データがありません。</Text>
               )}
@@ -2376,6 +2492,14 @@ const styles = StyleSheet.create({
   inspectScrollInner: {
     gap: 10,
     paddingBottom: 4,
+  },
+  inspectMetaBlock: {
+    gap: 8,
+  },
+  inspectTypeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
   },
   inspectSection: {
     marginTop: 6,

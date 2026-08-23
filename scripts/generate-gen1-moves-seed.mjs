@@ -2,10 +2,13 @@
  * Build Gen1 move master + pokemon_moves seed SQL from PokeAPI.
  *
  * - introduced_generation=1; available_generations competitive mask (Gen8/9 cleared when removed)
+ * - power / accuracy / PP / type / secondary chances: Generation I via
+ *   scripts/gen1-move-stat-overrides.json (@pkmn/dex + Bulbapedia; e.g. Leech Life 20 BP)
  * - damage_class: status from API meta, else Gen1 type-based physical/special
  * - effect_category / effect_meta / effect_code (PokeAPI meta + Gen1 overrides)
- * - description: Japanese (flavor preferred, else generated from effect)
+ * - description: generated from Gen1-corrected meta (flavor as fallback)
  * - junction: Gen1-usable pokemon rows (bit 0 set) × RB/Yellow learnset
+ *   (includes pre-evolution learnset inheritance)
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -13,6 +16,14 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const GEN1_VERSION_GROUPS = new Set(["red-blue", "yellow"]);
+
+/** Gen1 power / accuracy / PP / type / secondary chances (@pkmn/dex + Bulbapedia). */
+const GEN1_STAT_OVERRIDES = JSON.parse(
+  fs.readFileSync(
+    path.join(root, "scripts/gen1-move-stat-overrides.json"),
+    "utf8",
+  ),
+);
 
 /** Moves removed from Gen8+ competitive environments (clear bits 128|256 = 384). */
 const REMOVED_GEN8_PLUS = new Set([
@@ -199,31 +210,65 @@ function buildEffectMeta(apiMeta, statChanges) {
   };
 }
 
-function applyGen1Overrides(pokeapiId, category, meta, power) {
+function applyGen1Overrides(pokeapiId, category, meta, power, accuracy, pp, typeId, damageClass) {
   const override = GEN1_META_OVERRIDES[pokeapiId];
+  const stats = GEN1_STAT_OVERRIDES[String(pokeapiId)];
   let nextCategory = category;
   let nextMeta = { ...meta, stat_changes: [...(meta.stat_changes ?? [])] };
   let nextPower = power;
+  let nextAccuracy = accuracy;
+  let nextPp = pp;
+  let nextTypeId = typeId;
+  let nextDamageClass = damageClass;
 
-  if (!override) {
-    return { category: nextCategory, meta: nextMeta, power: nextPower };
+  if (stats) {
+    if ("power" in stats) nextPower = stats.power;
+    if ("accuracy" in stats) nextAccuracy = stats.accuracy;
+    if ("pp" in stats) nextPp = stats.pp;
+    if ("type_id" in stats) nextTypeId = stats.type_id;
+    if (stats.damage_class) nextDamageClass = stats.damage_class;
+    if (stats.effect_meta) {
+      nextMeta = {
+        ...nextMeta,
+        ...stats.effect_meta,
+        stat_changes:
+          stats.effect_meta.stat_changes ?? nextMeta.stat_changes,
+      };
+    }
   }
 
-  if (override.clearAilment) {
-    nextMeta.ailment = null;
-    nextMeta.ailment_chance = 0;
-    nextMeta.min_turns = null;
-    nextMeta.max_turns = null;
+  if (override) {
+    if (override.clearAilment) {
+      nextMeta.ailment = null;
+      nextMeta.ailment_chance = 0;
+      nextMeta.min_turns = null;
+      nextMeta.max_turns = null;
+    }
+    if (override.category) nextCategory = override.category;
+    if (override.flinch_chance != null) nextMeta.flinch_chance = override.flinch_chance;
+    if (override.drain != null) nextMeta.drain = override.drain;
+    if (override.min_turns != null) nextMeta.min_turns = override.min_turns;
+    if (override.max_turns != null) nextMeta.max_turns = override.max_turns;
+    if (override.stat_changes) nextMeta.stat_changes = override.stat_changes;
+    if (override.power != null) nextPower = override.power;
   }
-  if (override.category) nextCategory = override.category;
-  if (override.flinch_chance != null) nextMeta.flinch_chance = override.flinch_chance;
-  if (override.drain != null) nextMeta.drain = override.drain;
-  if (override.min_turns != null) nextMeta.min_turns = override.min_turns;
-  if (override.max_turns != null) nextMeta.max_turns = override.max_turns;
-  if (override.stat_changes) nextMeta.stat_changes = override.stat_changes;
-  if (override.power != null) nextPower = override.power;
 
-  return { category: nextCategory, meta: nextMeta, power: nextPower };
+  // Recalculate physical/special from Gen1 type if still a damaging move.
+  if (nextDamageClass !== "status") {
+    nextDamageClass = GEN1_PHYSICAL_TYPES.has(nextTypeId)
+      ? "physical"
+      : "special";
+  }
+
+  return {
+    category: nextCategory,
+    meta: nextMeta,
+    power: nextPower,
+    accuracy: nextAccuracy,
+    pp: nextPp,
+    typeId: nextTypeId,
+    damageClass: nextDamageClass,
+  };
 }
 
 function pickJapaneseDescription(m) {
@@ -370,24 +415,39 @@ async function main() {
     let category = m.meta?.category?.name ?? "unique";
     let meta = buildEffectMeta(m.meta, m.stat_changes);
     let power = m.power;
-    ({ category, meta, power } = applyGen1Overrides(
+    let accuracy = m.accuracy;
+    let pp = m.pp;
+    ({
+      category,
+      meta,
+      power,
+      accuracy,
+      pp,
+      typeId: resolvedTypeId,
+      damageClass,
+    } = applyGen1Overrides(
       pokeapiId,
       category,
       meta,
       power,
+      accuracy,
+      pp,
+      resolvedTypeId,
+      damageClass,
     ));
 
     const effectCode = EFFECT_CODE_BY_ID[pokeapiId] ?? null;
 
+    // Prefer generated Gen1-accurate description when power/effects were corrected.
     const description =
-      pickJapaneseDescription(m) ||
       generateDescriptionJa({
         category,
         meta,
         effectCode,
         power,
         damageClass,
-      });
+      }) ||
+      pickJapaneseDescription(m);
 
     moves.push({
       id: moveUuid(pokeapiId),
@@ -397,8 +457,8 @@ async function main() {
       type_id: resolvedTypeId,
       damage_class: damageClass,
       power,
-      accuracy: m.accuracy,
-      pp: m.pp,
+      accuracy,
+      pp,
       priority: m.priority ?? 0,
       description,
       effect_category: category,
@@ -427,6 +487,33 @@ async function main() {
     learnsets.set(dex, ids);
   }
   console.log("\nlearnsets done");
+
+  // Inherit Gen1 pre-evolution moves (e.g. Magikarp Splash → Gyarados).
+  const GEN1_EVOLVES_FROM = {
+    2: 1, 3: 2, 5: 4, 6: 5, 8: 7, 9: 8, 11: 10, 12: 11, 14: 13, 15: 14,
+    17: 16, 18: 17, 20: 19, 22: 21, 24: 23, 26: 25, 28: 27, 30: 29, 31: 30,
+    33: 32, 34: 33, 36: 35, 38: 37, 40: 39, 42: 41, 44: 43, 45: 44, 47: 46,
+    49: 48, 51: 50, 53: 52, 55: 54, 57: 56, 59: 58, 61: 60, 62: 61, 64: 63,
+    65: 64, 67: 66, 68: 67, 70: 69, 71: 70, 73: 72, 75: 74, 76: 75, 78: 77,
+    80: 79, 82: 81, 85: 84, 87: 86, 89: 88, 91: 90, 93: 92, 94: 93, 97: 96,
+    99: 98, 101: 100, 103: 102, 105: 104, 110: 109, 112: 111, 117: 116,
+    119: 118, 121: 120, 130: 129, 134: 133, 135: 133, 136: 133, 139: 138,
+    141: 140, 148: 147, 149: 148,
+  };
+  for (let dex = 1; dex <= 151; dex += 1) {
+    const set = learnsets.get(dex);
+    if (!set) continue;
+    let pre = GEN1_EVOLVES_FROM[dex];
+    const seen = new Set();
+    while (pre != null && !seen.has(pre)) {
+      seen.add(pre);
+      const preSet = learnsets.get(pre);
+      if (preSet) {
+        for (const moveId of preSet) set.add(moveId);
+      }
+      pre = GEN1_EVOLVES_FROM[pre];
+    }
+  }
 
   const moveByPokeapi = new Map(moves.map((row) => [row.pokeapi_id, row]));
 

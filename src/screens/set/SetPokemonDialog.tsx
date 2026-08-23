@@ -425,6 +425,8 @@ export function SetPokemonDialog({
   const [pickingSlot, setPickingSlot] = useState<number | null>(null);
   const [moveFilters, setMoveFilters] =
     useState<MoveFiltersState>(EMPTY_MOVE_FILTERS);
+  const [moveQueries, setMoveQueries] = useState<string[]>(["", "", "", ""]);
+  const [moveSuggestSlot, setMoveSuggestSlot] = useState<number | null>(null);
 
   const maxLevel = maxLevelForCap(levelCapMode);
   const genderLocked = species.gender !== GENDER.BOTH;
@@ -439,6 +441,7 @@ export function SetPokemonDialog({
     setErrorMessage(null);
     setPickingSlot(null);
     setMoveFilters(EMPTY_MOVE_FILTERS);
+    setMoveSuggestSlot(null);
   }, [visible, member]);
 
   useEffect(() => {
@@ -468,10 +471,38 @@ export function SetPokemonDialog({
     };
   }, [visible, member.speciesId, moveGenerationOptions]);
 
+  // Sync autocomplete labels when dialog opens / learnset arrives.
+  useEffect(() => {
+    if (!visible || loadingMoves) return;
+    setMoveQueries(
+      member.moveIds.map((id) => {
+        if (!id) return "";
+        return moves.find((m) => m.id === id)?.name_ja ?? "";
+      }),
+    );
+  }, [visible, loadingMoves, member, moves]);
+
   const filteredMoves = useMemo(
     () => moves.filter((move) => matchesMoveFilters(move, moveFilters)),
     [moves, moveFilters],
   );
+
+  const moveSuggestionsForSlot = (slotIndex: number): Move[] => {
+    const q = (moveQueries[slotIndex] ?? "").trim().toLowerCase();
+    if (q.length < 1) return [];
+    return moves
+      .filter((move) => {
+        const usedElsewhere = draft.moveIds.some(
+          (id, i) => i !== slotIndex && id === move.id,
+        );
+        if (usedElsewhere) return false;
+        return (
+          move.name_ja.toLowerCase().includes(q) ||
+          move.name_en.toLowerCase().includes(q)
+        );
+      })
+      .slice(0, 8);
+  };
 
   const openPicker = (index: number) => {
     setPickingSlot((current) => {
@@ -483,7 +514,6 @@ export function SetPokemonDialog({
       return index;
     });
   };
-
   const genderOptions = useMemo(() => {
     if (species.gender === GENDER.NONE) return ["none"] as BattleGender[];
     if (species.gender === GENDER.MALE_ONLY) return ["male"] as BattleGender[];
@@ -558,6 +588,40 @@ export function SetPokemonDialog({
       next[index] = moveId;
       return { ...current, moveIds: next };
     });
+    setMoveQueries((current) => {
+      const next = [...current];
+      next[index] = moveId
+        ? (moves.find((m) => m.id === moveId)?.name_ja ?? "")
+        : "";
+      return next;
+    });
+  };
+
+  const setMoveQueryAt = (index: number, text: string) => {
+    setMoveQueries((current) => {
+      const next = [...current];
+      next[index] = text;
+      return next;
+    });
+    setMoveSuggestSlot(index);
+    const selectedId = draft.moveIds[index];
+    if (!selectedId) return;
+    const selectedName = moves.find((m) => m.id === selectedId)?.name_ja ?? "";
+    if (text !== selectedName) {
+      setDraft((current) => {
+        const nextIds = [...current.moveIds] as PartyMemberBuild["moveIds"];
+        if (nextIds[index] == null) return current;
+        nextIds[index] = null;
+        return { ...current, moveIds: nextIds };
+      });
+    }
+  };
+
+  const pickMoveSuggestion = (index: number, move: Move) => {
+    setMoveAt(index, move.id);
+    setMoveSuggestSlot(null);
+    setPickingSlot(null);
+    setMoveFilters(EMPTY_MOVE_FILTERS);
   };
 
   const handleSave = () => {
@@ -719,9 +783,46 @@ export function SetPokemonDialog({
             {draft.moveIds.map((moveId, index) => {
               const selectedMove = moves.find((m) => m.id === moveId) ?? null;
               const picking = pickingSlot === index;
+              const suggestions = moveSuggestionsForSlot(index);
+              const showSuggest =
+                moveSuggestSlot === index && suggestions.length > 0;
               return (
                 <View key={`move-${index}`} style={styles.moveBlock}>
                   <Text style={styles.moveLabel}>技{index + 1}</Text>
+                  <View style={styles.moveSearchWrap}>
+                    <TextInput
+                      style={styles.input}
+                      value={moveQueries[index] ?? ""}
+                      onChangeText={(text) => setMoveQueryAt(index, text)}
+                      onFocus={() => setMoveSuggestSlot(index)}
+                      placeholder="技名で検索して選択"
+                      placeholderTextColor="#9a9286"
+                      autoCorrect={false}
+                      autoCapitalize="none"
+                    />
+                    {showSuggest ? (
+                      <View style={styles.moveSuggestList}>
+                        {suggestions.map((move) => (
+                          <Pressable
+                            key={`suggest-${index}-${move.id}`}
+                            onPress={() => pickMoveSuggestion(index, move)}
+                            style={({ pressed }) => [
+                              styles.moveSuggestItem,
+                              pressed && styles.moveSuggestItemPressed,
+                            ]}
+                          >
+                            <Text style={styles.moveSuggestName}>
+                              {move.name_ja}
+                            </Text>
+                            <Text style={styles.moveSuggestMeta}>
+                              {typeNameJa(move.type_id)} ／{" "}
+                              {DAMAGE_CLASS_JA[move.damage_class]}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    ) : null}
+                  </View>
                   {selectedMove ? (
                     <MoveDetailCard
                       move={selectedMove}
@@ -729,7 +830,7 @@ export function SetPokemonDialog({
                       onPress={() => openPicker(index)}
                     />
                   ) : (
-                    <Text style={styles.moveEmpty}>未選択</Text>
+                    <Text style={styles.moveEmpty}>未選択（候補から選ぶか検索）</Text>
                   )}
                   <View style={styles.rowWrap}>
                     <Pressable
@@ -749,6 +850,7 @@ export function SetPokemonDialog({
                       onPress={() => {
                         setMoveAt(index, null);
                         setPickingSlot(null);
+                        setMoveSuggestSlot(null);
                         setMoveFilters(EMPTY_MOVE_FILTERS);
                       }}
                       style={styles.chip}
@@ -782,6 +884,7 @@ export function SetPokemonDialog({
                               onPress={() => {
                                 setMoveAt(index, move.id);
                                 setPickingSlot(null);
+                                setMoveSuggestSlot(null);
                                 setMoveFilters(EMPTY_MOVE_FILTERS);
                               }}
                             />
@@ -927,6 +1030,38 @@ const styles = StyleSheet.create({
   moveLabel: { fontSize: 12, fontWeight: "700", color: "#5c564c" },
   moveEmpty: { fontSize: 12, color: "#8a8276" },
   moveList: { gap: 8 },
+  moveSearchWrap: {
+    position: "relative",
+    zIndex: 2,
+  },
+  moveSuggestList: {
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    borderRadius: 10,
+    backgroundColor: "#fff",
+    overflow: "hidden",
+  },
+  moveSuggestItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#ebe4d8",
+    gap: 2,
+  },
+  moveSuggestItemPressed: {
+    backgroundColor: "#f3f6ea",
+  },
+  moveSuggestName: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#1d1a16",
+  },
+  moveSuggestMeta: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#5c564c",
+  },
   moveFilterBox: {
     backgroundColor: "#f7f3ea",
     borderRadius: 10,

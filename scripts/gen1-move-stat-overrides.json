@@ -1,0 +1,718 @@
+{
+  "2": {
+    "power": 50,
+    "accuracy": 100,
+    "pp": 25,
+    "type_id": 1,
+    "damage_class": "physical"
+  },
+  "7": {
+    "power": 75,
+    "accuracy": 100,
+    "pp": 15,
+    "type_id": 2,
+    "damage_class": "special",
+    "effect_meta": {
+      "ailment": "burn",
+      "ailment_chance": 10
+    }
+  },
+  "8": {
+    "power": 75,
+    "accuracy": 100,
+    "pp": 15,
+    "type_id": 6,
+    "damage_class": "special",
+    "effect_meta": {
+      "ailment": "freeze",
+      "ailment_chance": 10
+    }
+  },
+  "9": {
+    "power": 75,
+    "accuracy": 100,
+    "pp": 15,
+    "type_id": 4,
+    "damage_class": "special",
+    "effect_meta": {
+      "ailment": "paralysis",
+      "ailment_chance": 10
+    }
+  },
+  "13": {
+    "power": 80,
+    "accuracy": 75,
+    "pp": 10,
+    "type_id": 1,
+    "damage_class": "physical"
+  },
+  "14": {
+    "power": null,
+    "accuracy": null,
+    "pp": 30,
+    "type_id": 1
+  },
+  "16": {
+    "power": 40,
+    "accuracy": 100,
+    "pp": 35,
+    "type_id": 1,
+    "damage_class": "physical"
+  },
+  "17": {
+    "power": 35,
+    "accuracy": 100,
+    "pp": 35,
+    "type_id": 10,
+    "damage_class": "physical"
+  },
+  "18": {
+    "power": null,
+    "accuracy": 85,
+    "pp": 20,
+    "type_id": 1
+  },
+  "19": {
+    "power": 70,
+    "accuracy": 95,
+    "pp": 15,
+    "type_id": 10,
+    "damage_class": "physical"
+  },
+  "20": {
+    "power": 15,
+    "accuracy": 75,
+    "pp": 20,
+    "type_id": 1,
+    "damage_class": "physical"
+  },
+  "22": {
+    "power": 35,
+    "accuracy": 100,
+    "pp": 10,
+    "type_id": 5,
+    "damage_class": "special"
+  },
+  "23": {
+    "power": 65,
+    "accuracy": 100,
+    "pp": 20,
+    "type_id": 1,
+    "damage_class": "physical",
+    "effect_meta": {
+      "flinch_chance": 30
+    }
+  },
+  "26": {
+    "power": 70,
+    "accuracy": 95,
+    "pp": 25,
+    "type_id": 7,
+    "damage_class": "physical"
+  },
+  "27": {
+    "power": 60,
+    "accuracy": 85,
+    "pp": 15,
+    "type_id": 7,
+    "damage_class": "physical",
+    "effect_meta": {
+      "flinch_chance": 30
+    }
+  },
+  "28": {
+    "power": null,
+    "accuracy": 100,
+    "pp": 15,
+    "type_id": 1
+  },
+  "29": {
+    "power": 70,
+    "accuracy": 100,
+    "pp": 15,
+    "type_id": 1,
+    "damage_class": "physical",
+    "effect_meta": {
+      "flinch_chance": 30
+    }
+  },
+  "33": {
+    "power": 35,
+    "accuracy": 95,
+    "pp": 35,
+    "type_id": 1,
+    "damage_class": "physical"
+  },
+  "34": {
+    "power": 85,
+    "accuracy": 100,
+    "pp": 15,
+    "type_id": 1,
+    "damage_class": "physical",
+    "effect_meta": {
+      "ailment": "paralysis",
+      "ailment_chance": 30
+    }
+  },
+  "35": {
+    "power": 15,
+    "accuracy": 85,
+    "pp": 20,
+    "type_id": 1,
+    "damage_class": "physical"
+  },
+  "37": {
+    "power": 90,
+    "accuracy": 100,
+    "pp": 20,
+    "type_id": 1,
+    "damage_class": "physical"
+  },
+  "38": {
+    "power": 100,
+    "accuracy": 100,
+    "pp": 15,
+    "type_id": 1,
+    "damage_class": "physical"
+  },
+  "40": {
+    "power": 15,
+    "accuracy": 100,
+    "pp": 35,
+    "type_id": 8,
+    "damage_class": "physical",
+    "effect_meta": {
+      "ailment": "poison",
+      "ailment_chance": 20
+    }
+  },
+  "41": {
+    "power": 25,
+    "accuracy": 100,
+    "pp": 20,
+    "type_id": 12,
+    "damage_class": "physical",
+    "effect_meta": {
+      "ailment": "poison",
+      "ailment_chance": 20
+    }
+  },
+  "42": {
+    "power": 14,
+    "accuracy": 85,
+    "pp": 20,
+    "type_id": 12,
+    "damage_class": "physical"
+  },
+  "44": {
+    "power": 60,
+    "accuracy": 100,
+    "pp": 25,
+    "type_id": 1,
+    "damage_class": "physical",
+    "effect_meta": {
+      "flinch_chance": 10
+    }
+  },
+  "46": {
+    "power": null,
+    "accuracy": 100,
+    "pp": 20,
+    "type_id": 1
+  },
+  "50": {
+    "power": null,
+    "accuracy": 55,
+    "pp": 20,
+    "type_id": 1
+  },
+  "51": {
+    "power": 40,
+    "accuracy": 100,
+    "pp": 30,
+    "type_id": 8,
+    "damage_class": "physical",
+    "effect_meta": {
+      "stat_chance": 33,
+      "stat_changes": [
+        {
+          "stat": "defense",
+          "change": -1
+        }
+      ]
+    }
+  },
+  "52": {
+    "power": 40,
+    "accuracy": 100,
+    "pp": 25,
+    "type_id": 2,
+    "damage_class": "special",
+    "effect_meta": {
+      "ailment": "burn",
+      "ailment_chance": 10
+    }
+  },
+  "53": {
+    "power": 95,
+    "accuracy": 100,
+    "pp": 15,
+    "type_id": 2,
+    "damage_class": "special",
+    "effect_meta": {
+      "ailment": "burn",
+      "ailment_chance": 10
+    }
+  },
+  "56": {
+    "power": 120,
+    "accuracy": 80,
+    "pp": 5,
+    "type_id": 3,
+    "damage_class": "special"
+  },
+  "57": {
+    "power": 95,
+    "accuracy": 100,
+    "pp": 15,
+    "type_id": 3,
+    "damage_class": "special"
+  },
+  "58": {
+    "power": 95,
+    "accuracy": 100,
+    "pp": 10,
+    "type_id": 6,
+    "damage_class": "special",
+    "effect_meta": {
+      "ailment": "freeze",
+      "ailment_chance": 10
+    }
+  },
+  "59": {
+    "power": 120,
+    "accuracy": 90,
+    "pp": 5,
+    "type_id": 6,
+    "damage_class": "special",
+    "effect_meta": {
+      "ailment": "freeze",
+      "ailment_chance": 10
+    }
+  },
+  "61": {
+    "power": 65,
+    "accuracy": 100,
+    "pp": 20,
+    "type_id": 3,
+    "damage_class": "special",
+    "effect_meta": {
+      "stat_chance": 33,
+      "stat_changes": [
+        {
+          "stat": "speed",
+          "change": -1
+        }
+      ]
+    }
+  },
+  "62": {
+    "power": 65,
+    "accuracy": 100,
+    "pp": 20,
+    "type_id": 6,
+    "damage_class": "special",
+    "effect_meta": {
+      "stat_chance": 33,
+      "stat_changes": [
+        {
+          "stat": "attack",
+          "change": -1
+        }
+      ]
+    }
+  },
+  "66": {
+    "power": 80,
+    "accuracy": 80,
+    "pp": 25,
+    "type_id": 7,
+    "damage_class": "physical"
+  },
+  "67": {
+    "power": 50,
+    "accuracy": 90,
+    "pp": 20,
+    "type_id": 7,
+    "damage_class": "physical",
+    "effect_meta": {
+      "flinch_chance": 30
+    }
+  },
+  "71": {
+    "power": 20,
+    "accuracy": 100,
+    "pp": 20,
+    "type_id": 5,
+    "damage_class": "special"
+  },
+  "72": {
+    "power": 40,
+    "accuracy": 100,
+    "pp": 10,
+    "type_id": 5,
+    "damage_class": "special"
+  },
+  "74": {
+    "power": null,
+    "accuracy": null,
+    "pp": 40,
+    "type_id": 1
+  },
+  "80": {
+    "power": 70,
+    "accuracy": 100,
+    "pp": 20,
+    "type_id": 5,
+    "damage_class": "special"
+  },
+  "83": {
+    "power": 15,
+    "accuracy": 70,
+    "pp": 15,
+    "type_id": 2,
+    "damage_class": "special"
+  },
+  "84": {
+    "power": 40,
+    "accuracy": 100,
+    "pp": 30,
+    "type_id": 4,
+    "damage_class": "special",
+    "effect_meta": {
+      "ailment": "paralysis",
+      "ailment_chance": 10
+    }
+  },
+  "85": {
+    "power": 95,
+    "accuracy": 100,
+    "pp": 15,
+    "type_id": 4,
+    "damage_class": "special",
+    "effect_meta": {
+      "ailment": "paralysis",
+      "ailment_chance": 10
+    }
+  },
+  "86": {
+    "power": null,
+    "accuracy": 100,
+    "pp": 20,
+    "type_id": 4
+  },
+  "87": {
+    "power": 120,
+    "accuracy": 70,
+    "pp": 10,
+    "type_id": 4,
+    "damage_class": "special",
+    "effect_meta": {
+      "ailment": "paralysis",
+      "ailment_chance": 10
+    }
+  },
+  "88": {
+    "power": 50,
+    "accuracy": 65,
+    "pp": 15,
+    "type_id": 13,
+    "damage_class": "physical"
+  },
+  "91": {
+    "power": 100,
+    "accuracy": 100,
+    "pp": 10,
+    "type_id": 9,
+    "damage_class": "physical"
+  },
+  "92": {
+    "power": null,
+    "accuracy": 85,
+    "pp": 10,
+    "type_id": 8
+  },
+  "94": {
+    "power": 90,
+    "accuracy": 100,
+    "pp": 10,
+    "type_id": 11,
+    "damage_class": "special",
+    "effect_meta": {
+      "stat_chance": 33,
+      "stat_changes": [
+        {
+          "stat": "special",
+          "change": -1
+        }
+      ]
+    }
+  },
+  "105": {
+    "power": null,
+    "accuracy": null,
+    "pp": 20,
+    "type_id": 1
+  },
+  "107": {
+    "power": null,
+    "accuracy": null,
+    "pp": 20,
+    "type_id": 1
+  },
+  "112": {
+    "power": null,
+    "accuracy": null,
+    "pp": 30,
+    "type_id": 11
+  },
+  "117": {
+    "power": null,
+    "accuracy": 100,
+    "pp": 10,
+    "type_id": 1,
+    "damage_class": "physical"
+  },
+  "120": {
+    "power": 130,
+    "accuracy": 100,
+    "pp": 5,
+    "type_id": 1,
+    "damage_class": "physical"
+  },
+  "122": {
+    "power": 20,
+    "accuracy": 100,
+    "pp": 30,
+    "type_id": 14,
+    "damage_class": "physical",
+    "effect_meta": {
+      "ailment": "paralysis",
+      "ailment_chance": 30
+    }
+  },
+  "123": {
+    "power": 20,
+    "accuracy": 70,
+    "pp": 20,
+    "type_id": 8,
+    "damage_class": "physical",
+    "effect_meta": {
+      "ailment": "poison",
+      "ailment_chance": 40
+    }
+  },
+  "124": {
+    "power": 65,
+    "accuracy": 100,
+    "pp": 20,
+    "type_id": 8,
+    "damage_class": "physical",
+    "effect_meta": {
+      "ailment": "poison",
+      "ailment_chance": 40
+    }
+  },
+  "125": {
+    "power": 65,
+    "accuracy": 85,
+    "pp": 20,
+    "type_id": 9,
+    "damage_class": "physical",
+    "effect_meta": {
+      "flinch_chance": 10
+    }
+  },
+  "126": {
+    "power": 120,
+    "accuracy": 85,
+    "pp": 5,
+    "type_id": 2,
+    "damage_class": "special",
+    "effect_meta": {
+      "ailment": "burn",
+      "ailment_chance": 30
+    }
+  },
+  "127": {
+    "power": 80,
+    "accuracy": 100,
+    "pp": 15,
+    "type_id": 3,
+    "damage_class": "special",
+    "effect_meta": {
+      "flinch_chance": 0
+    }
+  },
+  "128": {
+    "power": 35,
+    "accuracy": 75,
+    "pp": 10,
+    "type_id": 3,
+    "damage_class": "special"
+  },
+  "129": {
+    "power": 60,
+    "accuracy": 100,
+    "pp": 20,
+    "type_id": 1,
+    "damage_class": "physical"
+  },
+  "130": {
+    "power": 100,
+    "accuracy": 100,
+    "pp": 15,
+    "type_id": 1,
+    "damage_class": "physical"
+  },
+  "132": {
+    "power": 10,
+    "accuracy": 100,
+    "pp": 35,
+    "type_id": 1,
+    "damage_class": "physical",
+    "effect_meta": {
+      "stat_chance": 33,
+      "stat_changes": [
+        {
+          "stat": "speed",
+          "change": -1
+        }
+      ]
+    }
+  },
+  "135": {
+    "power": null,
+    "accuracy": null,
+    "pp": 10,
+    "type_id": 1
+  },
+  "136": {
+    "power": 85,
+    "accuracy": 90,
+    "pp": 20,
+    "type_id": 7,
+    "damage_class": "physical"
+  },
+  "137": {
+    "power": null,
+    "accuracy": 75,
+    "pp": 30,
+    "type_id": 1
+  },
+  "139": {
+    "power": null,
+    "accuracy": 55,
+    "pp": 40,
+    "type_id": 8
+  },
+  "141": {
+    "power": 20,
+    "accuracy": 100,
+    "pp": 15,
+    "type_id": 12,
+    "damage_class": "physical"
+  },
+  "143": {
+    "power": 140,
+    "accuracy": 90,
+    "pp": 5,
+    "type_id": 10,
+    "damage_class": "physical",
+    "effect_meta": {
+      "flinch_chance": 0
+    }
+  },
+  "145": {
+    "power": 20,
+    "accuracy": 100,
+    "pp": 30,
+    "type_id": 3,
+    "damage_class": "special",
+    "effect_meta": {
+      "stat_chance": 33,
+      "stat_changes": [
+        {
+          "stat": "speed",
+          "change": -1
+        }
+      ]
+    }
+  },
+  "148": {
+    "power": null,
+    "accuracy": 70,
+    "pp": 20,
+    "type_id": 1
+  },
+  "149": {
+    "power": null,
+    "accuracy": 80,
+    "pp": 15,
+    "type_id": 11,
+    "damage_class": "special"
+  },
+  "151": {
+    "power": null,
+    "accuracy": null,
+    "pp": 40,
+    "type_id": 8
+  },
+  "152": {
+    "power": 90,
+    "accuracy": 85,
+    "pp": 10,
+    "type_id": 3,
+    "damage_class": "special"
+  },
+  "153": {
+    "power": 170,
+    "accuracy": 100,
+    "pp": 5,
+    "type_id": 1,
+    "damage_class": "physical"
+  },
+  "156": {
+    "power": null,
+    "accuracy": null,
+    "pp": 10,
+    "type_id": 11
+  },
+  "157": {
+    "power": 75,
+    "accuracy": 90,
+    "pp": 10,
+    "type_id": 13,
+    "damage_class": "physical",
+    "effect_meta": {
+      "flinch_chance": 0
+    }
+  },
+  "158": {
+    "power": 80,
+    "accuracy": 90,
+    "pp": 15,
+    "type_id": 1,
+    "damage_class": "physical",
+    "effect_meta": {
+      "flinch_chance": 10
+    }
+  },
+  "165": {
+    "power": 50,
+    "accuracy": 100,
+    "pp": 10,
+    "type_id": 1,
+    "damage_class": "physical"
+  }
+}

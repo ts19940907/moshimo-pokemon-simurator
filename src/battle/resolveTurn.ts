@@ -192,6 +192,7 @@ function fixedDamage(
 }
 
 function canStatus(target: BattleFighter, ailment: string): boolean {
+  // Gen1: major status cannot be overwritten (Rest is the exception, handled separately).
   if (target.status) return false;
   if (ailment === "paralysis" && target.species.type1 === 4) return false;
   if (ailment === "burn" && target.species.type1 === 2) return false;
@@ -234,7 +235,10 @@ function applyAilment(
     }
     return;
   }
-  if (!canStatus(target, ailment)) return;
+  if (!canStatus(target, ailment)) {
+    logs.push("しかし　うまく　決まらなかった！");
+    return;
+  }
   if (
     ailment === "paralysis" ||
     ailment === "sleep" ||
@@ -253,6 +257,18 @@ function applyAilment(
     };
     logs.push(`${name}は　${ja[ailment] ?? ailment}！`);
   }
+}
+
+function stageChangePhrase(delta: number): string {
+  const abs = Math.abs(delta);
+  if (delta > 0) {
+    if (abs >= 3) return "ぐぐーんと上がった";
+    if (abs === 2) return "ぐーんと上がった";
+    return "上がった";
+  }
+  if (abs >= 3) return "ががくっと下がった";
+  if (abs === 2) return "がくっと下がった";
+  return "下がった";
 }
 
 function applyStatChanges(
@@ -299,7 +315,8 @@ function applyStatChanges(
     }
     const before = who.stages[key];
     who.stages[key] = Math.max(-6, Math.min(6, before + sc.change));
-    if (who.stages[key] === before) {
+    const delta = who.stages[key] - before;
+    if (delta === 0) {
       logs.push(`${whoName}の　能力は　もう　変わらない！`);
       continue;
     }
@@ -312,7 +329,7 @@ function applyStatChanges(
       evasion: "かいひ率",
     };
     logs.push(
-      `${whoName}の　${label[key]}が　${sc.change > 0 ? "上がった" : "下がった"}！`,
+      `${whoName}の　${label[key]}が　${stageChangePhrase(delta)}！`,
     );
   }
 }
@@ -419,7 +436,8 @@ function canAct(
     }
   }
   if (fighter.status === "sleep") {
-    fighter.sleepTurns -= 1;
+    // sleepTurns = remaining asleep turns (must be ≥1 when status is set).
+    // Wake only after those turns are consumed — never on the apply turn.
     if (fighter.sleepTurns <= 0) {
       fighter.status = null;
       logs.push(`${fighter.member.nameJa}は　目を　覚ました！`);
@@ -428,6 +446,7 @@ function canAct(
       return false;
     }
     logs.push(`${fighter.member.nameJa}は　ぐうぐう　眠っている！`);
+    fighter.sleepTurns -= 1;
     clearChargeIfAny();
     return false;
   }
@@ -497,7 +516,7 @@ function isThrashLike(move: Move): boolean {
   return move.pokeapi_id === 37 || move.pokeapi_id === 80;
 }
 
-/** Forced move while charging or thrashing; null if free to choose. */
+/** Forced move while charging, thrashing, trapped, etc.; null if free to choose. */
 export function getForcedMove(fighter: BattleFighter | null): Move | null {
   if (!fighter || fighter.currentHp <= 0) return null;
   // Hyper Beam etc.: must skip the recharge turn (UI auto-locks, canAct consumes it)
@@ -523,6 +542,27 @@ export function getForcedMove(fighter: BattleFighter | null): Move | null {
       }
     );
   }
+  // Partial-trap victim: cannot choose a move (auto-lock a stub; canAct blocks)
+  if (fighter.volatiles.trapTurns > 0) {
+    return {
+      id: "trapped",
+      pokeapi_id: 0,
+      name_ja: "しめつけ",
+      name_en: "trapped",
+      type_id: 1,
+      damage_class: "status",
+      power: null,
+      accuracy: null,
+      pp: null,
+      priority: 0,
+      description: null,
+      effect_category: "unique",
+      effect_meta: EMPTY_EFFECT_META,
+      effect_code: null,
+      introduced_generation: 1,
+      available_generations: 1,
+    };
+  }
   if (fighter.volatiles.chargingMove) return fighter.volatiles.chargingMove;
   if (fighter.volatiles.bindingMove && fighter.volatiles.bindingTurnsLeft > 0) {
     return fighter.volatiles.bindingMove;
@@ -544,10 +584,23 @@ function finishThrashLock(
   move: Move,
   logs: TurnLogLine[],
 ): void {
+  if (attacker.volatiles.lockedMove?.id !== move.id) return;
+
+  // Rage: ends after lockTurnsLeft forced uses (seed text); ATK still rises when hit.
+  if (move.pokeapi_id === 99) {
+    attacker.volatiles.lockTurnsLeft -= 1;
+    if (attacker.volatiles.lockTurnsLeft <= 0) {
+      attacker.volatiles.lockedMove = null;
+      attacker.volatiles.lockTurnsLeft = 0;
+      attacker.volatiles.rageActive = false;
+      logs.push(`${attacker.member.nameJa}の　いかりが　収まった！`);
+    }
+    return;
+  }
+
   if (
     move.effect_code === "unique-lock" &&
-    isThrashLike(move) &&
-    attacker.volatiles.lockedMove?.id === move.id
+    isThrashLike(move)
   ) {
     attacker.volatiles.lockTurnsLeft -= 1;
     if (attacker.volatiles.lockTurnsLeft <= 0) {
@@ -601,10 +654,11 @@ function executeMove(
     attacker.volatiles.lockTurnsLeft = randInt(3, 4);
   }
 
-  // Rage: lock until faint/switch (ATK rises when hit)
+  // Rage: lock for a few turns (ATK rises when hit). Not infinite.
   if (move.pokeapi_id === 99 && !attacker.volatiles.rageActive) {
     attacker.volatiles.rageActive = true;
     attacker.volatiles.lockedMove = move;
+    attacker.volatiles.lockTurnsLeft = randInt(2, 3);
   }
 
   if (!fromMirror || code !== "unique-mirror-move") {
@@ -685,9 +739,8 @@ function executeMove(
   if (code === "unique-rest") {
     attacker.currentHp = attacker.maxHp;
     attacker.status = "sleep";
-    // Gen1 Rest: 2 turns of sleep counting the Rest turn → 1 remaining sleep
-    // turn, then wake turn (also cannot move), then free.
-    attacker.sleepTurns = 2;
+    // After Rest: one full asleep turn, then a wake turn that cannot move.
+    attacker.sleepTurns = 1;
     logs.push(`${attacker.member.nameJa}は　眠って　HPを　回復した！`);
     attacker.volatiles.lastMoveUsed = move;
     return;
@@ -817,23 +870,22 @@ function executeMove(
     return;
   }
   if (code === "unique-conversion") {
-    const ids = attacker.member.moveIds.filter((id): id is string => !!id);
-    const moves = ids
-      .map((id) => GEN1_MOVE_POOL.find((m) => m.id === id))
-      .filter((m): m is Move => !!m);
-    if (moves.length === 0) {
+    // Gen1 Conversion: copy the target's current type(s).
+    if (
+      defender.species.type1 === attacker.species.type1 &&
+      defender.species.type2 === attacker.species.type2
+    ) {
       logs.push("しかし　うまく　決まらなかった！");
       attacker.volatiles.lastMoveUsed = move;
       return;
     }
-    const chosen = moves[randInt(0, moves.length - 1)];
     attacker.species = {
       ...attacker.species,
-      type1: chosen.type_id,
-      type2: 0,
+      type1: defender.species.type1,
+      type2: defender.species.type2,
     };
     logs.push(
-      `${attacker.member.nameJa}は　${chosen.name_ja}の　タイプに　なった！`,
+      `${attacker.member.nameJa}は　${defender.member.nameJa}と　同じタイプに　なった！`,
     );
     attacker.volatiles.lastMoveUsed = move;
     return;
@@ -1188,6 +1240,9 @@ export function buildFighter(input: {
   stats: BattleFighter["stats"];
   currentHp: number;
   maxHp: number;
+  /** Gen1: major status persists on the bench. */
+  status?: BattleStatus;
+  sleepTurns?: number;
 }): BattleFighter {
   return {
     side: input.side,
@@ -1198,8 +1253,8 @@ export function buildFighter(input: {
     stages: createStages(),
     currentHp: input.currentHp,
     maxHp: input.maxHp,
-    status: null,
-    sleepTurns: 0,
+    status: input.status ?? null,
+    sleepTurns: input.sleepTurns ?? 0,
     volatiles: createVolatiles(),
   };
 }
@@ -1288,6 +1343,13 @@ export function resolveTurnSteps(input: {
         slot.fighter.volatiles.bideDamage = 0;
         logs.push("がまんが　解けた！");
       }
+      if (slot.fighter.currentHp <= 0) {
+        logs.push(`${slot.fighter.member.nameJa}は　たおれた！`);
+        // Confusion / residual self-KO: clear locks so battle can go to switch
+        slot.fighter.volatiles.rageActive = false;
+        slot.fighter.volatiles.lockedMove = null;
+        slot.fighter.volatiles.lockTurnsLeft = 0;
+      }
       pushStep(logs);
       continue;
     }
@@ -1319,7 +1381,9 @@ export function resolveTurnSteps(input: {
       slot.fighter.volatiles.bideTurnsLeft > 0 &&
       move.effect_code === "unique-bide";
     const continuingRage =
-      slot.fighter.volatiles.rageActive && move.pokeapi_id === 99;
+      slot.fighter.volatiles.rageActive &&
+      move.pokeapi_id === 99 &&
+      slot.fighter.volatiles.lockTurnsLeft > 0;
 
     const beats: {
       logs: TurnLogLine[];

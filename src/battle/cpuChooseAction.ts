@@ -10,6 +10,7 @@ import {
 import { gen1TypeEffectiveness } from "./gen1TypeChart";
 import { hypothesizeThreatMoves, randInt } from "./cpuTeam";
 import { getForcedMove } from "./resolveTurn";
+import { getMoveByPokeapiId } from "./gen1MovePool";
 import {
   stagedStat,
   type BattleAction,
@@ -210,6 +211,7 @@ function availableMoves(
   const out: Move[] = [];
   for (const id of fighter.member.moveIds) {
     if (!id) continue;
+    if (fighter.volatiles.disableMoveId === id) continue;
     const move = movesById[id];
     if (!move) continue;
     const pp = ppRemaining[`${fighter.speciesId}:${id}`];
@@ -326,10 +328,8 @@ export function chooseCpuAction(input: {
   }
 
   if (scored.length === 0) {
-    // Struggle-like: should not happen often; pick first move id if any
-    const anyId = input.self.member.moveIds.find(Boolean);
-    const move = anyId ? input.selfMovesById[anyId] : null;
-    if (move) return { type: "move", move };
+    const struggle = getMoveByPokeapiId(165);
+    if (struggle) return { type: "move", move: struggle };
     if (input.switchOptions[0]) {
       return { type: "switch", index: input.switchOptions[0].index };
     }
