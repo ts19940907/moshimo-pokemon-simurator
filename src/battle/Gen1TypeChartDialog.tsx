@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import {
   Modal,
   NativeScrollEvent,
@@ -12,16 +12,20 @@ import {
 
 import { TYPE_BY_ID } from "../pokemon/types";
 import { gen1TypeEffectiveness } from "../battle/gen1TypeChart";
+import { gen2TypeEffectiveness } from "../battle/gen2TypeChart";
 
 /** Gen1 types only (Normal…Dragon). */
 export const GEN1_TYPE_IDS = [
   1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 ] as const;
 
+/** Gen2 types (Normal…Steel). */
+export const GEN2_TYPE_IDS = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+] as const;
+
 const CELL = 28;
 const LABEL = 36;
-const BODY_WIDTH = CELL * GEN1_TYPE_IDS.length;
-const BODY_HEIGHT = CELL * GEN1_TYPE_IDS.length;
 const FRAME_HEIGHT = 360;
 
 function cellLabel(mult: number): string {
@@ -41,16 +45,35 @@ function cellStyle(mult: number) {
 type Props = {
   visible: boolean;
   onClose: () => void;
+  /** Battle rules generation. Gen2+ uses the GSC chart (Dark/Steel). */
+  generation?: number;
 };
 
 /**
- * Attack type (row) → Defense type (column) for Gen1 cartridge chart.
+ * Attack type (row) → Defense type (column).
  * Type name row/column stay fixed while the matrix scrolls both ways.
  */
-export function Gen1TypeChartDialog({ visible, onClose }: Props) {
+export function Gen1TypeChartDialog({
+  visible,
+  onClose,
+  generation = 1,
+}: Props) {
   const headerHRef = useRef<ScrollView>(null);
   const labelsVRef = useRef<ScrollView>(null);
   const syncing = useRef(false);
+
+  const isGen2Plus = generation >= 2 && generation < 6;
+  const typeIds = isGen2Plus ? GEN2_TYPE_IDS : GEN1_TYPE_IDS;
+  const effectiveness = isGen2Plus
+    ? gen2TypeEffectiveness
+    : gen1TypeEffectiveness;
+  const title = isGen2Plus ? "第2世代タイプ相性表" : "初代タイプ相性表";
+  const note = isGen2Plus
+    ? "※あく・はがねが追加。ゴースト↔エスパーは抜群。むし↔どくは今ひとつ。こおり→ほのおは抜群。"
+    : "※むし→どくは抜群。くさ／どくはむし技で4倍になります。";
+
+  const bodyWidth = CELL * typeIds.length;
+  const bodyHeight = CELL * typeIds.length;
 
   const syncHeaderX = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (syncing.current) return;
@@ -76,6 +99,11 @@ export function Gen1TypeChartDialog({ visible, onClose }: Props) {
     });
   };
 
+  const matrixKey = useMemo(
+    () => `chart-gen-${generation}-${typeIds.length}`,
+    [generation, typeIds.length],
+  );
+
   return (
     <Modal
       visible={visible}
@@ -86,7 +114,7 @@ export function Gen1TypeChartDialog({ visible, onClose }: Props) {
       <View style={styles.backdrop}>
         <View style={styles.sheet}>
           <View style={styles.header}>
-            <Text style={styles.title}>初代タイプ相性表</Text>
+            <Text style={styles.title}>{title}</Text>
             <Pressable onPress={onClose} style={styles.closeBtn} hitSlop={8}>
               <Text style={styles.closeBtnText}>×</Text>
             </Pressable>
@@ -95,15 +123,11 @@ export function Gen1TypeChartDialog({ visible, onClose }: Props) {
             縦＝攻撃タイプ　／　横＝防御タイプ{"\n"}
             ◯＝抜群　△＝今ひとつ　×＝無効　（空白＝等倍）
           </Text>
-          <Text style={styles.note}>
-            ※むし→どくは抜群。くさ／どくはむし技で4倍になります。
-          </Text>
+          <Text style={styles.note}>{note}</Text>
 
-          <View style={styles.matrixFrame}>
-            {/* Fixed corner */}
+          <View style={styles.matrixFrame} key={matrixKey}>
             <View style={styles.corner} />
 
-            {/* Fixed top headers (scrolls horizontally with body) */}
             <ScrollView
               ref={headerHRef}
               horizontal
@@ -113,7 +137,7 @@ export function Gen1TypeChartDialog({ visible, onClose }: Props) {
               style={styles.headerStrip}
               contentContainerStyle={styles.stripContent}
             >
-              {GEN1_TYPE_IDS.map((defId) => (
+              {typeIds.map((defId) => (
                 <View key={`h-${defId}`} style={styles.headerCell}>
                   <Text style={styles.headerCellText} numberOfLines={2}>
                     {TYPE_BY_ID[defId]?.nameJa ?? defId}
@@ -122,7 +146,6 @@ export function Gen1TypeChartDialog({ visible, onClose }: Props) {
               ))}
             </ScrollView>
 
-            {/* Fixed left labels (scrolls vertically with body) */}
             <ScrollView
               ref={labelsVRef}
               bounces={false}
@@ -131,7 +154,7 @@ export function Gen1TypeChartDialog({ visible, onClose }: Props) {
               style={styles.labelStrip}
               contentContainerStyle={styles.stripContent}
             >
-              {GEN1_TYPE_IDS.map((atkId) => (
+              {typeIds.map((atkId) => (
                 <View key={`r-${atkId}`} style={styles.rowLabel}>
                   <Text style={styles.rowLabelText} numberOfLines={2}>
                     {TYPE_BY_ID[atkId]?.nameJa ?? atkId}
@@ -140,7 +163,6 @@ export function Gen1TypeChartDialog({ visible, onClose }: Props) {
               ))}
             </ScrollView>
 
-            {/* Scrollable body */}
             <ScrollView
               bounces={false}
               nestedScrollEnabled
@@ -158,11 +180,19 @@ export function Gen1TypeChartDialog({ visible, onClose }: Props) {
                 showsHorizontalScrollIndicator
                 contentContainerStyle={styles.stripContent}
               >
-                <View style={styles.bodyGrid}>
-                  {GEN1_TYPE_IDS.map((atkId) => (
-                    <View key={`br-${atkId}`} style={styles.row}>
-                      {GEN1_TYPE_IDS.map((defId) => {
-                        const mult = gen1TypeEffectiveness(atkId, defId, 0);
+                <View
+                  style={[
+                    styles.bodyGrid,
+                    { width: bodyWidth, height: bodyHeight },
+                  ]}
+                >
+                  {typeIds.map((atkId) => (
+                    <View
+                      key={`br-${atkId}`}
+                      style={[styles.row, { width: bodyWidth }]}
+                    >
+                      {typeIds.map((defId) => {
+                        const mult = effectiveness(atkId, defId, 0);
                         return (
                           <View
                             key={`c-${atkId}-${defId}`}
@@ -297,13 +327,9 @@ const styles = StyleSheet.create({
     flexGrow: 0,
     alignItems: "flex-start",
   },
-  bodyGrid: {
-    width: BODY_WIDTH,
-    height: BODY_HEIGHT,
-  },
+  bodyGrid: {},
   row: {
     flexDirection: "row",
-    width: BODY_WIDTH,
     height: CELL,
   },
   headerCell: {
@@ -344,26 +370,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#ddd4c4",
+    borderColor: "#e5ddd0",
   },
   cellNeutral: { backgroundColor: "#fffdf8" },
-  cellStrong: { backgroundColor: "#f5c4b8" },
-  cellResist: { backgroundColor: "#c5d8f0" },
-  cellImmune: { backgroundColor: "#cfc7ba" },
+  cellStrong: { backgroundColor: "#f8d4c4" },
+  cellResist: { backgroundColor: "#dce8f5" },
+  cellImmune: { backgroundColor: "#e8e0d4" },
   cellText: {
     fontSize: 11,
     fontWeight: "800",
     color: "#1d1a16",
   },
   primaryBtn: {
+    marginTop: 4,
     backgroundColor: "#1f6b4a",
-    borderRadius: 12,
-    paddingVertical: 11,
+    borderRadius: 10,
+    paddingVertical: 12,
     alignItems: "center",
   },
   primaryBtnText: {
     color: "#fff",
-    fontSize: 15,
     fontWeight: "800",
+    fontSize: 14,
   },
 });

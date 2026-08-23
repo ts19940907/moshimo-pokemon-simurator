@@ -1681,7 +1681,9 @@ export function SelectPokemonScreen() {
                 ]}
               >
                 <Text style={styles.typeChartButtonText}>
-                  初代タイプ相性表を見る
+                  {rulesGeneration >= 2
+                    ? "第2世代タイプ相性表を見る"
+                    : "初代タイプ相性表を見る"}
                 </Text>
               </Pressable>
             </View>
@@ -2134,6 +2136,7 @@ export function SelectPokemonScreen() {
       <Gen1TypeChartDialog
         visible={typeChartOpen}
         onClose={() => setTypeChartOpen(false)}
+        generation={rulesGeneration}
       />
 
       <SimulatorScreen
