@@ -1,0 +1,362 @@
+[
+  {
+    "pokeapi_id": 43,
+    "name_ja": "きのみジュース",
+    "name_en": "Berry Juice",
+    "category": "healing",
+    "description": "持たせると、HPが20回復する。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 126,
+    "name_ja": "クラボのみ",
+    "name_en": "Cheri Berry",
+    "category": "medicine",
+    "description": "持たせると、まひを治す。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 127,
+    "name_ja": "カゴのみ",
+    "name_en": "Chesto Berry",
+    "category": "medicine",
+    "description": "持たせると、ねむりを治す。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 128,
+    "name_ja": "モモンのみ",
+    "name_en": "Pecha Berry",
+    "category": "medicine",
+    "description": "持たせると、どくを治す。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 129,
+    "name_ja": "チーゴのみ",
+    "name_en": "Rawst Berry",
+    "category": "medicine",
+    "description": "持たせると、やけどを治す。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 130,
+    "name_ja": "ナナシのみ",
+    "name_en": "Aspear Berry",
+    "category": "medicine",
+    "description": "持たせると、こおりを治す。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 131,
+    "name_ja": "ヒメリのみ",
+    "name_en": "Leppa Berry",
+    "category": "medicine",
+    "description": "持たせると、技のPPを10回復する。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 132,
+    "name_ja": "オレンのみ",
+    "name_en": "Oran Berry",
+    "category": "medicine",
+    "description": "持たせると、HPを10回復する。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 133,
+    "name_ja": "キーのみ",
+    "name_en": "Persim Berry",
+    "category": "medicine",
+    "description": "持たせると、こんらんを治す。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 134,
+    "name_ja": "ラムのみ",
+    "name_en": "Lum Berry",
+    "category": "medicine",
+    "description": "持たせると、すべての状態異常を治す。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 135,
+    "name_ja": "オボンのみ",
+    "name_en": "Sitrus Berry",
+    "category": "medicine",
+    "description": "持たせると、HPを少し回復する。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 190,
+    "name_ja": "ひかりのこな",
+    "name_en": "Bright Powder",
+    "category": "held-items",
+    "description": "持たせると、相手の技が当たりにくくなる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 194,
+    "name_ja": "せんせいのツメ",
+    "name_en": "Quick Claw",
+    "category": "held-items",
+    "description": "持たせると、相手より先に行動することがある。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 198,
+    "name_ja": "おうじゃのしるし",
+    "name_en": "King’s Rock",
+    "category": "held-items",
+    "description": "持たせると、攻撃でダメージを与えたときに相手をひるませることがある。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 199,
+    "name_ja": "ぎんのこな",
+    "name_en": "Silver Powder",
+    "category": "type-enhancement",
+    "description": "持たせると、むしタイプの技の威力が上がる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 205,
+    "name_ja": "けむりだま",
+    "name_en": "Smoke Ball",
+    "category": "held-items",
+    "description": "持たせると、野生ポケモンとの戦闘から必ず逃げられる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 207,
+    "name_ja": "きあいのハチマキ",
+    "name_en": "Focus Band",
+    "category": "held-items",
+    "description": "持たせると、ひんしになるダメージを受けてもHP1で耐えることがある。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 209,
+    "name_ja": "ピントレンズ",
+    "name_en": "Scope Lens",
+    "category": "held-items",
+    "description": "持たせると、技が急所に当たりやすくなる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 210,
+    "name_ja": "メタルコート",
+    "name_en": "Metal Coat",
+    "category": "type-enhancement",
+    "description": "持たせると、はがねタイプの技の威力が上がる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 211,
+    "name_ja": "たべのこし",
+    "name_en": "Leftovers",
+    "category": "held-items",
+    "description": "毎ターン終了時、最大HPの1/16を回復する。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 213,
+    "name_ja": "でんきだま",
+    "name_en": "Light Ball",
+    "category": "species-specific",
+    "description": "ピカチュウに持たせると、とくしゅが2倍になる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 214,
+    "name_ja": "やわらかいすな",
+    "name_en": "Soft Sand",
+    "category": "type-enhancement",
+    "description": "持たせると、じめんタイプの技の威力が上がる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 215,
+    "name_ja": "かたいいし",
+    "name_en": "Hard Stone",
+    "category": "type-enhancement",
+    "description": "持たせると、いわタイプの技の威力が上がる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 216,
+    "name_ja": "きせきのタネ",
+    "name_en": "Miracle Seed",
+    "category": "type-enhancement",
+    "description": "持たせると、くさタイプの技の威力が上がる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 217,
+    "name_ja": "くろいメガネ",
+    "name_en": "Black Glasses",
+    "category": "type-enhancement",
+    "description": "持たせると、あくタイプの技の威力が上がる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 218,
+    "name_ja": "くろおび",
+    "name_en": "Black Belt",
+    "category": "type-enhancement",
+    "description": "持たせると、かくとうタイプの技の威力が上がる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 219,
+    "name_ja": "じしゃく",
+    "name_en": "Magnet",
+    "category": "type-enhancement",
+    "description": "持たせると、でんきタイプの技の威力が上がる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 220,
+    "name_ja": "しんぴのしずく",
+    "name_en": "Mystic Water",
+    "category": "type-enhancement",
+    "description": "持たせると、みずタイプの技の威力が上がる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 221,
+    "name_ja": "するどいくちばし",
+    "name_en": "Sharp Beak",
+    "category": "type-enhancement",
+    "description": "持たせると、ひこうタイプの技の威力が上がる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 222,
+    "name_ja": "どくバリ",
+    "name_en": "Poison Barb",
+    "category": "type-enhancement",
+    "description": "持たせると、どくタイプの技の威力が上がる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 223,
+    "name_ja": "とけないこおり",
+    "name_en": "Never-Melt Ice",
+    "category": "type-enhancement",
+    "description": "持たせると、こおりタイプの技の威力が上がる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 224,
+    "name_ja": "のろいのおふだ",
+    "name_en": "Spell Tag",
+    "category": "type-enhancement",
+    "description": "持たせると、ゴーストタイプの技の威力が上がる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 225,
+    "name_ja": "まがったスプーン",
+    "name_en": "Twisted Spoon",
+    "category": "type-enhancement",
+    "description": "持たせると、エスパータイプの技の威力が上がる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 226,
+    "name_ja": "もくたん",
+    "name_en": "Charcoal",
+    "category": "type-enhancement",
+    "description": "持たせると、ほのおタイプの技の威力が上がる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 227,
+    "name_ja": "りゅうのキバ",
+    "name_en": "Dragon Fang",
+    "category": "type-enhancement",
+    "description": "持たせると、ドラゴンタイプの技の威力が上がる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 228,
+    "name_ja": "シルクのスカーフ",
+    "name_en": "Silk Scarf",
+    "category": "type-enhancement",
+    "description": "持たせると、ノーマルタイプの技の威力が上がる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 233,
+    "name_ja": "ラッキーパンチ",
+    "name_en": "Lucky Punch",
+    "category": "species-specific",
+    "description": "ラッキーに持たせると、技が急所に当たりやすくなる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 234,
+    "name_ja": "メタルパウダー",
+    "name_en": "Metal Powder",
+    "category": "species-specific",
+    "description": "メタモンに持たせると、ぼうぎょが上がる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 235,
+    "name_ja": "ふといホネ",
+    "name_en": "Thick Club",
+    "category": "species-specific",
+    "description": "カラカラまたはガラガラに持たせると、こうげきが2倍になる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  },
+  {
+    "pokeapi_id": 236,
+    "name_ja": "ながねぎ",
+    "name_en": "Leek",
+    "category": "species-specific",
+    "description": "カモネギに持たせると、技が急所に当たりやすくなる。",
+    "introduced_generation": 2,
+    "available_generations": 510
+  }
+]

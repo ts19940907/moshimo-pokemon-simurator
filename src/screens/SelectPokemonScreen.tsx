@@ -19,6 +19,7 @@ import type {
   OpponentType,
 } from "../match-setup/types";
 import {
+  itemGenerationFilterFromParams,
   moveGenerationFilterFromParams,
   pokemonGenerationFilterFromParams,
 } from "../match-setup/params";
@@ -47,6 +48,8 @@ import {
   fetchPokemonIdsForMoves,
   searchMoves,
 } from "../pokemon/moveRepository";
+import type { Tool } from "../pokemon/tools";
+import { fetchToolsByIds } from "../pokemon/toolRepository";
 import { fetchPokemonSpecies } from "../pokemon/repository";
 import {
   TYPE_NONE,
@@ -987,6 +990,14 @@ export function SelectPokemonScreen() {
       params.moveGeneration,
     ],
   );
+  const itemGenerationOptions = useMemo(
+    () => itemGenerationFilterFromParams(params),
+    [
+      params.rulesGeneration,
+      params.syncGenerationsWithRules,
+      params.itemGenerations,
+    ],
+  );
 
   const [allSpecies, setAllSpecies] = useState<PokemonSpecies[]>([]);
   const [loading, setLoading] = useState(true);
@@ -999,6 +1010,7 @@ export function SelectPokemonScreen() {
   >({});
   const [settingSpeciesId, setSettingSpeciesId] = useState<string | null>(null);
   const [movesById, setMovesById] = useState<Record<string, Move>>({});
+  const [toolsById, setToolsById] = useState<Record<string, Tool>>({});
   const [movesRequiredOpen, setMovesRequiredOpen] = useState(false);
   const [partyRequiredOpen, setPartyRequiredOpen] = useState(false);
   const [typeChartOpen, setTypeChartOpen] = useState(false);
@@ -1432,6 +1444,32 @@ export function SelectPokemonScreen() {
         setMovesById(map);
       } catch {
         if (!cancelled) setMovesById({});
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [buildsBySpeciesId]);
+
+  useEffect(() => {
+    const ids = new Set<string>();
+    for (const member of Object.values(buildsBySpeciesId)) {
+      if (member.toolId) ids.add(member.toolId);
+    }
+    if (ids.size === 0) {
+      setToolsById({});
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const tools = await fetchToolsByIds([...ids]);
+        if (cancelled) return;
+        const map: Record<string, Tool> = {};
+        for (const tool of tools) map[tool.id] = tool;
+        setToolsById(map);
+      } catch {
+        if (!cancelled) setToolsById({});
       }
     })();
     return () => {
@@ -1925,7 +1963,7 @@ export function SelectPokemonScreen() {
               </Pressable>
             </View>
             <Text style={styles.partyHint}>
-              「設定」で個体値・努力値・技を編集、「解除」で選択を外せます。図鑑一覧を再タップしても解除されません（技絞り込み中は技を反映します）。
+              「設定」で個体値・努力値・技・持ち物を編集、「解除」で選択を外せます。図鑑一覧を再タップしても解除されません（技絞り込み中は技を反映します）。
             </Text>
             <ScrollView
               style={styles.partyReviewScroll}
@@ -1954,6 +1992,9 @@ export function SelectPokemonScreen() {
                         )
                         .join(" ／ ")
                     : "—";
+                  const toolLabel = build?.toolId
+                    ? (toolsById[build.toolId]?.name_ja ?? "…")
+                    : "なし";
                   return (
                     <View
                       key={pokemon.id}
@@ -1983,6 +2024,9 @@ export function SelectPokemonScreen() {
                       ) : null}
                       <Text style={styles.partyMoves} numberOfLines={2}>
                         {moveLabel}
+                      </Text>
+                      <Text style={styles.partyMoves} numberOfLines={1}>
+                        持ち物: {toolLabel}
                       </Text>
                       <View style={styles.partyActions}>
                         <Pressable
@@ -2046,6 +2090,11 @@ export function SelectPokemonScreen() {
           species={settingPokemon}
           levelCapMode={levelCapMode}
           moveGenerationOptions={moveGenerationOptions}
+          itemGenerationOptions={itemGenerationOptions}
+          excludedToolIds={Object.values(buildsBySpeciesId)
+            .filter((build) => build.speciesId !== settingBuild.speciesId)
+            .map((build) => build.toolId)
+            .filter((id): id is string => Boolean(id))}
           onClose={() => setSettingSpeciesId(null)}
           onSave={(build) => {
             setBuildsBySpeciesId((current) => ({

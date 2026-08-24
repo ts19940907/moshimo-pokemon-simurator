@@ -26,6 +26,8 @@ export type PartyMemberBuild = {
   statExp: Gen1StatBlock;
   /** Up to 4 move ids (UUID). Empty slot = null. */
   moveIds: [string | null, string | null, string | null, string | null];
+  /** Held item (tool) id (UUID). None = null. Gen1 unused. */
+  toolId: string | null;
 };
 
 export type PartySetupState = {
@@ -75,6 +77,7 @@ export function createDefaultBuild(
     iv: { hp: 15, attack: 15, defense: 15, special: 15, speed: 15 },
     statExp: { hp: 0, attack: 0, defense: 0, special: 0, speed: 0 },
     moveIds: [null, null, null, null],
+    toolId: null,
   };
 }
 

@@ -14,12 +14,14 @@ App tables live in the **`moshimo`** schema (not `public`), to keep them separat
 - Migration (pokemon_moves generations): `supabase/migrations/20260813170000_pokemon_moves_available_generations.sql`
 - Migration (drop junction generation): `supabase/migrations/20260813180000_drop_pokemon_moves_available_generations.sql`
 - Migration (move effects): `supabase/migrations/20260814110000_moves_effect_columns.sql`
+- Migration (tools / held items): `supabase/migrations/20260825000100_create_tools.sql`
 - Ability seed: `supabase/seed/abilities.sql`
 - Gen1 pokemon seed: `supabase/seed/gen1_pokemon.sql`
 - Combined pokemon reseed: `supabase/seed/gen1_all.sql`（abilities → pokemon の順）
 - Gen1 moves + junction: `supabase/seed/gen1_moves_all.sql`（moves → pokemon_moves の順）
 - Gen2 Johto pokemon (additive): `supabase/seed/gen2_all.sql`（abilities upsert → Johto pokemon）
 - Gen2 moves (additive, small): `supabase/seed/gen2_moves.sql`
+- Gen2 tools / held items (additive): `supabase/seed/gen2_tools.sql`（`node scripts/generate-gen2-tools-seed.mjs` で再生成）
 - Gen2 learnsets（SQL Editor 向け分割）:
   1. `gen2_pokemon_moves_00_setup.sql`
   2. `gen2_pokemon_moves_01_values.sql` … `08_values.sql`（番号順）
