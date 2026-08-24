@@ -30,6 +30,7 @@ type MatchParams = {
   syncGenerationsWithRules?: string;
   pokemonGenerations?: string;
   moveGenerations?: string;
+  itemGenerations?: string;
   pokemonGeneration?: string;
   moveGeneration?: string;
   restrictionMode?: string;
