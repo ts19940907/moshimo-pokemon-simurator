@@ -409,6 +409,161 @@ function MoveFiltersPanel({
   );
 }
 
+function MoveComboBox({
+  label,
+  value,
+  selectedMove,
+  options,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: string | null;
+  selectedMove: Move | null;
+  options: Move[];
+  disabled?: boolean;
+  onChange: (moveId: string | null) => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const typeColor = selectedMove
+    ? (TYPE_COLORS[typeNameJa(selectedMove.type_id)] ?? "#1f6b4a")
+    : null;
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter(
+      (move) =>
+        move.name_ja.toLowerCase().includes(q) ||
+        move.name_en.toLowerCase().includes(q),
+    );
+  }, [options, query]);
+
+  const closeMenu = () => {
+    setMenuOpen(false);
+    setQuery("");
+  };
+
+  return (
+    <View style={styles.moveComboWrap}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${label}を選択`}
+        disabled={disabled}
+        onPress={() => setMenuOpen(true)}
+        style={[
+          styles.moveComboSelect,
+          typeColor ? { borderColor: typeColor } : null,
+          selectedMove && styles.moveComboSelectFilled,
+          disabled && styles.moveComboSelectDisabled,
+        ]}
+      >
+        <Text
+          style={[
+            styles.moveComboSelectText,
+            selectedMove && typeColor ? { color: typeColor } : null,
+            !selectedMove && styles.moveComboPlaceholder,
+          ]}
+          numberOfLines={1}
+        >
+          {selectedMove?.name_ja ?? "技を選択"}
+        </Text>
+        <Text style={styles.moveComboCaret}>▾</Text>
+      </Pressable>
+
+      <Modal
+        visible={menuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={closeMenu}
+      >
+        <View style={styles.moveComboBackdrop}>
+          <Pressable style={styles.moveComboDismiss} onPress={closeMenu} />
+          <View style={styles.moveComboSheet}>
+            <Text style={styles.moveComboTitle}>{label}</Text>
+            <TextInput
+              style={styles.moveComboSearch}
+              value={query}
+              onChangeText={setQuery}
+              placeholder="技名で絞り込み"
+              placeholderTextColor="#9a9286"
+              autoCorrect={false}
+              autoCapitalize="none"
+            />
+            <ScrollView style={styles.moveComboList} keyboardShouldPersistTaps="handled">
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  onChange(null);
+                  closeMenu();
+                }}
+                style={[
+                  styles.moveComboItem,
+                  value == null && styles.moveComboItemSelected,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.moveComboItemText,
+                    value == null && styles.moveComboItemTextSelected,
+                  ]}
+                >
+                  なし
+                </Text>
+              </Pressable>
+              {filtered.length === 0 ? (
+                <Text style={styles.moveEmpty}>該当する技がありません。</Text>
+              ) : (
+                filtered.map((move) => {
+                  const isSelected = move.id === value;
+                  const moveTypeJa = typeNameJa(move.type_id);
+                  const moveTypeColor = TYPE_COLORS[moveTypeJa] ?? "#888";
+                  return (
+                    <Pressable
+                      key={move.id}
+                      accessibilityRole="button"
+                      onPress={() => {
+                        onChange(move.id);
+                        closeMenu();
+                      }}
+                      style={[
+                        styles.moveComboItem,
+                        isSelected && styles.moveComboItemSelected,
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.moveComboSwatch,
+                          { backgroundColor: moveTypeColor },
+                        ]}
+                      />
+                      <View style={styles.moveComboItemBody}>
+                        <Text
+                          style={[
+                            styles.moveComboItemText,
+                            isSelected && styles.moveComboItemTextSelected,
+                          ]}
+                        >
+                          {move.name_ja}
+                        </Text>
+                        <Text style={styles.moveComboItemMeta}>
+                          {moveTypeJa} ／ {DAMAGE_CLASS_JA[move.damage_class]} ／
+                          威力 {formatMoveStat(move.power)}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
 export function SetPokemonDialog({
   visible,
   member,
@@ -425,8 +580,6 @@ export function SetPokemonDialog({
   const [pickingSlot, setPickingSlot] = useState<number | null>(null);
   const [moveFilters, setMoveFilters] =
     useState<MoveFiltersState>(EMPTY_MOVE_FILTERS);
-  const [moveQueries, setMoveQueries] = useState<string[]>(["", "", "", ""]);
-  const [moveSuggestSlot, setMoveSuggestSlot] = useState<number | null>(null);
 
   const maxLevel = maxLevelForCap(levelCapMode);
   const genderLocked = species.gender !== GENDER.BOTH;
@@ -441,7 +594,6 @@ export function SetPokemonDialog({
     setErrorMessage(null);
     setPickingSlot(null);
     setMoveFilters(EMPTY_MOVE_FILTERS);
-    setMoveSuggestSlot(null);
   }, [visible, member]);
 
   useEffect(() => {
@@ -471,38 +623,16 @@ export function SetPokemonDialog({
     };
   }, [visible, member.speciesId, moveGenerationOptions]);
 
-  // Sync autocomplete labels when dialog opens / learnset arrives.
-  useEffect(() => {
-    if (!visible || loadingMoves) return;
-    setMoveQueries(
-      member.moveIds.map((id) => {
-        if (!id) return "";
-        return moves.find((m) => m.id === id)?.name_ja ?? "";
-      }),
-    );
-  }, [visible, loadingMoves, member, moves]);
-
   const filteredMoves = useMemo(
     () => moves.filter((move) => matchesMoveFilters(move, moveFilters)),
     [moves, moveFilters],
   );
 
-  const moveSuggestionsForSlot = (slotIndex: number): Move[] => {
-    const q = (moveQueries[slotIndex] ?? "").trim().toLowerCase();
-    if (q.length < 1) return [];
-    return moves
-      .filter((move) => {
-        const usedElsewhere = draft.moveIds.some(
-          (id, i) => i !== slotIndex && id === move.id,
-        );
-        if (usedElsewhere) return false;
-        return (
-          move.name_ja.toLowerCase().includes(q) ||
-          move.name_en.toLowerCase().includes(q)
-        );
-      })
-      .slice(0, 8);
-  };
+  const movesForSlot = (slotIndex: number) =>
+    moves.filter(
+      (move) =>
+        !draft.moveIds.some((id, i) => i !== slotIndex && id === move.id),
+    );
 
   const openPicker = (index: number) => {
     setPickingSlot((current) => {
@@ -588,40 +718,6 @@ export function SetPokemonDialog({
       next[index] = moveId;
       return { ...current, moveIds: next };
     });
-    setMoveQueries((current) => {
-      const next = [...current];
-      next[index] = moveId
-        ? (moves.find((m) => m.id === moveId)?.name_ja ?? "")
-        : "";
-      return next;
-    });
-  };
-
-  const setMoveQueryAt = (index: number, text: string) => {
-    setMoveQueries((current) => {
-      const next = [...current];
-      next[index] = text;
-      return next;
-    });
-    setMoveSuggestSlot(index);
-    const selectedId = draft.moveIds[index];
-    if (!selectedId) return;
-    const selectedName = moves.find((m) => m.id === selectedId)?.name_ja ?? "";
-    if (text !== selectedName) {
-      setDraft((current) => {
-        const nextIds = [...current.moveIds] as PartyMemberBuild["moveIds"];
-        if (nextIds[index] == null) return current;
-        nextIds[index] = null;
-        return { ...current, moveIds: nextIds };
-      });
-    }
-  };
-
-  const pickMoveSuggestion = (index: number, move: Move) => {
-    setMoveAt(index, move.id);
-    setMoveSuggestSlot(null);
-    setPickingSlot(null);
-    setMoveFilters(EMPTY_MOVE_FILTERS);
   };
 
   const handleSave = () => {
@@ -783,46 +879,22 @@ export function SetPokemonDialog({
             {draft.moveIds.map((moveId, index) => {
               const selectedMove = moves.find((m) => m.id === moveId) ?? null;
               const picking = pickingSlot === index;
-              const suggestions = moveSuggestionsForSlot(index);
-              const showSuggest =
-                moveSuggestSlot === index && suggestions.length > 0;
+              const slotOptions = movesForSlot(index);
               return (
                 <View key={`move-${index}`} style={styles.moveBlock}>
                   <Text style={styles.moveLabel}>技{index + 1}</Text>
-                  <View style={styles.moveSearchWrap}>
-                    <TextInput
-                      style={styles.input}
-                      value={moveQueries[index] ?? ""}
-                      onChangeText={(text) => setMoveQueryAt(index, text)}
-                      onFocus={() => setMoveSuggestSlot(index)}
-                      placeholder="技名で検索して選択"
-                      placeholderTextColor="#9a9286"
-                      autoCorrect={false}
-                      autoCapitalize="none"
-                    />
-                    {showSuggest ? (
-                      <View style={styles.moveSuggestList}>
-                        {suggestions.map((move) => (
-                          <Pressable
-                            key={`suggest-${index}-${move.id}`}
-                            onPress={() => pickMoveSuggestion(index, move)}
-                            style={({ pressed }) => [
-                              styles.moveSuggestItem,
-                              pressed && styles.moveSuggestItemPressed,
-                            ]}
-                          >
-                            <Text style={styles.moveSuggestName}>
-                              {move.name_ja}
-                            </Text>
-                            <Text style={styles.moveSuggestMeta}>
-                              {typeNameJa(move.type_id)} ／{" "}
-                              {DAMAGE_CLASS_JA[move.damage_class]}
-                            </Text>
-                          </Pressable>
-                        ))}
-                      </View>
-                    ) : null}
-                  </View>
+                  <MoveComboBox
+                    label={`技${index + 1}`}
+                    value={moveId}
+                    selectedMove={selectedMove}
+                    options={slotOptions}
+                    disabled={loadingMoves || !!errorMessage}
+                    onChange={(nextId) => {
+                      setMoveAt(index, nextId);
+                      setPickingSlot(null);
+                      setMoveFilters(EMPTY_MOVE_FILTERS);
+                    }}
+                  />
                   {selectedMove ? (
                     <MoveDetailCard
                       move={selectedMove}
@@ -830,7 +902,7 @@ export function SetPokemonDialog({
                       onPress={() => openPicker(index)}
                     />
                   ) : (
-                    <Text style={styles.moveEmpty}>未選択（候補から選ぶか検索）</Text>
+                    <Text style={styles.moveEmpty}>未選択</Text>
                   )}
                   <View style={styles.rowWrap}>
                     <Pressable
@@ -850,7 +922,6 @@ export function SetPokemonDialog({
                       onPress={() => {
                         setMoveAt(index, null);
                         setPickingSlot(null);
-                        setMoveSuggestSlot(null);
                         setMoveFilters(EMPTY_MOVE_FILTERS);
                       }}
                       style={styles.chip}
@@ -884,7 +955,6 @@ export function SetPokemonDialog({
                               onPress={() => {
                                 setMoveAt(index, move.id);
                                 setPickingSlot(null);
-                                setMoveSuggestSlot(null);
                                 setMoveFilters(EMPTY_MOVE_FILTERS);
                               }}
                             />
@@ -1030,37 +1100,115 @@ const styles = StyleSheet.create({
   moveLabel: { fontSize: 12, fontWeight: "700", color: "#5c564c" },
   moveEmpty: { fontSize: 12, color: "#8a8276" },
   moveList: { gap: 8 },
-  moveSearchWrap: {
-    position: "relative",
-    zIndex: 2,
-  },
-  moveSuggestList: {
-    marginTop: 4,
+  moveComboWrap: { gap: 4 },
+  moveComboSelect: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 6,
     borderWidth: 1,
-    borderColor: "#ddd4c4",
+    borderColor: "#cfc6b6",
     borderRadius: 10,
-    backgroundColor: "#fff",
-    overflow: "hidden",
-  },
-  moveSuggestItem: {
+    backgroundColor: "#fffdf8",
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#ebe4d8",
-    gap: 2,
+    minHeight: 42,
   },
-  moveSuggestItemPressed: {
-    backgroundColor: "#f3f6ea",
+  moveComboSelectFilled: {
+    backgroundColor: "#eef7f1",
   },
-  moveSuggestName: {
+  moveComboSelectDisabled: {
+    opacity: 0.45,
+    backgroundColor: "#f0ebe3",
+  },
+  moveComboSelectText: {
+    flex: 1,
     fontSize: 14,
     fontWeight: "800",
     color: "#1d1a16",
   },
-  moveSuggestMeta: {
+  moveComboPlaceholder: {
+    color: "#9a9286",
+    fontWeight: "600",
+  },
+  moveComboCaret: {
+    fontSize: 12,
+    color: "#5c564c",
+  },
+  moveComboBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(20,28,16,0.45)",
+    justifyContent: "center",
+    padding: 24,
+  },
+  moveComboDismiss: {
+    ...StyleSheet.absoluteFill,
+  },
+  moveComboSheet: {
+    maxHeight: "70%",
+    backgroundColor: "#fffdf8",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    paddingTop: 14,
+    overflow: "hidden",
+  },
+  moveComboTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#1d1a16",
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  moveComboSearch: {
+    marginHorizontal: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: "#1d1a16",
+  },
+  moveComboList: {
+    maxHeight: 360,
+  },
+  moveComboItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#ebe4d8",
+  },
+  moveComboItemSelected: {
+    backgroundColor: "#eef7f1",
+  },
+  moveComboItemBody: {
+    flex: 1,
+    gap: 2,
+  },
+  moveComboItemText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1d1a16",
+  },
+  moveComboItemTextSelected: {
+    color: "#1f6b4a",
+    fontWeight: "800",
+  },
+  moveComboItemMeta: {
     fontSize: 11,
     fontWeight: "600",
     color: "#5c564c",
+  },
+  moveComboSwatch: {
+    width: 14,
+    height: 14,
+    borderRadius: 4,
   },
   moveFilterBox: {
     backgroundColor: "#f7f3ea",
