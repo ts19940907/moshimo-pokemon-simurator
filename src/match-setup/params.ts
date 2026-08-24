@@ -10,6 +10,7 @@ export type MatchGenerationParams = {
   syncGenerationsWithRules?: string | string[];
   pokemonGenerations?: string | string[];
   moveGenerations?: string | string[];
+  itemGenerations?: string | string[];
   /** @deprecated singular form kept for older routes */
   pokemonGeneration?: string | string[];
   /** @deprecated singular form kept for older routes */
@@ -50,6 +51,15 @@ export function parseMoveGenerations(
   return parseGenerationList(firstString(params.moveGeneration));
 }
 
+/** Empty list is allowed (Gen 1 has no held items / none selected). */
+export function parseItemGenerations(
+  params: MatchGenerationParams,
+): Generation[] {
+  const raw = firstString(params.itemGenerations);
+  if (raw == null || raw.trim() === "") return [];
+  return parseGenerationList(raw).filter((generation) => generation >= 2);
+}
+
 export function pokemonGenerationFilterFromParams(
   params: MatchGenerationParams,
 ): GenerationFilterOptions {
@@ -70,16 +80,28 @@ export function moveGenerationFilterFromParams(
   };
 }
 
+export function itemGenerationFilterFromParams(
+  params: MatchGenerationParams,
+): GenerationFilterOptions {
+  return {
+    syncWithRules: parseSyncWithRules(params),
+    rulesGeneration: parseRulesGeneration(params),
+    introducedGenerations: parseItemGenerations(params),
+  };
+}
+
 export function matchGenerationRouteParams(input: {
   rulesGeneration: Generation;
   syncGenerationsWithRules: boolean;
   pokemonGenerations: Generation[];
   moveGenerations: Generation[];
+  itemGenerations: Generation[];
 }): Record<string, string> {
   return {
     rulesGeneration: String(input.rulesGeneration),
     syncGenerationsWithRules: input.syncGenerationsWithRules ? "1" : "0",
     pokemonGenerations: formatGenerationList(input.pokemonGenerations),
     moveGenerations: formatGenerationList(input.moveGenerations),
+    itemGenerations: formatGenerationList(input.itemGenerations),
   };
 }

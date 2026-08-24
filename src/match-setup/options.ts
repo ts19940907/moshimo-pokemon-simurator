@@ -5,28 +5,42 @@ import type {
   RestrictionMode,
   VisibilityMode,
 } from "./types";
-import { generations, isGenerationImplemented } from "./types";
+import {
+  generations,
+  isGenerationImplemented,
+  itemPoolGenerations,
+} from "./types";
 
-export const generationOptions: {
+export type GenerationOption = {
   value: Generation;
   title: string;
   disabled: boolean;
-}[] = generations.map((generation) => ({
-  value: generation,
-  title: generation === 1 ? "初代" : `第${generation}世代`,
-  disabled: !isGenerationImplemented(generation),
-}));
+};
+
+export const generationOptions: GenerationOption[] = generations.map(
+  (generation) => ({
+    value: generation,
+    title: generation === 1 ? "初代" : `第${generation}世代`,
+    disabled: !isGenerationImplemented(generation),
+  }),
+);
 
 /** Debut-generation checkboxes (unimplemented gens stay disabled). */
-export const poolGenerationOptions: {
-  value: Generation;
-  title: string;
-  disabled: boolean;
-}[] = generations.map((generation) => ({
-  value: generation,
-  title: generation === 1 ? "初代" : `第${generation}世代`,
-  disabled: !isGenerationImplemented(generation),
-}));
+export const poolGenerationOptions: GenerationOption[] = generations.map(
+  (generation) => ({
+    value: generation,
+    title: generation === 1 ? "初代" : `第${generation}世代`,
+    disabled: !isGenerationImplemented(generation),
+  }),
+);
+
+/** Held-item debut generations (Gen 2–9). */
+export const itemPoolGenerationOptions: GenerationOption[] =
+  itemPoolGenerations.map((generation) => ({
+    value: generation,
+    title: `第${generation}世代`,
+    disabled: false,
+  }));
 
 export const restrictionOptions: {
   value: RestrictionMode;

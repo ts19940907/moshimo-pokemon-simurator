@@ -11,10 +11,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   generationOptions,
+  itemPoolGenerationOptions,
   levelCapOptions,
   opponentOptions,
   poolGenerationOptions,
   restrictionOptions,
+  type GenerationOption,
 } from "../match-setup/options";
 import { matchGenerationRouteParams } from "../match-setup/params";
 import type {
@@ -25,7 +27,10 @@ import type {
   RestrictionMode,
   VisibilityMode,
 } from "../match-setup/types";
-import { implementedGeneration } from "../match-setup/types";
+import {
+  implementedGeneration,
+  syncedItemGenerations,
+} from "../match-setup/types";
 import { usePartySetup } from "../party/PartySetupContext";
 import { defaultMatchBackground } from "../match-setup/backgrounds";
 import { MatchScreenBackground } from "../match-setup/MatchScreenBackground";
@@ -35,6 +40,7 @@ const defaultSetup: MatchSetup = {
   syncGenerationsWithRules: true,
   pokemonGenerations: [implementedGeneration],
   moveGenerations: [implementedGeneration],
+  itemGenerations: syncedItemGenerations(implementedGeneration),
   restrictionMode: "standard",
   opponentType: "local_both",
   visibilityMode: "full",
@@ -153,13 +159,18 @@ function GenerationRadioGroup({ value, onChange }: GenerationRadioGroupProps) {
 
 type GenerationCheckboxGroupProps = {
   values: Generation[];
+  options?: GenerationOption[];
   disabled?: boolean;
+  /** When true, every generation may be unchecked (held items). */
+  allowEmpty?: boolean;
   onChange: (values: Generation[]) => void;
 };
 
 function GenerationCheckboxGroup({
   values,
+  options = poolGenerationOptions,
   disabled,
+  allowEmpty = false,
   onChange,
 }: GenerationCheckboxGroupProps) {
   const selected = new Set(values);
@@ -167,7 +178,7 @@ function GenerationCheckboxGroup({
   const toggle = (generation: Generation) => {
     if (disabled) return;
     if (selected.has(generation)) {
-      if (selected.size <= 1) return;
+      if (!allowEmpty && selected.size <= 1) return;
       onChange(values.filter((value) => value !== generation));
       return;
     }
@@ -176,7 +187,7 @@ function GenerationCheckboxGroup({
 
   return (
     <View style={styles.generationRow}>
-      {poolGenerationOptions.map((option) => {
+      {options.map((option) => {
         const isOn = selected.has(option.value);
         const isDisabled = Boolean(disabled) || option.disabled;
         return (
@@ -228,6 +239,9 @@ export function MenuScreen() {
   const [moveGenerations, setMoveGenerations] = useState<Generation[]>(
     defaultSetup.moveGenerations,
   );
+  const [itemGenerations, setItemGenerations] = useState<Generation[]>(
+    defaultSetup.itemGenerations,
+  );
   const [restrictionMode, setRestrictionMode] = useState<RestrictionMode>(
     defaultSetup.restrictionMode,
   );
@@ -246,12 +260,16 @@ export function MenuScreen() {
   const displayedMoveGens = syncGenerationsWithRules
     ? [rulesGeneration]
     : moveGenerations;
+  const displayedItemGens = syncGenerationsWithRules
+    ? syncedItemGenerations(rulesGeneration)
+    : itemGenerations;
 
   const handleRulesChange = (value: Generation) => {
     setRulesGeneration(value);
     if (syncGenerationsWithRules) {
       setPokemonGenerations([value]);
       setMoveGenerations([value]);
+      setItemGenerations(syncedItemGenerations(value));
     }
   };
 
@@ -260,11 +278,13 @@ export function MenuScreen() {
     if (enabled) {
       setPokemonGenerations([rulesGeneration]);
       setMoveGenerations([rulesGeneration]);
+      setItemGenerations(syncedItemGenerations(rulesGeneration));
     } else {
       setPokemonGenerations(
         pokemonGenerations.length > 0 ? pokemonGenerations : [1],
       );
       setMoveGenerations(moveGenerations.length > 0 ? moveGenerations : [1]);
+      setItemGenerations(itemGenerations);
     }
   };
 
@@ -283,6 +303,7 @@ export function MenuScreen() {
           syncGenerationsWithRules,
           pokemonGenerations: displayedPokemonGens,
           moveGenerations: displayedMoveGens,
+          itemGenerations: displayedItemGens,
         }),
         restrictionMode,
         opponentType,
@@ -308,7 +329,7 @@ export function MenuScreen() {
               <Text style={styles.kicker}>メニュー</Text>
               <Text style={styles.title}>対戦設定</Text>
               <Text style={styles.lead}>
-                対戦ルールは世代ルール、ポケモン／技は初登場世代の複数選択か「対戦ルールに合わせる」で選べます。対戦ルールは初代と第2世代を選択できます。ダメージ計算などの細部は世代ごとに段階実装中です。
+                対戦ルールは世代ルール、ポケモン／技／持ち物は初登場世代の複数選択か「対戦ルールに合わせる」で選べます。対戦ルールは初代と第2世代を選択できます。ダメージ計算などの細部は世代ごとに段階実装中です。
               </Text>
             </View>
 
@@ -325,13 +346,13 @@ export function MenuScreen() {
               <Text style={styles.sectionTitle}>世代の合わせ方</Text>
               <OptionCard
                 title="対戦ルールに合わせる"
-                description="使えるポケモン・技を対戦ルール世代の環境（可用性ビット）に自動同期します。"
+                description="使えるポケモン・技・持ち物を対戦ルール世代の環境（可用性ビット）に自動同期します。初代ルールでは持ち物は未使用です。"
                 selected={syncGenerationsWithRules}
                 onPress={() => handleSyncChange(true)}
               />
               <OptionCard
                 title="手動で選ぶ"
-                description="ポケモンと技の初登場世代をそれぞれ複数選択します。行データはルール世代を優先し、無ければ最新行を使います。"
+                description="ポケモン・技・持ち物の初登場世代をそれぞれ複数選択します。行データはルール世代を優先し、無ければ最新行を使います。"
                 selected={!syncGenerationsWithRules}
                 onPress={() => handleSyncChange(false)}
               />
@@ -362,6 +383,24 @@ export function MenuScreen() {
                 values={displayedMoveGens}
                 disabled={syncGenerationsWithRules}
                 onChange={setMoveGenerations}
+              />
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>使える持ち物</Text>
+              <Text style={styles.sectionHint}>
+                {syncGenerationsWithRules
+                  ? rulesGeneration >= 2
+                    ? "対戦ルール世代で使える持ち物（自動）"
+                    : "初代ルールでは持ち物は使えません（自動）"
+                  : "初登場世代（第2〜9世代・複数可）。未選択でも構いません。"}
+              </Text>
+              <GenerationCheckboxGroup
+                values={displayedItemGens}
+                options={itemPoolGenerationOptions}
+                disabled={syncGenerationsWithRules}
+                allowEmpty
+                onChange={setItemGenerations}
               />
             </View>
 
@@ -413,7 +452,11 @@ export function MenuScreen() {
               </Text>
               <Text style={styles.summaryLine}>
                 ポケモン {labelsOf(displayedPokemonGens, poolGenerationOptions)}{" "}
-                ／ 技 {labelsOf(displayedMoveGens, poolGenerationOptions)}
+                ／ 技 {labelsOf(displayedMoveGens, poolGenerationOptions)} ／
+                持ち物{" "}
+                {displayedItemGens.length > 0
+                  ? labelsOf(displayedItemGens, itemPoolGenerationOptions)
+                  : "なし"}
               </Text>
               <Text style={styles.summaryLine}>
                 {labelOf(restrictionMode, restrictionOptions)} ／{" "}
