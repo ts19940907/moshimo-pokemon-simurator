@@ -12,6 +12,9 @@ import {
 
 import type { Move, MoveDamageClass } from "../../pokemon/moves";
 import { fetchMovesForPokemon } from "../../pokemon/moveRepository";
+import type { Tool } from "../../pokemon/tools";
+import { toolCategoryJa } from "../../pokemon/tools";
+import { fetchTools } from "../../pokemon/toolRepository";
 import {
   TYPE_BY_ID,
   TYPE_NONE,
@@ -45,6 +48,9 @@ type Props = {
   species: PokemonSpecies;
   levelCapMode: LevelCapMode;
   moveGenerationOptions: GenerationFilterOptions;
+  itemGenerationOptions: GenerationFilterOptions;
+  /** Tool ids already held by other party members (same item cannot be shared). */
+  excludedToolIds?: string[];
   onClose: () => void;
   onSave: (build: PartyMemberBuild) => void;
 };
@@ -256,6 +262,41 @@ function MoveDetailCard({
           {move.description}
         </Text>
       ) : null}
+    </Pressable>
+  );
+}
+
+function ToolDetailCard({
+  tool,
+  selected,
+  onPress,
+}: {
+  tool: Tool;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.moveCard, selected && styles.moveCardSelected]}
+    >
+      <View style={styles.moveCardTop}>
+        <Text style={[styles.moveCardName, selected && styles.moveCardNameSelected]}>
+          {tool.name_ja}
+        </Text>
+        <View style={styles.classBadge}>
+          <Text style={styles.classBadgeText}>
+            {toolCategoryJa(tool.category)}
+          </Text>
+        </View>
+      </View>
+      <Text style={[styles.moveMeta, selected && styles.moveMetaSelected]}>
+        {toolCategoryJa(tool.category)}
+        {tool.name_en ? ` ／ ${tool.name_en}` : ""}
+      </Text>
+      <Text style={[styles.moveDesc, selected && styles.moveMetaSelected]}>
+        {tool.description?.trim() || "効果説明なし。"}
+      </Text>
     </Pressable>
   );
 }
@@ -566,21 +607,177 @@ function MoveComboBox({
   );
 }
 
+function ToolComboBox({
+  label,
+  value,
+  selectedTool,
+  options,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: string | null;
+  selectedTool: Tool | null;
+  options: Tool[];
+  disabled?: boolean;
+  onChange: (toolId: string | null) => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter(
+      (tool) =>
+        tool.name_ja.toLowerCase().includes(q) ||
+        tool.name_en.toLowerCase().includes(q),
+    );
+  }, [options, query]);
+
+  const closeMenu = () => {
+    setMenuOpen(false);
+    setQuery("");
+  };
+
+  return (
+    <View style={styles.moveComboWrap}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${label}を選択`}
+        disabled={disabled}
+        onPress={() => setMenuOpen(true)}
+        style={[
+          styles.moveComboSelect,
+          selectedTool && styles.moveComboSelectFilled,
+          disabled && styles.moveComboSelectDisabled,
+        ]}
+      >
+        <Text
+          style={[
+            styles.moveComboSelectText,
+            !selectedTool && styles.moveComboPlaceholder,
+          ]}
+          numberOfLines={1}
+        >
+          {selectedTool?.name_ja ?? "持ち物を選択"}
+        </Text>
+        <Text style={styles.moveComboCaret}>▾</Text>
+      </Pressable>
+
+      <Modal
+        visible={menuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={closeMenu}
+      >
+        <View style={styles.moveComboBackdrop}>
+          <Pressable style={styles.moveComboDismiss} onPress={closeMenu} />
+          <View style={styles.moveComboSheet}>
+            <Text style={styles.moveComboTitle}>{label}</Text>
+            <TextInput
+              style={styles.moveComboSearch}
+              value={query}
+              onChangeText={setQuery}
+              placeholder="持ち物名で絞り込み"
+              placeholderTextColor="#9a9286"
+              autoCorrect={false}
+              autoCapitalize="none"
+            />
+            <ScrollView
+              style={styles.moveComboList}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  onChange(null);
+                  closeMenu();
+                }}
+                style={[
+                  styles.moveComboItem,
+                  value == null && styles.moveComboItemSelected,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.moveComboItemText,
+                    value == null && styles.moveComboItemTextSelected,
+                  ]}
+                >
+                  なし
+                </Text>
+              </Pressable>
+              {filtered.length === 0 ? (
+                <Text style={styles.moveEmpty}>該当する持ち物がありません。</Text>
+              ) : (
+                filtered.map((tool) => {
+                  const isSelected = tool.id === value;
+                  return (
+                    <Pressable
+                      key={tool.id}
+                      accessibilityRole="button"
+                      onPress={() => {
+                        onChange(tool.id);
+                        closeMenu();
+                      }}
+                      style={[
+                        styles.moveComboItem,
+                        isSelected && styles.moveComboItemSelected,
+                      ]}
+                    >
+                      <View style={styles.moveComboItemBody}>
+                        <Text
+                          style={[
+                            styles.moveComboItemText,
+                            isSelected && styles.moveComboItemTextSelected,
+                          ]}
+                        >
+                          {tool.name_ja}
+                        </Text>
+                        <Text style={styles.moveComboItemMeta}>
+                          {toolCategoryJa(tool.category)}
+                          {tool.name_en ? ` ／ ${tool.name_en}` : ""}
+                        </Text>
+                        {tool.description ? (
+                          <Text style={styles.moveComboItemMeta} numberOfLines={2}>
+                            {tool.description}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </Pressable>
+                  );
+                })
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
 export function SetPokemonDialog({
   visible,
   member,
   species,
   levelCapMode,
   moveGenerationOptions,
+  itemGenerationOptions,
+  excludedToolIds = [],
   onClose,
   onSave,
 }: Props) {
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState<PartyMemberBuild>(member);
   const [moves, setMoves] = useState<Move[]>([]);
+  const [tools, setTools] = useState<Tool[]>([]);
   const [loadingMoves, setLoadingMoves] = useState(false);
+  const [loadingTools, setLoadingTools] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [toolsError, setToolsError] = useState<string | null>(null);
   const [pickingSlot, setPickingSlot] = useState<number | null>(null);
+  const [pickingTool, setPickingTool] = useState(false);
   const [moveFilters, setMoveFilters] =
     useState<MoveFiltersState>(EMPTY_MOVE_FILTERS);
 
@@ -593,9 +790,11 @@ export function SetPokemonDialog({
 
   useEffect(() => {
     if (!visible) return;
-    setDraft(member);
+    setDraft({ ...member, toolId: member.toolId ?? null });
     setErrorMessage(null);
+    setToolsError(null);
     setPickingSlot(null);
+    setPickingTool(false);
     setMoveFilters(EMPTY_MOVE_FILTERS);
   }, [visible, member]);
 
@@ -626,6 +825,32 @@ export function SetPokemonDialog({
     };
   }, [visible, member.speciesId, moveGenerationOptions]);
 
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoadingTools(true);
+        setToolsError(null);
+        const rows = await fetchTools(itemGenerationOptions);
+        if (!cancelled) setTools(rows);
+      } catch (error) {
+        if (!cancelled) {
+          setToolsError(
+            error instanceof Error
+              ? error.message
+              : "持ち物の取得に失敗しました。",
+          );
+        }
+      } finally {
+        if (!cancelled) setLoadingTools(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, itemGenerationOptions]);
+
   const filteredMoves = useMemo(
     () => moves.filter((move) => matchesMoveFilters(move, moveFilters)),
     [moves, moveFilters],
@@ -637,7 +862,27 @@ export function SetPokemonDialog({
         !draft.moveIds.some((id, i) => i !== slotIndex && id === move.id),
     );
 
+  const selectedTool =
+    draft.toolId != null
+      ? (tools.find((tool) => tool.id === draft.toolId) ?? null)
+      : null;
+
+  const excludedToolIdSet = useMemo(
+    () => new Set(excludedToolIds.filter(Boolean)),
+    [excludedToolIds],
+  );
+
+  const availableTools = useMemo(
+    () =>
+      tools.filter(
+        (tool) =>
+          tool.id === draft.toolId || !excludedToolIdSet.has(tool.id),
+      ),
+    [tools, draft.toolId, excludedToolIdSet],
+  );
+
   const openPicker = (index: number) => {
+    setPickingTool(false);
     setPickingSlot((current) => {
       if (current === index) {
         setMoveFilters(EMPTY_MOVE_FILTERS);
@@ -646,6 +891,12 @@ export function SetPokemonDialog({
       setMoveFilters(EMPTY_MOVE_FILTERS);
       return index;
     });
+  };
+
+  const openToolPicker = () => {
+    setPickingSlot(null);
+    setMoveFilters(EMPTY_MOVE_FILTERS);
+    setPickingTool((current) => !current);
   };
   const genderOptions = useMemo(() => {
     if (species.gender === GENDER.NONE) return ["none"] as BattleGender[];
@@ -721,6 +972,13 @@ export function SetPokemonDialog({
       next[index] = moveId;
       return { ...current, moveIds: next };
     });
+  };
+
+  const setToolId = (toolId: string | null) => {
+    if (toolId && excludedToolIdSet.has(toolId) && toolId !== draft.toolId) {
+      return;
+    }
+    setDraft((current) => ({ ...current, toolId }));
   };
 
   const handleSave = () => {
@@ -982,6 +1240,82 @@ export function SetPokemonDialog({
                 </View>
               );
             })}
+
+            <Text style={styles.section}>持ち物</Text>
+            {loadingTools ? <ActivityIndicator color="#1f6b4a" /> : null}
+            {toolsError ? <Text style={styles.error}>{toolsError}</Text> : null}
+            <View style={styles.moveBlock}>
+              <Text style={styles.moveLabel}>持ち物</Text>
+              <ToolComboBox
+                label="持ち物"
+                value={draft.toolId}
+                selectedTool={selectedTool}
+                options={availableTools}
+                disabled={loadingTools || !!toolsError}
+                onChange={(nextId) => {
+                  setToolId(nextId);
+                  setPickingTool(false);
+                }}
+              />
+              {selectedTool ? (
+                <ToolDetailCard
+                  tool={selectedTool}
+                  selected
+                  onPress={openToolPicker}
+                />
+              ) : (
+                <Text style={styles.moveEmpty}>
+                  {availableTools.length === 0 && !loadingTools
+                    ? "この対戦設定では使える持ち物がありません"
+                    : "未選択"}
+                </Text>
+              )}
+              <View style={styles.rowWrap}>
+                <Pressable
+                  onPress={openToolPicker}
+                  style={[styles.chip, pickingTool && styles.chipSelected]}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      pickingTool && styles.chipTextSelected,
+                    ]}
+                  >
+                    {pickingTool ? "候補を閉じる" : "候補から選ぶ"}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setToolId(null);
+                    setPickingTool(false);
+                  }}
+                  style={styles.chip}
+                >
+                  <Text style={styles.chipText}>なしにする</Text>
+                </Pressable>
+              </View>
+              {pickingTool ? (
+                <View style={styles.moveList}>
+                  {availableTools.length === 0 ? (
+                    <Text style={styles.moveEmpty}>
+                      候補の持ち物がありません。
+                    </Text>
+                  ) : (
+                    availableTools.map((tool) => (
+                      <ToolDetailCard
+                        key={tool.id}
+                        tool={tool}
+                        selected={draft.toolId === tool.id}
+                        onPress={() => {
+                          setToolId(tool.id);
+                          setPickingTool(false);
+                        }}
+                      />
+                    ))
+                  )}
+                </View>
+              ) : null}
+            </View>
           </ScrollView>
 
           <View style={styles.footer}>

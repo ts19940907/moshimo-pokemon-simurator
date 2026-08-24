@@ -1,0 +1,208 @@
+/**
+ * Generate Gen2 battle holdable tools (持ち物) seed from PokeAPI.
+ *
+ * Includes items that:
+ * - have holdable / holdable-active attribute
+ * - appear in generation-ii game indices
+ * - belong to battle-relevant categories (held-items, type-enhancement,
+ *   species-specific, medicine berries) or berry-juice
+ *
+ * Usage: node scripts/generate-gen2-tools-seed.mjs
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+/** Competitive mask Gen2–9 (no Gen1 bit). */
+const GEN2_9 = 510;
+
+const BATTLE_CATEGORIES = new Set([
+  "held-items",
+  "type-enhancement",
+  "species-specific",
+  "medicine",
+]);
+
+const EXTRA_NAMES = new Set(["berry-juice"]);
+
+/** Clear Gen2-style Japanese effect blurbs (move-description tone). */
+const DESCRIPTION_OVERRIDES = JSON.parse(
+  fs.readFileSync(
+    path.join(root, "scripts/gen2-tool-descriptions.json"),
+    "utf8",
+  ),
+);
+
+function toolUuid(pokeapiId) {
+  return `00000000-0000-4000-8000-${String(pokeapiId).padStart(12, "0")}`;
+}
+
+function sqlStr(s) {
+  if (s === null || s === undefined) return "NULL";
+  if (typeof s === "boolean") return s ? "TRUE" : "FALSE";
+  if (typeof s === "number") return String(s);
+  if (typeof s === "object") {
+    return `'${JSON.stringify(s).replace(/'/g, "''")}'::jsonb`;
+  }
+  return `'${String(s).replace(/'/g, "''")}'`;
+}
+
+async function fetchJson(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url} ${res.status}`);
+  return res.json();
+}
+
+function introducedGeneration(item) {
+  if (item.generation?.url) {
+    const m = item.generation.url.match(/\/generation\/(\d+)\//);
+    if (m) return Number(m[1]);
+  }
+  const gens = (item.game_indices ?? [])
+    .map((g) => {
+      const m = g.generation?.url?.match(/\/generation\/(\d+)\//);
+      return m ? Number(m[1]) : null;
+    })
+    .filter((n) => n != null);
+  return gens.length > 0 ? Math.min(...gens) : 2;
+}
+
+function isJaLanguage(name) {
+  const n = String(name ?? "").toLowerCase();
+  return n === "ja" || n === "ja-hrkt";
+}
+
+function pickJapaneseDescription(item) {
+  const entries = item.flavor_text_entries ?? [];
+  const preferred = [
+    "gold-silver",
+    "crystal",
+    "heartgold-soulsilver",
+    "firered-leafgreen",
+    "black-white",
+    "x-y",
+    "sun-moon",
+    "ultra-sun-ultra-moon",
+    "sword-shield",
+  ];
+  for (const vg of preferred) {
+    const hit = entries.find(
+      (f) => isJaLanguage(f.language?.name) && f.version_group?.name === vg,
+    );
+    const text = hit?.text ?? hit?.flavor_text;
+    if (text) return String(text).replace(/\s+/g, " ").trim();
+  }
+  const anyJa = entries.find((f) => isJaLanguage(f.language?.name));
+  const text = anyJa?.text ?? anyJa?.flavor_text;
+  if (text) return String(text).replace(/\s+/g, " ").trim();
+
+  const enEffect = item.effect_entries?.find(
+    (e) => e.language?.name === "en",
+  )?.short_effect;
+  if (enEffect) return String(enEffect).replace(/\s+/g, " ").trim();
+  return null;
+}
+
+function isBattleHoldable(item) {
+  const category = item.category?.name ?? "";
+  if (BATTLE_CATEGORIES.has(category)) return true;
+  if (EXTRA_NAMES.has(item.name)) return true;
+  return false;
+}
+
+async function main() {
+  console.log("fetch holdable attributes…");
+  const holdable = await fetchJson(
+    "https://pokeapi.co/api/v2/item-attribute/holdable",
+  );
+  const holdableActive = await fetchJson(
+    "https://pokeapi.co/api/v2/item-attribute/holdable-active",
+  );
+  const holdIds = new Set([
+    ...holdable.items.map((i) => Number(i.url.match(/\/item\/(\d+)\//)[1])),
+    ...holdableActive.items.map((i) =>
+      Number(i.url.match(/\/item\/(\d+)\//)[1]),
+    ),
+  ]);
+
+  const tools = [];
+  const ids = [...holdIds].sort((a, b) => a - b);
+  for (let i = 0; i < ids.length; i += 1) {
+    const pokeapiId = ids[i];
+    process.stdout.write(`\ritem ${i + 1}/${ids.length} (#${pokeapiId})`);
+    const item = await fetchJson(`https://pokeapi.co/api/v2/item/${pokeapiId}`);
+    const inGen2 = item.game_indices?.some(
+      (g) => g.generation?.name === "generation-ii",
+    );
+    if (!inGen2) continue;
+    if (!isBattleHoldable(item)) continue;
+
+    const nameJa =
+      item.names.find((n) => n.language.name === "ja-Hrkt")?.name ||
+      item.names.find((n) => n.language.name === "ja")?.name ||
+      item.name;
+    const nameEn =
+      item.names.find((n) => n.language.name === "en")?.name || item.name;
+
+    const override = DESCRIPTION_OVERRIDES[String(pokeapiId)];
+    tools.push({
+      pokeapi_id: pokeapiId,
+      name_ja: nameJa,
+      name_en: nameEn,
+      category: item.category?.name ?? null,
+      description: override || pickJapaneseDescription(item),
+      introduced_generation: introducedGeneration(item),
+      available_generations: GEN2_9,
+    });
+  }
+  console.log(`\nbattle holdables for Gen2: ${tools.length}`);
+
+  const lines = [
+    "-- Gen2 battle holdable tools (additive).",
+    "-- Generated by scripts/generate-gen2-tools-seed.mjs",
+    "insert into moshimo.tools (id, pokeapi_id, name_ja, name_en, category, description, effect_code, effect_meta, introduced_generation, available_generations) values",
+  ];
+
+  const valueRows = tools.map((t) => {
+    const cols = [
+      sqlStr(toolUuid(t.pokeapi_id)),
+      t.pokeapi_id,
+      sqlStr(t.name_ja),
+      sqlStr(t.name_en),
+      sqlStr(t.category),
+      sqlStr(t.description),
+      "NULL",
+      "'{}'::jsonb",
+      t.introduced_generation,
+      t.available_generations,
+    ];
+    return `(${cols.join(", ")})`;
+  });
+
+  lines.push(valueRows.join(",\n") + "");
+  lines.push(
+    "on conflict (pokeapi_id, available_generations) do update set",
+    "  name_ja = excluded.name_ja,",
+    "  name_en = excluded.name_en,",
+    "  category = excluded.category,",
+    "  description = excluded.description,",
+    "  updated_at = now();",
+    "",
+  );
+
+  const outPath = path.join(root, "supabase/seed/gen2_tools.sql");
+  fs.writeFileSync(outPath, lines.join("\n"), "utf8");
+  console.log(`wrote ${outPath}`);
+
+  const jsonPath = path.join(root, "src/data/gen2-tools.json");
+  fs.mkdirSync(path.dirname(jsonPath), { recursive: true });
+  fs.writeFileSync(jsonPath, JSON.stringify(tools, null, 2) + "\n", "utf8");
+  console.log(`wrote ${jsonPath}`);
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

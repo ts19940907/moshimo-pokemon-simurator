@@ -59,6 +59,7 @@ function buildMembersFromSpecies(
         speciesId: species.id,
         dexNo: species.dex_no,
         nameJa: species.name_ja,
+        toolId: existing.toolId ?? null,
       };
     }
     return createDefaultBuild(species, levelCapMode);

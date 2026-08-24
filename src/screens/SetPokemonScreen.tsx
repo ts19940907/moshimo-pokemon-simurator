@@ -23,10 +23,12 @@ import { calcGen1Stats, summarizeGen1Stats } from "../party/gen1Stats";
 import { formatDexNo } from "../pokemon/catalog";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
 import { fetchMovesForPokemon } from "../pokemon/moveRepository";
+import { fetchToolsByIds } from "../pokemon/toolRepository";
 import { fetchPokemonSpecies, filterSelectableSpecies } from "../pokemon/repository";
 import type { PokemonSpecies } from "../pokemon/types";
 import type { LevelCapMode, OpponentType } from "../match-setup/types";
 import {
+  itemGenerationFilterFromParams,
   moveGenerationFilterFromParams,
   parseRulesGeneration,
   pokemonGenerationFilterFromParams,
@@ -87,6 +89,7 @@ export function SetPokemonScreen() {
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [movesRequiredOpen, setMovesRequiredOpen] = useState(false);
   const [moveNames, setMoveNames] = useState<Record<string, string>>({});
+  const [toolName, setToolName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -112,6 +115,14 @@ export function SetPokemonScreen() {
       params.syncGenerationsWithRules,
       params.moveGenerations,
       params.moveGeneration,
+    ],
+  );
+  const itemGenerationOptions = useMemo(
+    () => itemGenerationFilterFromParams(params),
+    [
+      params.rulesGeneration,
+      params.syncGenerationsWithRules,
+      params.itemGenerations,
     ],
   );
   const partyDexNos = useMemo(
@@ -202,6 +213,35 @@ export function SetPokemonScreen() {
     };
   }, [focused?.speciesId, moveGenerationOptions]);
 
+  useEffect(() => {
+    if (!focused?.toolId) {
+      setToolName(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const tools = await fetchToolsByIds([focused.toolId!]);
+        if (cancelled) return;
+        setToolName(tools[0]?.name_ja ?? null);
+      } catch {
+        if (!cancelled) setToolName(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [focused?.toolId]);
+
+  const excludedToolIds = useMemo(
+    () =>
+      members
+        .filter((member) => member.speciesId !== focused?.speciesId)
+        .map((member) => member.toolId)
+        .filter((id): id is string => Boolean(id)),
+    [members, focused?.speciesId],
+  );
+
   const matchParams = useMemo(() => {
     const { party: _party, ...rest } = params;
     return rest;
@@ -281,7 +321,7 @@ export function SetPokemonScreen() {
               {isOpponentSide ? "相手の個体を設定する" : "個体を設定する"}
             </Text>
             <Text style={styles.lead}>
-              ポケモンを選んでフォーカスし、「設定する」からレベル・性別・個体値・努力値・技を編集します。
+              ポケモンを選んでフォーカスし、「設定する」からレベル・性別・個体値・努力値・技・持ち物を編集します。
             </Text>
             <Pressable
               onPress={() => setTypeChartOpen(true)}
@@ -368,6 +408,12 @@ export function SetPokemonScreen() {
                         )
                         .join(" ／ ")}
                     </Text>
+                    <Text style={styles.blockTitle}>持ち物</Text>
+                    <Text style={styles.blockBody}>
+                      {focused.toolId
+                        ? (toolName ?? "（読込中）")
+                        : "なし"}
+                    </Text>
 
                     <Pressable
                       onPress={() => setDialogOpen(true)}
@@ -403,6 +449,8 @@ export function SetPokemonScreen() {
           species={focusedSpecies}
           levelCapMode={levelCapMode}
           moveGenerationOptions={moveGenerationOptions}
+          itemGenerationOptions={itemGenerationOptions}
+          excludedToolIds={excludedToolIds}
           onClose={() => setDialogOpen(false)}
           onSave={(build) => updateMember(build.speciesId, build)}
         />
