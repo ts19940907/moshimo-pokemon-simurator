@@ -122,6 +122,7 @@ function partyBuildsEqual(a: PartyMemberBuild, b: PartyMemberBuild): boolean {
   for (let i = 0; i < 4; i += 1) {
     if (a.moveIds[i] !== b.moveIds[i]) return false;
   }
+  if ((a.toolId ?? null) !== (b.toolId ?? null)) return false;
   return true;
 }
 

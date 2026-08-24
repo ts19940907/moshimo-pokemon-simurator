@@ -1879,7 +1879,10 @@ export function BattleScreen() {
               <Text style={styles.inspectSection}>特性・性格・持ち物</Text>
               <Text style={styles.modalBody}>特性：—（将来対応）</Text>
               <Text style={styles.modalBody}>性格：—（将来対応）</Text>
-              <Text style={styles.modalBody}>持ち物：—（将来対応）</Text>
+              <Text style={styles.modalBody}>
+                持ち物：
+                {inspectMember?.toolId ? "設定あり（表示は今後対応）" : "なし"}
+              </Text>
 
               <Pressable
                 onPress={() => {
