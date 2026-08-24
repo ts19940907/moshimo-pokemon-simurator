@@ -261,6 +261,7 @@ type MatchParams = {
   syncGenerationsWithRules?: string;
   pokemonGenerations?: string;
   moveGenerations?: string;
+  itemGenerations?: string;
   pokemonGeneration?: string;
   moveGeneration?: string;
   restrictionMode?: RestrictionMode;
@@ -1549,6 +1550,7 @@ export function SelectPokemonScreen() {
         syncGenerationsWithRules: params.syncGenerationsWithRules,
         pokemonGenerations: params.pokemonGenerations,
         moveGenerations: params.moveGenerations,
+        itemGenerations: params.itemGenerations,
         pokemonGeneration: params.pokemonGeneration,
         moveGeneration: params.moveGeneration,
         restrictionMode: params.restrictionMode,
