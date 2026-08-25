@@ -22,6 +22,7 @@ App tables live in the **`moshimo`** schema (not `public`), to keep them separat
 - Gen2 Johto pokemon (additive): `supabase/seed/gen2_all.sql`（abilities upsert → Johto pokemon）
 - Gen2 moves (additive, small): `supabase/seed/gen2_moves.sql`
 - Gen2 tools / held items (additive): `supabase/seed/gen2_tools.sql`（`node scripts/generate-gen2-tools-seed.mjs` で再生成）
+- Gen1→Gen2 Kanto splits (additive): `supabase/seed/gen2_kanto_splits.sql`（`node scripts/generate-gen2-kanto-splits-seed.mjs` で再生成。差分がある種族のみ行分割）
 - Gen2 learnsets（SQL Editor 向け分割）:
   1. `gen2_pokemon_moves_00_setup.sql`
   2. `gen2_pokemon_moves_01_values.sql` … `08_values.sql`（番号順）
@@ -64,10 +65,17 @@ where available_generations & (1 << (N - 1)) <> 0;
 
 `pokemon_moves` は **解決済みの pokemon 行 ID × move 行 ID** の紐づけのみ（世代カラムなし）。世代はポケモン／技マスタ側で行を選んでから JOIN する。
 
+第2世代で値が変わる初代勢は Gen1 専用行（`1`）と Gen2 以降行に分割（`gen2_kanto_splits.sql` / `gen1_pokemon.sql`）。
+
+- 鋼タイプ化: コイル、レアコイル（でんき → でんき／はがね）
+- 最終進化フラグ解除: ゴルバット（クロバット）、イワーク（ハガネール）、ストライク（ハッサム）
+
 第6世代で値が変わる初代勢は `31`（Gen1–5）と Gen6 以降行に分割。Gen8/9 で対戦不可の種は該当ビットを落とす（例: スピアーの Gen6 行は `96` = Gen6–7）。
 
 - 物理種族値バフ: 13体（スピアー、ピジョット、アーボック など）
 - フェアリータイプ化: 5体（ピッピ、ピクシー、プリン、プクリン、バリヤード）
+
+初代技マスタは Gen2 でも威力学・タイプが同じものは共用（`511` 等）。Gen1≠Gen2 の数値差分は現状なし。
 
 - `base_special`: 第1世代の「特殊」（Gen2+ 専用レコードでは NULL）
 - `base_sp_attack` / `base_sp_defense`: 第2世代以降の特攻・特防
