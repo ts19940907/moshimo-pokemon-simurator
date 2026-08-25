@@ -1,15 +1,17 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, type ViewStyle } from "react-native";
 
 import { TYPE_COLORS, getTypes, typeNameJa } from "./catalog";
 import type { PokemonSpecies } from "./types";
 
 export function PokemonTypeBadges({
   species,
+  style,
 }: {
   species: PokemonSpecies;
+  style?: ViewStyle;
 }) {
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, style]}>
       {getTypes(species).map((nameJa) => (
         <View
           key={nameJa}

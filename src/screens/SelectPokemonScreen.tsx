@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type {
   Generation,
@@ -54,7 +54,7 @@ import {
   type TypeId,
 } from "../pokemon/types";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
-import { MoveTypeBadge } from "../pokemon/TypeBadges";
+import { MoveTypeBadge, PokemonTypeBadges } from "../pokemon/TypeBadges";
 import { SetPokemonDialog } from "./set/SetPokemonDialog";
 import { Gen1TypeChartDialog } from "../battle/Gen1TypeChartDialog";
 import { generateCpuParty } from "../battle/cpuTeam";
@@ -950,6 +950,7 @@ function SpeciesSortBar({
 }
 
 export function SelectPokemonScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<MatchParams>();
   const { getSide, setSideParty } = usePartySetup();
@@ -1602,8 +1603,13 @@ export function SelectPokemonScreen() {
 
   return (
     <MatchScreenBackground source={matchBackground}>
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.topFixedBar}>
+      <SafeAreaView style={styles.safeArea} edges={["left", "right"]}>
+        <View
+          style={[
+            styles.topFixedBar,
+            { paddingTop: Math.max(insets.top, 8) },
+          ]}
+        >
           <Pressable
             accessibilityRole="button"
             onPress={requestLeave}
@@ -1876,7 +1882,12 @@ export function SelectPokemonScreen() {
         </ScrollView>
 
         {!loading ? (
-          <View style={styles.continueBar}>
+          <View
+            style={[
+              styles.continueBar,
+              { paddingBottom: Math.max(insets.bottom, 12) },
+            ]}
+          >
             <Pressable
               accessibilityRole="button"
               disabled={cpuGenerating}
@@ -1965,6 +1976,7 @@ export function SelectPokemonScreen() {
                           <Text style={styles.partyName} numberOfLines={1}>
                             {pokemon.name_ja}
                           </Text>
+                          <PokemonTypeBadges species={pokemon} />
                           <Text style={styles.partyMeta}>
                             {build
                               ? `Lv${build.level} ／ ${genderLabel(build.gender)}`
@@ -2279,9 +2291,11 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+    minHeight: 0,
   },
   scroll: {
     flex: 1,
+    minHeight: 0,
   },
   content: {
     paddingHorizontal: 16,
@@ -2294,7 +2308,6 @@ const styles = StyleSheet.create({
   continueBar: {
     paddingHorizontal: 16,
     paddingTop: 10,
-    paddingBottom: 12,
     maxWidth: 720,
     width: "100%",
     alignSelf: "center",
@@ -2308,7 +2321,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 10,
     paddingHorizontal: 16,
-    paddingTop: 8,
     paddingBottom: 10,
     maxWidth: 720,
     width: "100%",
@@ -2513,7 +2525,7 @@ const styles = StyleSheet.create({
   },
   partySlotHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 10,
   },
   partySlotHeaderText: {
