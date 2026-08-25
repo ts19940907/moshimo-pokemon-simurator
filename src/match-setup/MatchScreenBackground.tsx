@@ -61,8 +61,10 @@ const styles = StyleSheet.create({
     width: "100%",
     alignSelf: "stretch",
     backgroundColor: "#87c6ef",
+    // Fill the document root. On web, +html.tsx sizes #root with 100dvh so
+    // this stays within the visible viewport (not under browser chrome).
     ...(Platform.OS === "web"
-      ? ({ minHeight: "100vh", height: "100%" } as unknown as ViewStyle)
+      ? ({ height: "100%", maxHeight: "100%" } as unknown as ViewStyle)
       : null),
   },
   dim: {
@@ -75,5 +77,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     width: "100%",
+    minHeight: 0,
   },
 });

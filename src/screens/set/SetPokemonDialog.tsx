@@ -20,6 +20,7 @@ import {
   type TypeId,
 } from "../../pokemon/types";
 import { TYPE_COLORS, typeNameJa } from "../../pokemon/catalog";
+import { PokemonTypeBadges } from "../../pokemon/TypeBadges";
 import {
   GEN1_STAT_KEYS,
   GEN1_STAT_LABELS,
@@ -36,6 +37,7 @@ import {
 } from "../../party/gen1Stats";
 import type { LevelCapMode } from "../../match-setup/types";
 import type { GenerationFilterOptions } from "../../match-setup/generationFilter";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Props = {
   visible: boolean;
@@ -573,6 +575,7 @@ export function SetPokemonDialog({
   onClose,
   onSave,
 }: Props) {
+  const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState<PartyMemberBuild>(member);
   const [moves, setMoves] = useState<Move[]>([]);
   const [loadingMoves, setLoadingMoves] = useState(false);
@@ -730,9 +733,22 @@ export function SetPokemonDialog({
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <View style={styles.backdrop}>
+      <View
+        style={[
+          styles.backdrop,
+          {
+            paddingTop: Math.max(insets.top, 16),
+            paddingBottom: Math.max(insets.bottom, 16),
+            paddingLeft: Math.max(insets.left, 16),
+            paddingRight: Math.max(insets.right, 16),
+          },
+        ]}
+      >
         <View style={styles.sheet}>
-          <Text style={styles.title}>{member.nameJa} の設定</Text>
+          <View style={styles.header}>
+            <Text style={styles.title}>{member.nameJa} の設定</Text>
+            <PokemonTypeBadges species={species} style={styles.headerTypes} />
+          </View>
           <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
             <Text style={styles.section}>レベル（1〜{maxLevel}）</Text>
             <TextInput
@@ -987,7 +1003,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(20,28,16,0.45)",
     justifyContent: "center",
-    padding: 16,
   },
   sheet: {
     maxHeight: "92%",
@@ -997,13 +1012,22 @@ const styles = StyleSheet.create({
     borderColor: "#ddd4c4",
     overflow: "hidden",
   },
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+    gap: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee6d8",
+    backgroundColor: "#fffdf8",
+  },
   title: {
     fontSize: 18,
     fontWeight: "800",
     color: "#1d1a16",
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
+  },
+  headerTypes: {
+    marginTop: 0,
   },
   body: { flexGrow: 0 },
   bodyContent: { paddingHorizontal: 16, paddingBottom: 16, gap: 8 },
