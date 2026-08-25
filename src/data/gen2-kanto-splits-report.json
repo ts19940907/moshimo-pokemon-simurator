@@ -1,0 +1,80 @@
+{
+  "pokemonSplits": [
+    {
+      "dex_no": 42,
+      "name_ja": "ゴルバット",
+      "fromMask": 255,
+      "gen1Mask": 1,
+      "gen2Mask": 254,
+      "type1": 8,
+      "type2": 10,
+      "is_final_evolution": false,
+      "reasons": {
+        "typeDiff": false,
+        "finalDiff": true,
+        "alreadyPatched": true
+      }
+    },
+    {
+      "dex_no": 81,
+      "name_ja": "コイル",
+      "fromMask": 511,
+      "gen1Mask": 1,
+      "gen2Mask": 510,
+      "type1": 4,
+      "type2": 17,
+      "is_final_evolution": false,
+      "reasons": {
+        "typeDiff": true,
+        "finalDiff": false,
+        "alreadyPatched": true
+      }
+    },
+    {
+      "dex_no": 82,
+      "name_ja": "レアコイル",
+      "fromMask": 511,
+      "gen1Mask": 1,
+      "gen2Mask": 510,
+      "type1": 4,
+      "type2": 17,
+      "is_final_evolution": true,
+      "reasons": {
+        "typeDiff": true,
+        "finalDiff": false,
+        "alreadyPatched": true
+      }
+    },
+    {
+      "dex_no": 95,
+      "name_ja": "イワーク",
+      "fromMask": 255,
+      "gen1Mask": 1,
+      "gen2Mask": 254,
+      "type1": 13,
+      "type2": 9,
+      "is_final_evolution": false,
+      "reasons": {
+        "typeDiff": false,
+        "finalDiff": true,
+        "alreadyPatched": true
+      }
+    },
+    {
+      "dex_no": 123,
+      "name_ja": "ストライク",
+      "fromMask": 511,
+      "gen1Mask": 1,
+      "gen2Mask": 510,
+      "type1": 12,
+      "type2": 10,
+      "is_final_evolution": false,
+      "reasons": {
+        "typeDiff": false,
+        "finalDiff": true,
+        "alreadyPatched": true
+      }
+    }
+  ],
+  "moveSplits": []
+}
