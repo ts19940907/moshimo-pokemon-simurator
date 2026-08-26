@@ -536,23 +536,56 @@ async function main() {
     "available_generations",
   ];
 
+  const movesValues = moves
+    .map(
+      (row) =>
+        `(${columns
+          .map((col) => {
+            if (col === "effect_meta") return sqlStr(row.effect_meta);
+            return sqlStr(row[col]);
+          })
+          .join(", ")})`,
+    )
+    .join(",\n");
+
+  const movesUpsertClause = [
+    "on conflict (pokeapi_id, available_generations) do update set",
+    "  id = excluded.id,",
+    "  name_ja = excluded.name_ja,",
+    "  name_en = excluded.name_en,",
+    "  type_id = excluded.type_id,",
+    "  damage_class = excluded.damage_class,",
+    "  power = excluded.power,",
+    "  accuracy = excluded.accuracy,",
+    "  pp = excluded.pp,",
+    "  priority = excluded.priority,",
+    "  description = excluded.description,",
+    "  effect_category = excluded.effect_category,",
+    "  effect_meta = excluded.effect_meta,",
+    "  effect_code = excluded.effect_code,",
+    "  introduced_generation = excluded.introduced_generation,",
+    "  updated_at = now();",
+  ].join("\n");
+
   const movesSql = [
     "-- Gen1 move master (introduced_generation=1)",
     "truncate table moshimo.pokemon_moves cascade;",
     "truncate table moshimo.moves cascade;",
     "",
     `insert into moshimo.moves (${columns.join(", ")}) values`,
-    `${moves
-      .map(
-        (row) =>
-          `(${columns
-            .map((col) => {
-              if (col === "effect_meta") return sqlStr(row.effect_meta);
-              return sqlStr(row[col]);
-            })
-            .join(", ")})`,
-      )
-      .join(",\n")};`,
+    `${movesValues};`,
+    "",
+  ].join("\n");
+
+  const movesUpsertSql = [
+    "-- Gen1 move master UPSERT (Generation I corrections).",
+    "-- Safe for existing DB: does NOT truncate moves / pokemon_moves.",
+    "-- Source: scripts/gen1-move-stat-overrides.json",
+    "-- Apply in Supabase SQL Editor before Gen2 move seeds if Gen1 rows are stale.",
+    "",
+    `insert into moshimo.moves (${columns.join(", ")}) values`,
+    movesValues,
+    movesUpsertClause,
     "",
   ].join("\n");
 
@@ -575,6 +608,10 @@ async function main() {
 
   const seedDir = path.join(root, "supabase/seed");
   fs.writeFileSync(path.join(seedDir, "gen1_moves.sql"), `${movesSql}\n`);
+  fs.writeFileSync(
+    path.join(seedDir, "gen1_moves_upsert.sql"),
+    `${movesUpsertSql}\n`,
+  );
   fs.writeFileSync(
     path.join(seedDir, "gen1_pokemon_moves.sql"),
     `${junctionSql}\n`,
@@ -601,7 +638,7 @@ async function main() {
 
   console.log(`junction select-arms ${junctionLines.length}`);
   console.log(
-    "wrote supabase/seed/gen1_moves.sql, gen1_pokemon_moves.sql, gen1_moves_all.sql",
+    "wrote supabase/seed/gen1_moves.sql, gen1_moves_upsert.sql, gen1_pokemon_moves.sql, gen1_moves_all.sql",
   );
 }
 

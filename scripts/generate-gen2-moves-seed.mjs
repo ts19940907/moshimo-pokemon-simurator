@@ -245,7 +245,8 @@ async function main() {
   ];
 
   const movesSql = [
-    "-- Gen2-debut moves (additive). Skip if pokeapi_id already exists.",
+    "-- Gen2-debut moves (additive UPSERT).",
+    "-- Safe for existing DB. Does not touch Gen1 move rows.",
     `insert into moshimo.moves (${columns.join(", ")}) values`,
     `${moves
       .map(
@@ -258,7 +259,22 @@ async function main() {
             .join(", ")})`,
       )
       .join(",\n")}`,
-    "on conflict (pokeapi_id, available_generations) do nothing;",
+    "on conflict (pokeapi_id, available_generations) do update set",
+    "  id = excluded.id,",
+    "  name_ja = excluded.name_ja,",
+    "  name_en = excluded.name_en,",
+    "  type_id = excluded.type_id,",
+    "  damage_class = excluded.damage_class,",
+    "  power = excluded.power,",
+    "  accuracy = excluded.accuracy,",
+    "  pp = excluded.pp,",
+    "  priority = excluded.priority,",
+    "  description = excluded.description,",
+    "  effect_category = excluded.effect_category,",
+    "  effect_meta = excluded.effect_meta,",
+    "  effect_code = excluded.effect_code,",
+    "  introduced_generation = excluded.introduced_generation,",
+    "  updated_at = now();",
     "",
   ].join("\n");
 

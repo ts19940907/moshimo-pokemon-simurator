@@ -1,4 +1,5 @@
--- Gen2-debut moves (additive). Skip if pokeapi_id already exists.
+-- Gen2-debut moves (additive UPSERT).
+-- Safe for existing DB. Does not touch Gen1 move rows.
 insert into moshimo.moves (id, pokeapi_id, name_ja, name_en, type_id, damage_class, power, accuracy, pp, priority, description, effect_category, effect_meta, effect_code, introduced_generation, available_generations) values
 ('00000000-0000-4000-8000-000000000166', 166, 'スケッチ', 'Sketch', 1, 'status', NULL, NULL, 1, 0, '技効果。', 'unique', '{"ailment":null,"ailment_chance":0,"drain":0,"healing":0,"flinch_chance":0,"crit_rate":0,"min_hits":null,"max_hits":null,"min_turns":null,"max_turns":null,"stat_chance":0,"stat_changes":[]}'::jsonb, NULL, 2, 510),
 ('00000000-0000-4000-8000-000000000167', 167, 'トリプルキック', 'Triple Kick', 7, 'physical', 10, 90, 10, 0, '威力10の攻撃。', 'damage', '{"ailment":null,"ailment_chance":0,"drain":0,"healing":0,"flinch_chance":0,"crit_rate":0,"min_hits":3,"max_hits":3,"min_turns":null,"max_turns":null,"stat_chance":0,"stat_changes":[]}'::jsonb, NULL, 2, 510),
@@ -86,7 +87,22 @@ insert into moshimo.moves (id, pokeapi_id, name_ja, name_en, type_id, damage_cla
 ('00000000-0000-4000-8000-000000000249', 249, 'いわくだき', 'Rock Smash', 7, 'physical', 40, 100, 15, 0, '威力40の攻撃。', 'damage-lower', '{"ailment":null,"ailment_chance":0,"drain":0,"healing":0,"flinch_chance":0,"crit_rate":0,"min_hits":null,"max_hits":null,"min_turns":null,"max_turns":null,"stat_chance":50,"stat_changes":[{"stat":"defense","change":-1}]}'::jsonb, NULL, 2, 510),
 ('00000000-0000-4000-8000-000000000250', 250, 'うずしお', 'Whirlpool', 3, 'special', 35, 85, 15, 0, '威力35の攻撃。', 'damage-ailment', '{"ailment":"trap","ailment_chance":100,"drain":0,"healing":0,"flinch_chance":0,"crit_rate":0,"min_hits":null,"max_hits":null,"min_turns":5,"max_turns":6,"stat_chance":0,"stat_changes":[]}'::jsonb, NULL, 2, 510),
 ('00000000-0000-4000-8000-000000000251', 251, 'ふくろだたき', 'Beat Up', 16, 'special', NULL, 100, 10, 0, '技効果。', 'damage', '{"ailment":null,"ailment_chance":0,"drain":0,"healing":0,"flinch_chance":0,"crit_rate":0,"min_hits":6,"max_hits":6,"min_turns":null,"max_turns":null,"stat_chance":0,"stat_changes":[]}'::jsonb, NULL, 2, 510)
-on conflict (pokeapi_id, available_generations) do nothing;
+on conflict (pokeapi_id, available_generations) do update set
+  id = excluded.id,
+  name_ja = excluded.name_ja,
+  name_en = excluded.name_en,
+  type_id = excluded.type_id,
+  damage_class = excluded.damage_class,
+  power = excluded.power,
+  accuracy = excluded.accuracy,
+  pp = excluded.pp,
+  priority = excluded.priority,
+  description = excluded.description,
+  effect_category = excluded.effect_category,
+  effect_meta = excluded.effect_meta,
+  effect_code = excluded.effect_code,
+  introduced_generation = excluded.introduced_generation,
+  updated_at = now();
 
 -- 1/3 setup: staging table for GSC learnsets (persistent across SQL Editor runs)
 create table if not exists moshimo._seed_gen2_learnset (
