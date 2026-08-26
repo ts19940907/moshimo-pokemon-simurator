@@ -18,16 +18,26 @@ App tables live in the **`moshimo`** schema (not `public`), to keep them separat
 - Ability seed: `supabase/seed/abilities.sql`
 - Gen1 pokemon seed: `supabase/seed/gen1_pokemon.sql`
 - Combined pokemon reseed: `supabase/seed/gen1_all.sql`（abilities → pokemon の順）
-- Gen1 moves + junction: `supabase/seed/gen1_moves_all.sql`（moves → pokemon_moves の順）
+- Gen1 moves + junction: `supabase/seed/gen1_moves_all.sql`（moves → pokemon_moves の順。**TRUNCATE あり**・空DB向け）
+- Gen1 moves UPSERT（既存DB向け）: `supabase/seed/gen1_moves_upsert.sql`（初代技仕様の修正を反映。TRUNCATE なし）
 - Gen2 Johto pokemon (additive): `supabase/seed/gen2_all.sql`（abilities upsert → Johto pokemon）
-- Gen2 moves (additive, small): `supabase/seed/gen2_moves.sql`
+- Gen2 moves (additive UPSERT): `supabase/seed/gen2_moves.sql`
 - Gen2 tools / held items (additive): `supabase/seed/gen2_tools.sql`（`node scripts/generate-gen2-tools-seed.mjs` で再生成）
 - Gen1→Gen2 Kanto splits (additive): `supabase/seed/gen2_kanto_splits.sql`（`node scripts/generate-gen2-kanto-splits-seed.mjs` で再生成。差分がある種族のみ行分割）
+- 既存DBへの技適用順（コメントガイド）: `supabase/seed/apply_moves_gen1_and_gen2.sql`
 - Gen2 learnsets（SQL Editor 向け分割）:
   1. `gen2_pokemon_moves_00_setup.sql`
   2. `gen2_pokemon_moves_01_values.sql` … `08_values.sql`（番号順）
   3. `gen2_pokemon_moves_99_finalize.sql`
 - Gen2 moves + learnsets 一括（`psql` 用）: `supabase/seed/gen2_moves_all.sql`
+
+### 既存DBで Gen2 の技を出す手順
+
+1. `gen1_moves_upsert.sql` — 初代技マスタの修正を UPSERT（`gen1_moves.sql` は使わない）
+2. `gen2_moves.sql` — 第2世代登場技を UPSERT
+3. learnset: `gen2_pokemon_moves_00_setup.sql` → `01`…`08_values.sql` → `99_finalize.sql`
+
+技マスタだけでは不足で、**`pokemon_moves` の紐づけ**まで入れるとダメージ計算／パーティ設定で技が表示される。
 
 ## Client
 

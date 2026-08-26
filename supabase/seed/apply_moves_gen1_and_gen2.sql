@@ -1,0 +1,29 @@
+-- Apply order for an EXISTING database (Supabase SQL Editor)
+-- =====================================================================
+-- Goal: refresh Gen1 move specs + add Gen2 moves + link Gen2 learnsets
+-- so Gen2 Pokémon show moves in damage calc / party set screens.
+--
+-- 1) Gen1 move corrections (UPSERT, no truncate)
+--    → run: gen1_moves_upsert.sql
+--
+-- 2) Gen2 debut moves (UPSERT)
+--    → run: gen2_moves.sql
+--
+-- 3) Gen2 learnsets (staging → pokemon_moves)
+--    → run in order:
+--       gen2_pokemon_moves_00_setup.sql
+--       gen2_pokemon_moves_01_values.sql
+--       … 02 … 08_values.sql
+--       gen2_pokemon_moves_99_finalize.sql
+--
+-- Optional (if Kanto Gen2 type/final splits not applied yet):
+--    → gen2_kanto_splits.sql
+--
+-- Optional (Johto species missing):
+--    → gen2_all.sql
+--
+-- psql one-shot alternative for steps 2–3:
+--    \i supabase/seed/gen2_moves_all.sql
+--
+-- Do NOT run gen1_moves.sql / gen1_moves_all.sql on a live Gen2 DB:
+-- those files TRUNCATE moves + pokemon_moves.
