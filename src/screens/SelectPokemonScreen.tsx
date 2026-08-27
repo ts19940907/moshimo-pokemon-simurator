@@ -30,10 +30,12 @@ import {
   type PartyMemberBuild,
   type PartySide,
 } from "../party/types";
-import { calcGen1Stats, summarizeGen1Stats } from "../party/gen1Stats";
+import {
+  calcBattleStats,
+  summarizeBattleStats,
+} from "../party/calcBattleStats";
 import {
   formatDexNo,
-  getDisplayBaseStats,
   getSelectableSpeciesFromList,
   getTypes,
   MIN_PARTY_SIZE,
@@ -42,6 +44,22 @@ import {
   TYPE_COLORS,
   typeFilterOptions,
 } from "../pokemon/catalog";
+import {
+  baseStatFilterOptions,
+  baseStatSortOptions,
+  compareSpeciesByBaseStatSort,
+  emptyStatFilters,
+  getDisplayBaseStats,
+  hasActiveStatFilters,
+  normalizeSortKey,
+  speciesMatchesStatFilters,
+  type BaseStatFilterKey,
+  type SortKey,
+  type StatFilterEntry,
+  type StatFiltersState,
+} from "../pokemon/baseStatFilters";
+
+type SortOrder = "asc" | "desc";
 import type { Move } from "../pokemon/moves";
 import {
   fetchMovesByIds,
@@ -66,12 +84,6 @@ import { matchBackgroundForRules } from "../match-setup/backgrounds";
 import { MatchScreenBackground } from "../match-setup/MatchScreenBackground";
 import { parseRulesGeneration } from "../match-setup/params";
 
-type StatKey = "hp" | "attack" | "defense" | "special" | "speed";
-type SortKey = "dex" | StatKey;
-type SortOrder = "asc" | "desc";
-type StatCompareMode = "gte" | "lte";
-type StatFilterEntry = { value: string; mode: StatCompareMode };
-type StatFiltersState = Record<StatKey, StatFilterEntry>;
 /** When 2 types are selected: ignore order vs type1/type2 order. */
 type DualTypeOrderMode = "any" | "exact";
 
@@ -80,31 +92,6 @@ const MAX_MOVE_FILTERS = 4;
 function formatMoveStat(value: number | null, empty = "—") {
   return value == null ? empty : String(value);
 }
-
-const STAT_FILTERS: { key: StatKey; label: string }[] = [
-  { key: "hp", label: "HP" },
-  { key: "attack", label: "こうげき" },
-  { key: "defense", label: "ぼうぎょ" },
-  { key: "special", label: "とくしゅ" },
-  { key: "speed", label: "すばやさ" },
-];
-
-const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: "dex", label: "図鑑" },
-  { key: "hp", label: "HP" },
-  { key: "attack", label: "攻撃" },
-  { key: "defense", label: "防御" },
-  { key: "special", label: "特殊" },
-  { key: "speed", label: "素早さ" },
-];
-
-const EMPTY_STAT_FILTERS: StatFiltersState = {
-  hp: { value: "", mode: "gte" },
-  attack: { value: "", mode: "gte" },
-  defense: { value: "", mode: "gte" },
-  special: { value: "", mode: "gte" },
-  speed: { value: "", mode: "gte" },
-};
 
 function matchesNameQuery(pokemon: PokemonSpecies, query: string): boolean {
   const trimmed = query.trim();
@@ -118,26 +105,6 @@ function matchesNameQuery(pokemon: PokemonSpecies, query: string): boolean {
     String(pokemon.dex_no).includes(trimmed) ||
     formatDexNo(pokemon.dex_no).toLowerCase().includes(lower)
   );
-}
-
-function parseStatThreshold(value: string): number | null {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return null;
-  }
-  const n = Number(trimmed);
-  return Number.isFinite(n) ? n : null;
-}
-
-function matchesStatFilter(
-  statValue: number,
-  filter: StatFilterEntry,
-): boolean {
-  const threshold = parseStatThreshold(filter.value);
-  if (threshold == null) {
-    return true;
-  }
-  return filter.mode === "gte" ? statValue >= threshold : statValue <= threshold;
 }
 
 function matchesTypeFilter(
@@ -191,29 +158,6 @@ function setTypeFilterAt(
   if (typeId == null) return [first];
   if (typeId === first) return [first];
   return [first, typeId];
-}
-
-function compareSpeciesBySort(
-  a: PokemonSpecies,
-  b: PokemonSpecies,
-  sortKey: SortKey,
-  sortOrder: SortOrder,
-): number {
-  const direction = sortOrder === "asc" ? 1 : -1;
-  let diff = 0;
-
-  if (sortKey === "dex") {
-    diff = a.dex_no - b.dex_no || a.region_type - b.region_type;
-  } else {
-    const statsA = getDisplayBaseStats(a);
-    const statsB = getDisplayBaseStats(b);
-    diff = statsA[sortKey] - statsB[sortKey];
-    if (diff === 0) {
-      diff = a.dex_no - b.dex_no || a.region_type - b.region_type;
-    }
-  }
-
-  return diff * direction;
 }
 
 function createBuildWithMoveFilters(
@@ -299,14 +243,17 @@ function PokemonCard({
   selected,
   disabled,
   onPress,
+  rulesGeneration,
 }: {
   pokemon: PokemonSpecies;
   selected: boolean;
   disabled: boolean;
   onPress: () => void;
+  rulesGeneration: number;
 }) {
   const types = getTypes(pokemon);
-  const stats = getDisplayBaseStats(pokemon);
+  const stats = getDisplayBaseStats(pokemon, rulesGeneration);
+  const splitSpecial = rulesGeneration >= 2;
 
   return (
     <Pressable
@@ -345,7 +292,14 @@ function PokemonCard({
         <StatRow label="HP" value={stats.hp} />
         <StatRow label="こうげき" value={stats.attack} />
         <StatRow label="ぼうぎょ" value={stats.defense} />
-        <StatRow label="とくしゅ" value={stats.special} />
+        {splitSpecial ? (
+          <>
+            <StatRow label="とくこう" value={stats.sp_attack ?? 0} />
+            <StatRow label="とくぼう" value={stats.sp_defense ?? 0} />
+          </>
+        ) : (
+          <StatRow label="とくしゅ" value={stats.special ?? 0} />
+        )}
         <StatRow label="すばやさ" value={stats.speed} />
       </View>
     </Pressable>
@@ -631,6 +585,7 @@ function SpeciesFilters({
   moveFilterLoading,
   resultCount,
   onClear,
+  rulesGeneration,
 }: {
   typeFilters: TypeId[];
   onSetTypeFilter: (slot: 0 | 1, typeId: TypeId | null) => void;
@@ -643,7 +598,7 @@ function SpeciesFilters({
   onFinalEvolutionOnlyChange: (value: boolean) => void;
   statFilters: StatFiltersState;
   onStatFilterChange: (
-    key: StatKey,
+    key: BaseStatFilterKey,
     patch: Partial<StatFilterEntry>,
   ) => void;
   moveFilters: Move[];
@@ -656,15 +611,15 @@ function SpeciesFilters({
   moveFilterLoading: boolean;
   resultCount: number;
   onClear: () => void;
+  rulesGeneration: number;
 }) {
+  const statFilterOptions = baseStatFilterOptions(rulesGeneration);
   const hasFilters =
     typeFilters.length > 0 ||
     moveFilters.length > 0 ||
     singleTypeOnly ||
     !finalEvolutionOnly ||
-    STAT_FILTERS.some(
-      ({ key }) => parseStatThreshold(statFilters[key].value) != null,
-    );
+    hasActiveStatFilters(statFilters, rulesGeneration);
 
   const type1 = typeFilters[0] ?? null;
   const type2 = typeFilters[1] ?? null;
@@ -778,7 +733,7 @@ function SpeciesFilters({
 
       <Text style={styles.filterLabel}>種族値</Text>
       <View style={styles.statFilterRow}>
-        {STAT_FILTERS.map(({ key, label }) => {
+        {statFilterOptions.map(({ key, label }) => {
           const filter = statFilters[key];
           return (
             <View key={key} style={styles.statFilterField}>
@@ -909,16 +864,19 @@ function SpeciesSortBar({
   sortKey,
   sortOrder,
   onSortChange,
+  rulesGeneration,
 }: {
   sortKey: SortKey;
   sortOrder: SortOrder;
   onSortChange: (key: SortKey, order: SortOrder) => void;
+  rulesGeneration: number;
 }) {
+  const sortOptions = baseStatSortOptions(rulesGeneration);
   return (
     <View style={styles.sortBox}>
       <Text style={styles.filterLabel}>並び替え（タップで昇順・降順）</Text>
       <View style={styles.sortChipRow}>
-        {SORT_OPTIONS.map(({ key, label }) => {
+        {sortOptions.map(({ key, label }) => {
           const active = sortKey === key;
           const arrow = active ? (sortOrder === "asc" ? " ↑" : " ↓") : "";
           return (
@@ -1027,7 +985,7 @@ export function SelectPokemonScreen() {
     useState<DualTypeOrderMode>("any");
   const [finalEvolutionOnly, setFinalEvolutionOnly] = useState(true);
   const [statFilters, setStatFilters] =
-    useState<StatFiltersState>(EMPTY_STAT_FILTERS);
+    useState<StatFiltersState>(emptyStatFilters);
   const [sortKey, setSortKey] = useState<SortKey>("dex");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [moveFilters, setMoveFilters] = useState<Move[]>([]);
@@ -1058,7 +1016,7 @@ export function SelectPokemonScreen() {
     setSingleTypeOnly(false);
     setDualOrderMode("any");
     setFinalEvolutionOnly(true);
-    setStatFilters(EMPTY_STAT_FILTERS);
+    setStatFilters(emptyStatFilters());
     setSortKey("dex");
     setSortOrder("asc");
     setSuggestOpen(false);
@@ -1069,6 +1027,11 @@ export function SelectPokemonScreen() {
     setMoveFilterPokemonIds(null);
     setMoveFilterLoading(false);
   }, [side, getSide]);
+
+  useEffect(() => {
+    setStatFilters(emptyStatFilters());
+    setSortKey((current) => normalizeSortKey(current, rulesGeneration));
+  }, [rulesGeneration]);
 
   useEffect(() => {
     const trimmed = moveQuery.trim();
@@ -1187,11 +1150,8 @@ export function SelectPokemonScreen() {
       if (finalEvolutionOnly && !pokemon.is_final_evolution) {
         return false;
       }
-      const stats = getDisplayBaseStats(pokemon);
-      for (const { key } of STAT_FILTERS) {
-        if (!matchesStatFilter(stats[key], statFilters[key])) {
-          return false;
-        }
+      if (!speciesMatchesStatFilters(pokemon, statFilters, rulesGeneration)) {
+        return false;
       }
       if (
         moveFilters.length > 0 &&
@@ -1213,13 +1173,14 @@ export function SelectPokemonScreen() {
     moveFilters,
     moveFilterPokemonIds,
     moveFilterLoading,
+    rulesGeneration,
   ]);
 
   const sortedSpecies = useMemo(() => {
     return [...filteredSpecies].sort((a, b) =>
-      compareSpeciesBySort(a, b, sortKey, sortOrder),
+      compareSpeciesByBaseStatSort(a, b, sortKey, sortOrder, rulesGeneration),
     );
-  }, [filteredSpecies, sortKey, sortOrder]);
+  }, [filteredSpecies, sortKey, sortOrder, rulesGeneration]);
 
   const partyFull = selectedDexNos.length >= PARTY_SIZE;
 
@@ -1262,7 +1223,7 @@ export function SelectPokemonScreen() {
     setSingleTypeOnly(false);
     setDualOrderMode("any");
     setFinalEvolutionOnly(true);
-    setStatFilters(EMPTY_STAT_FILTERS);
+    setStatFilters(emptyStatFilters());
     setMoveFilters([]);
     setMoveQuery("");
     setMoveSuggestOpen(false);
@@ -1873,6 +1834,7 @@ export function SelectPokemonScreen() {
               moveFilterLoading={moveFilterLoading}
               resultCount={sortedSpecies.length}
               onClear={clearFilters}
+              rulesGeneration={rulesGeneration}
             />
 
             <SpeciesSortBar
@@ -1882,6 +1844,7 @@ export function SelectPokemonScreen() {
                 setSortKey(key);
                 setSortOrder(order);
               }}
+              rulesGeneration={rulesGeneration}
             />
 
             <PagePager
@@ -1907,6 +1870,7 @@ export function SelectPokemonScreen() {
                       selected={selected}
                       disabled={partyFull && !selected}
                       onPress={() => handleListPokemonPress(pokemon)}
+                      rulesGeneration={rulesGeneration}
                     />
                   );
                 })
@@ -1992,7 +1956,7 @@ export function SelectPokemonScreen() {
                 {selectedPokemon.map((pokemon) => {
                   const build = buildsBySpeciesId[pokemon.id];
                   const stats = build
-                    ? calcGen1Stats(pokemon, build)
+                    ? calcBattleStats(pokemon, build, rulesGeneration)
                     : null;
                   const moveLabel = build
                     ? build.moveIds
@@ -2031,7 +1995,7 @@ export function SelectPokemonScreen() {
                       </View>
                       {stats ? (
                         <Text style={styles.partyStats} numberOfLines={2}>
-                          {summarizeGen1Stats(stats)}
+                          {summarizeBattleStats(stats, rulesGeneration)}
                         </Text>
                       ) : null}
                       <Text style={styles.partyMoves} numberOfLines={2}>
@@ -2103,6 +2067,7 @@ export function SelectPokemonScreen() {
           levelCapMode={levelCapMode}
           moveGenerationOptions={moveGenerationOptions}
           itemGenerationOptions={itemGenerationOptions}
+          rulesGeneration={rulesGeneration}
           excludedToolIds={Object.values(buildsBySpeciesId)
             .filter((build) => build.speciesId !== settingBuild.speciesId)
             .map((build) => build.toolId)

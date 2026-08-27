@@ -25,19 +25,32 @@ import {
 import { TYPE_COLORS, typeNameJa } from "../../pokemon/catalog";
 import { PokemonTypeBadges } from "../../pokemon/TypeBadges";
 import {
-  GEN1_STAT_KEYS,
-  GEN1_STAT_LABELS,
   maxLevelForCap,
   type BattleGender,
   type Gen1StatBlock,
   type PartyMemberBuild,
 } from "../../party/types";
 import {
-  calcGen1Stats,
   findStatExpForLevel50Delta,
   GEN1_DV_MAX,
   GEN1_STAT_EXP_MAX,
 } from "../../party/gen1Stats";
+import { calcBattleStats } from "../../party/calcBattleStats";
+import {
+  effortValueHint,
+  effortValueSectionLabel,
+} from "../../party/battleStatLabels";
+import {
+  computedStatValue,
+  readStatBlockValue,
+  statEditorKeys,
+  type StatEditorKey,
+} from "../../party/statEditor";
+import {
+  findStatExpForLevel50DeltaGen2,
+  type Gen2StatBlock,
+} from "../../party/gen2Stats";
+import { usesSplitSpecial } from "../../pokemon/baseStatFilters";
 import type { LevelCapMode } from "../../match-setup/types";
 import type { GenerationFilterOptions } from "../../match-setup/generationFilter";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -51,6 +64,8 @@ type Props = {
   itemGenerationOptions: GenerationFilterOptions;
   /** Tool ids already held by other party members (same item cannot be shared). */
   excludedToolIds?: string[];
+  /** Rules generation for stat editor layout (Gen2 splits special). */
+  rulesGeneration?: number;
   onClose: () => void;
   onSave: (build: PartyMemberBuild) => void;
 };
@@ -765,10 +780,16 @@ export function SetPokemonDialog({
   moveGenerationOptions,
   itemGenerationOptions,
   excludedToolIds = [],
+  rulesGeneration = 1,
   onClose,
   onSave,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const splitSpecial = usesSplitSpecial(rulesGeneration);
+  const editorKeys = useMemo(
+    () => statEditorKeys(rulesGeneration),
+    [rulesGeneration],
+  );
   const [draft, setDraft] = useState<PartyMemberBuild>(member);
   const [moves, setMoves] = useState<Move[]>([]);
   const [tools, setTools] = useState<Tool[]>([]);
@@ -784,8 +805,8 @@ export function SetPokemonDialog({
   const maxLevel = maxLevelForCap(levelCapMode);
   const genderLocked = species.gender !== GENDER.BOTH;
   const computedStats = useMemo(
-    () => calcGen1Stats(species, draft),
-    [species, draft],
+    () => calcBattleStats(species, draft, rulesGeneration),
+    [species, draft, rulesGeneration],
   );
 
   useEffect(() => {
@@ -905,7 +926,7 @@ export function SetPokemonDialog({
     return ["male", "female"] as BattleGender[];
   }, [species.gender]);
 
-  const setIv = (key: keyof Gen1StatBlock, value: number) => {
+  const setIv = (key: StatEditorKey, value: number) => {
     setDraft((current) => ({
       ...current,
       iv: {
@@ -915,17 +936,21 @@ export function SetPokemonDialog({
     }));
   };
 
-  const patchIv = (key: keyof Gen1StatBlock, raw: string) => {
+  const patchIv = (key: StatEditorKey, raw: string) => {
     setDraft((current) => ({
       ...current,
       iv: {
         ...current.iv,
-        [key]: clamp(parseIntOr(raw, current.iv[key]), 0, GEN1_DV_MAX),
+        [key]: clamp(
+          parseIntOr(raw, readStatBlockValue(current.iv, key)),
+          0,
+          GEN1_DV_MAX,
+        ),
       },
     }));
   };
 
-  const setStatExp = (key: keyof Gen1StatBlock, value: number) => {
+  const setStatExp = (key: StatEditorKey, value: number) => {
     setDraft((current) => ({
       ...current,
       statExp: {
@@ -935,27 +960,41 @@ export function SetPokemonDialog({
     }));
   };
 
-  const patchStatExp = (key: keyof Gen1StatBlock, raw: string) => {
+  const patchStatExp = (key: StatEditorKey, raw: string) => {
     setDraft((current) => ({
       ...current,
       statExp: {
         ...current.statExp,
-        [key]: clamp(parseIntOr(raw, current.statExp[key]), 0, GEN1_STAT_EXP_MAX),
+        [key]: clamp(
+          parseIntOr(raw, readStatBlockValue(current.statExp, key)),
+          0,
+          GEN1_STAT_EXP_MAX,
+        ),
       },
     }));
   };
 
   const nudgeStatExpForLevel50 = (
-    key: keyof Gen1StatBlock,
+    key: StatEditorKey,
     delta: 1 | -1,
   ) => {
-    const next = findStatExpForLevel50Delta(
-      species,
-      key,
-      draft.iv[key],
-      draft.statExp[key],
-      delta,
-    );
+    const iv = readStatBlockValue(draft.iv, key);
+    const currentEv = readStatBlockValue(draft.statExp, key);
+    const next = splitSpecial
+      ? findStatExpForLevel50DeltaGen2(
+          species,
+          key as keyof Gen2StatBlock,
+          iv,
+          currentEv,
+          delta,
+        )
+      : findStatExpForLevel50Delta(
+          species,
+          key as keyof Gen1StatBlock,
+          iv,
+          currentEv,
+          delta,
+        );
     if (next == null) return;
     setStatExp(key, next);
   };
@@ -1043,12 +1082,12 @@ export function SetPokemonDialog({
             </View>
 
             <Text style={styles.section}>個体値（0〜15）</Text>
-            {GEN1_STAT_KEYS.map((key) => {
-              const value = draft.iv[key];
+            {editorKeys.map(({ key, label }) => {
+              const value = readStatBlockValue(draft.iv, key);
               return (
                 <View key={`iv-${key}`} style={styles.statBlock}>
                   <View style={styles.statRow}>
-                    <Text style={styles.statLabel}>{GEN1_STAT_LABELS[key]}</Text>
+                    <Text style={styles.statLabel}>{label}</Text>
                     <TextInput
                       style={styles.statInput}
                       keyboardType="number-pad"
@@ -1082,30 +1121,51 @@ export function SetPokemonDialog({
               );
             })}
 
-            <Text style={styles.section}>努力値 / 基礎ポイント（0〜65535）</Text>
-            <Text style={styles.sectionHint}>
-              Lv50 ±1 は、レベル50での実数値が1変わる基礎ポイントに合わせます。
+            <Text style={styles.section}>
+              {splitSpecial
+                ? effortValueSectionLabel(rulesGeneration)
+                : "努力値 / 基礎ポイント（0〜65535）"}
             </Text>
-            {GEN1_STAT_KEYS.map((key) => {
-              const value = draft.statExp[key];
-              const downExp = findStatExpForLevel50Delta(
-                species,
-                key,
-                draft.iv[key],
-                value,
-                -1,
-              );
-              const upExp = findStatExpForLevel50Delta(
-                species,
-                key,
-                draft.iv[key],
-                value,
-                1,
-              );
+            <Text style={styles.sectionHint}>
+              {effortValueHint(rulesGeneration)}
+            </Text>
+            {editorKeys.map(({ key, label }) => {
+              const value = readStatBlockValue(draft.statExp, key);
+              const iv = readStatBlockValue(draft.iv, key);
+              const downExp = splitSpecial
+                ? findStatExpForLevel50DeltaGen2(
+                    species,
+                    key as keyof Gen2StatBlock,
+                    iv,
+                    value,
+                    -1,
+                  )
+                : findStatExpForLevel50Delta(
+                    species,
+                    key as keyof Gen1StatBlock,
+                    iv,
+                    value,
+                    -1,
+                  );
+              const upExp = splitSpecial
+                ? findStatExpForLevel50DeltaGen2(
+                    species,
+                    key as keyof Gen2StatBlock,
+                    iv,
+                    value,
+                    1,
+                  )
+                : findStatExpForLevel50Delta(
+                    species,
+                    key as keyof Gen1StatBlock,
+                    iv,
+                    value,
+                    1,
+                  );
               return (
                 <View key={`ev-${key}`} style={styles.statBlock}>
                   <View style={styles.statRow}>
-                    <Text style={styles.statLabel}>{GEN1_STAT_LABELS[key]}</Text>
+                    <Text style={styles.statLabel}>{label}</Text>
                     <TextInput
                       style={styles.statInput}
                       keyboardType="number-pad"
@@ -1140,10 +1200,12 @@ export function SetPokemonDialog({
             })}
 
             <Text style={styles.section}>実数値（レベル・個体値・努力値から計算）</Text>
-            {GEN1_STAT_KEYS.map((key) => (
+            {editorKeys.map(({ key, label }) => (
               <View key={`real-${key}`} style={styles.statRow}>
-                <Text style={styles.statLabel}>{GEN1_STAT_LABELS[key]}</Text>
-                <Text style={styles.statValue}>{computedStats[key]}</Text>
+                <Text style={styles.statLabel}>{label}</Text>
+                <Text style={styles.statValue}>
+                  {computedStatValue(computedStats, key, rulesGeneration)}
+                </Text>
               </View>
             ))}
 

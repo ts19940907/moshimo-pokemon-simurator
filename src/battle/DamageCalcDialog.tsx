@@ -12,7 +12,12 @@ import {
 
 import type { GenerationFilterOptions } from "../match-setup/generationFilter";
 import type { LevelCapMode } from "../match-setup/types";
-import { calcGen1Stats } from "../party/gen1Stats";
+import { calcBattleStats, battleStatsForDamage } from "../party/calcBattleStats";
+import {
+  effortValueHint,
+  effortValueSectionLabel,
+  ivStatLabel,
+} from "../party/battleStatLabels";
 import {
   IvStatEditor,
   StatExpEditor,
@@ -24,14 +29,20 @@ import {
   type Gen1StatBlock,
   type PartyMemberBuild,
 } from "../party/types";
+import { usesSplitSpecial } from "../pokemon/baseStatFilters";
 import {
   formatDexNo,
-  getDisplayBaseStats,
   PAGE_SIZE,
   PARTY_SIZE,
   TYPE_COLORS,
   typeFilterOptions,
 } from "../pokemon/catalog";
+import {
+  baseStatFilterOptions,
+  emptyStatFilters,
+  speciesMatchesStatFilters,
+  type StatFiltersState,
+} from "../pokemon/baseStatFilters";
 import { PokemonAutocompleteField } from "../pokemon/PokemonAutocompleteField";
 import { MoveTypeBadge, PokemonTypeBadges } from "../pokemon/TypeBadges";
 import type { Move, MoveDamageClass } from "../pokemon/moves";
@@ -56,6 +67,8 @@ type SideDraft = {
   attackStage: number;
   defenseStage: number;
   specialStage: number;
+  spAttackStage: number;
+  spDefenseStage: number;
 };
 
 type Props = {
@@ -78,29 +91,9 @@ type Props = {
   rulesGeneration?: number;
 };
 
-type StatKey = "hp" | "attack" | "defense" | "special" | "speed";
-type StatCompareMode = "gte" | "lte";
-type StatFilterEntry = { value: string; mode: StatCompareMode };
-type StatFiltersState = Record<StatKey, StatFilterEntry>;
 type DualTypeOrderMode = "any" | "exact";
 
 const MAX_TYPE_FILTERS = 2;
-
-const STAT_FILTERS: { key: StatKey; label: string }[] = [
-  { key: "hp", label: "HP" },
-  { key: "attack", label: "こうげき" },
-  { key: "defense", label: "ぼうぎょ" },
-  { key: "special", label: "とくしゅ" },
-  { key: "speed", label: "すばやさ" },
-];
-
-const EMPTY_STAT_FILTERS: StatFiltersState = {
-  hp: { value: "", mode: "gte" },
-  attack: { value: "", mode: "gte" },
-  defense: { value: "", mode: "gte" },
-  special: { value: "", mode: "gte" },
-  speed: { value: "", mode: "gte" },
-};
 
 const DAMAGE_CLASS_JA: Record<MoveDamageClass, string> = {
   physical: "物理",
@@ -118,6 +111,8 @@ function emptySide(): SideDraft {
     attackStage: 0,
     defenseStage: 0,
     specialStage: 0,
+    spAttackStage: 0,
+    spDefenseStage: 0,
   };
 }
 
@@ -214,6 +209,32 @@ function clampStage(n: number) {
   return clamp(n, -6, 6);
 }
 
+function ivField(
+  build: PartyMemberBuild,
+  key: "sp_attack" | "sp_defense" | "special",
+): number {
+  if (key === "sp_attack") {
+    return build.iv.sp_attack ?? build.iv.special;
+  }
+  if (key === "sp_defense") {
+    return build.iv.sp_defense ?? build.iv.special;
+  }
+  return build.iv.special;
+}
+
+function statExpField(
+  build: PartyMemberBuild,
+  key: "sp_attack" | "sp_defense" | "special",
+): number {
+  if (key === "sp_attack") {
+    return build.statExp.sp_attack ?? build.statExp.special;
+  }
+  if (key === "sp_defense") {
+    return build.statExp.sp_defense ?? build.statExp.special;
+  }
+  return build.statExp.special;
+}
+
 function matchesNameQuery(pokemon: PokemonSpecies, query: string): boolean {
   const trimmed = query.trim();
   if (!trimmed) return true;
@@ -224,22 +245,6 @@ function matchesNameQuery(pokemon: PokemonSpecies, query: string): boolean {
     String(pokemon.dex_no).includes(trimmed) ||
     formatDexNo(pokemon.dex_no).toLowerCase().includes(lower)
   );
-}
-
-function parseStatThreshold(value: string): number | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const n = Number(trimmed);
-  return Number.isFinite(n) ? n : null;
-}
-
-function matchesStatFilter(
-  statValue: number,
-  filter: StatFilterEntry,
-): boolean {
-  const threshold = parseStatThreshold(filter.value);
-  if (threshold == null) return true;
-  return filter.mode === "gte" ? statValue >= threshold : statValue <= threshold;
 }
 
 function matchesTypeFilter(
@@ -377,6 +382,10 @@ export function DamageCalcDialog({
     () => typeFilterOptions(rulesGeneration),
     [rulesGeneration],
   );
+  const statFilterOptions = useMemo(
+    () => baseStatFilterOptions(rulesGeneration),
+    [rulesGeneration],
+  );
   const maxLevel = maxLevelForCap(levelCapMode);
   const [attacker, setAttacker] = useState<SideDraft>(emptySide);
   const [defender, setDefender] = useState<SideDraft>(emptySide);
@@ -408,7 +417,7 @@ export function DamageCalcDialog({
     useState<DualTypeOrderMode>("any");
   const [finalEvolutionOnly, setFinalEvolutionOnly] = useState(true);
   const [statFilters, setStatFilters] =
-    useState<StatFiltersState>(EMPTY_STAT_FILTERS);
+    useState<StatFiltersState>(emptyStatFilters);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [attackerAcQuery, setAttackerAcQuery] = useState("");
@@ -443,8 +452,10 @@ export function DamageCalcDialog({
     lightScreen ||
     attacker.attackStage !== 0 ||
     attacker.specialStage !== 0 ||
+    attacker.spAttackStage !== 0 ||
     defender.defenseStage !== 0 ||
-    defender.specialStage !== 0;
+    defender.specialStage !== 0 ||
+    defender.spDefenseStage !== 0;
 
   const resetAll = () => {
     setAttacker(emptySide());
@@ -471,7 +482,7 @@ export function DamageCalcDialog({
     setSingleTypeOnly(false);
     setDualOrderMode("any");
     setFinalEvolutionOnly(true);
-    setStatFilters(EMPTY_STAT_FILTERS);
+    setStatFilters(emptyStatFilters());
     setSuggestOpen(false);
     setPage(0);
   };
@@ -542,9 +553,8 @@ export function DamageCalcDialog({
         return false;
       }
       if (finalEvolutionOnly && !pokemon.is_final_evolution) return false;
-      const stats = getDisplayBaseStats(pokemon);
-      for (const { key } of STAT_FILTERS) {
-        if (!matchesStatFilter(stats[key], statFilters[key])) return false;
+      if (!speciesMatchesStatFilters(pokemon, statFilters, rulesGeneration)) {
+        return false;
       }
       return true;
     });
@@ -556,6 +566,7 @@ export function DamageCalcDialog({
     dualOrderMode,
     finalEvolutionOnly,
     statFilters,
+    rulesGeneration,
   ]);
 
   const suggestions = useMemo(() => {
@@ -605,6 +616,8 @@ export function DamageCalcDialog({
         attackStage: 0,
         defenseStage: 0,
         specialStage: 0,
+        spAttackStage: 0,
+        spDefenseStage: 0,
       });
       if (importBuild && existing) {
         const firstMove = existing.moveIds.find((id) => Boolean(id)) ?? null;
@@ -620,6 +633,8 @@ export function DamageCalcDialog({
         attackStage: 0,
         defenseStage: 0,
         specialStage: 0,
+        spAttackStage: 0,
+        spDefenseStage: 0,
       });
     }
     if (side === "attacker") {
@@ -723,24 +738,48 @@ export function DamageCalcDialog({
     defender.species && defender.build && selectedMove,
   );
 
+  const splitSpecial = usesSplitSpecial(rulesGeneration);
+
   const damageResult: DamageRangeResult | null = useMemo(() => {
     if (!attacker.species || !attacker.build || !defender.species || !defender.build) {
       return null;
     }
     if (!selectedMove) return null;
-    const atkStats = calcGen1Stats(attacker.species, attacker.build);
-    const defStats = calcGen1Stats(defender.species, defender.build);
+    const atkRaw = calcBattleStats(
+      attacker.species,
+      attacker.build,
+      rulesGeneration,
+    );
+    const defRaw = calcBattleStats(
+      defender.species,
+      defender.build,
+      rulesGeneration,
+    );
+    const atkStats = battleStatsForDamage(
+      atkRaw,
+      isPhysicalMove ? "physical" : "attacker-special",
+      rulesGeneration,
+    );
+    const defStats = battleStatsForDamage(
+      defRaw,
+      isPhysicalMove ? "physical" : "defender-special",
+      rulesGeneration,
+    );
     return calcDamageRange(
       {
         attackerLevel: attacker.build.level,
         attackerSpecies: attacker.species,
         attackerStats: atkStats,
         attackerAttackStage: attacker.attackStage,
-        attackerSpecialStage: attacker.specialStage,
+        attackerSpecialStage: splitSpecial
+          ? attacker.spAttackStage
+          : attacker.specialStage,
         defenderSpecies: defender.species,
         defenderStats: defStats,
         defenderDefenseStage: defender.defenseStage,
-        defenderSpecialStage: defender.specialStage,
+        defenderSpecialStage: splitSpecial
+          ? defender.spDefenseStage
+          : defender.specialStage,
         defenderCurrentHp: defStats.hp,
       },
       selectedMove,
@@ -759,6 +798,9 @@ export function DamageCalcDialog({
     attackerBurn,
     reflect,
     lightScreen,
+    rulesGeneration,
+    splitSpecial,
+    isPhysicalMove,
   ]);
 
   const partyFull = partyDexNos.length >= PARTY_SIZE;
@@ -928,11 +970,11 @@ export function DamageCalcDialog({
 
   const attackerStats =
     attacker.species && attacker.build
-      ? calcGen1Stats(attacker.species, attacker.build)
+      ? calcBattleStats(attacker.species, attacker.build, rulesGeneration)
       : null;
   const defenderStats =
     defender.species && defender.build
-      ? calcGen1Stats(defender.species, defender.build)
+      ? calcBattleStats(defender.species, defender.build, rulesGeneration)
       : null;
 
   const damagingMoves = moves.filter(
@@ -1093,7 +1135,7 @@ export function DamageCalcDialog({
                 />
 
                 <Text style={styles.filterLabel}>種族値</Text>
-                {STAT_FILTERS.map(({ key, label }) => (
+                {statFilterOptions.map(({ key, label }) => (
                   <View key={key} style={styles.statFilterRow}>
                     <Text style={styles.statFilterLabel}>{label}</Text>
                     <View style={styles.statModeRow}>
@@ -1443,19 +1485,29 @@ export function DamageCalcDialog({
                                 />
                               ) : (
                                 <IvStatEditor
-                                  label={GEN1_STAT_LABELS.special}
-                                  value={attacker.build.iv.special}
+                                  label={ivStatLabel(
+                                    splitSpecial ? "sp_attack" : "special",
+                                    rulesGeneration,
+                                  )}
+                                  value={ivField(
+                                    attacker.build,
+                                    splitSpecial ? "sp_attack" : "special",
+                                  )}
                                   onChange={(v) =>
-                                    setIvValue("attacker", "special", v)
+                                    setIvValue(
+                                      "attacker",
+                                      splitSpecial ? "sp_attack" : "special",
+                                      v,
+                                    )
                                   }
                                 />
                               )}
 
                               <Text style={styles.section}>
-                                努力値（0〜65535）
+                                {effortValueSectionLabel(rulesGeneration)}
                               </Text>
                               <Text style={styles.sectionHint}>
-                                Lv50 ±1 は、レベル50での実数値が1変わる基礎ポイントに合わせます。
+                                {effortValueHint(rulesGeneration)}
                               </Text>
                               {isPhysicalMove ? (
                                 <StatExpEditor
@@ -1464,19 +1516,36 @@ export function DamageCalcDialog({
                                   species={attacker.species}
                                   statKey="attack"
                                   iv={attacker.build.iv.attack}
+                                  rulesGeneration={rulesGeneration}
                                   onChange={(v) =>
                                     setStatExpValue("attacker", "attack", v)
                                   }
                                 />
                               ) : (
                                 <StatExpEditor
-                                  label={GEN1_STAT_LABELS.special}
-                                  value={attacker.build.statExp.special}
+                                  label={ivStatLabel(
+                                    splitSpecial ? "sp_attack" : "special",
+                                    rulesGeneration,
+                                  )}
+                                  value={statExpField(
+                                    attacker.build,
+                                    splitSpecial ? "sp_attack" : "special",
+                                  )}
                                   species={attacker.species}
-                                  statKey="special"
-                                  iv={attacker.build.iv.special}
+                                  statKey={
+                                    splitSpecial ? "sp_attack" : "special"
+                                  }
+                                  iv={ivField(
+                                    attacker.build,
+                                    splitSpecial ? "sp_attack" : "special",
+                                  )}
+                                  rulesGeneration={rulesGeneration}
                                   onChange={(v) =>
-                                    setStatExpValue("attacker", "special", v)
+                                    setStatExpValue(
+                                      "attacker",
+                                      splitSpecial ? "sp_attack" : "special",
+                                      v,
+                                    )
                                   }
                                 />
                               )}
@@ -1487,7 +1556,9 @@ export function DamageCalcDialog({
                                   <Text style={styles.computed}>
                                     {isPhysicalMove
                                       ? `こうげき ${attackerStats.attack}`
-                                      : `とくしゅ ${attackerStats.special}`}
+                                      : splitSpecial
+                                        ? `とくこう ${attackerStats.sp_attack}`
+                                        : `とくしゅ ${(attackerStats as Gen1StatBlock).special}`}
                                   </Text>
                                 </>
                               ) : null}
@@ -1506,13 +1577,21 @@ export function DamageCalcDialog({
                                 />
                               ) : (
                                 <StageStepper
-                                  label="とくしゅ"
-                                  value={attacker.specialStage}
+                                  label={ivStatLabel(
+                                    splitSpecial ? "sp_attack" : "special",
+                                    rulesGeneration,
+                                  )}
+                                  value={
+                                    splitSpecial
+                                      ? attacker.spAttackStage
+                                      : attacker.specialStage
+                                  }
                                   onChange={(v) =>
-                                    setAttacker((c) => ({
-                                      ...c,
-                                      specialStage: v,
-                                    }))
+                                    setAttacker((c) =>
+                                      splitSpecial
+                                        ? { ...c, spAttackStage: v }
+                                        : { ...c, specialStage: v },
+                                    )
                                   }
                                 />
                               )}
@@ -1675,15 +1754,29 @@ export function DamageCalcDialog({
                       ) : null}
                       {isSpecialMove ? (
                         <IvStatEditor
-                          label={GEN1_STAT_LABELS.special}
-                          value={defender.build!.iv.special}
-                          onChange={(v) => setIvValue("defender", "special", v)}
+                          label={ivStatLabel(
+                            splitSpecial ? "sp_defense" : "special",
+                            rulesGeneration,
+                          )}
+                          value={ivField(
+                            defender.build!,
+                            splitSpecial ? "sp_defense" : "special",
+                          )}
+                          onChange={(v) =>
+                            setIvValue(
+                              "defender",
+                              splitSpecial ? "sp_defense" : "special",
+                              v,
+                            )
+                          }
                         />
                       ) : null}
 
-                      <Text style={styles.section}>努力値（0〜65535）</Text>
+                      <Text style={styles.section}>
+                        {effortValueSectionLabel(rulesGeneration)}
+                      </Text>
                       <Text style={styles.sectionHint}>
-                        Lv50 ±1 は、レベル50での実数値が1変わる基礎ポイントに合わせます。
+                        {effortValueHint(rulesGeneration)}
                       </Text>
                       <StatExpEditor
                         label={GEN1_STAT_LABELS.hp}
@@ -1691,6 +1784,7 @@ export function DamageCalcDialog({
                         species={defender.species!}
                         statKey="hp"
                         iv={defender.build!.iv.hp}
+                        rulesGeneration={rulesGeneration}
                         onChange={(v) => setStatExpValue("defender", "hp", v)}
                       />
                       {isPhysicalMove ? (
@@ -1700,6 +1794,7 @@ export function DamageCalcDialog({
                           species={defender.species!}
                           statKey="defense"
                           iv={defender.build!.iv.defense}
+                          rulesGeneration={rulesGeneration}
                           onChange={(v) =>
                             setStatExpValue("defender", "defense", v)
                           }
@@ -1707,13 +1802,27 @@ export function DamageCalcDialog({
                       ) : null}
                       {isSpecialMove ? (
                         <StatExpEditor
-                          label={GEN1_STAT_LABELS.special}
-                          value={defender.build!.statExp.special}
+                          label={ivStatLabel(
+                            splitSpecial ? "sp_defense" : "special",
+                            rulesGeneration,
+                          )}
+                          value={statExpField(
+                            defender.build!,
+                            splitSpecial ? "sp_defense" : "special",
+                          )}
                           species={defender.species!}
-                          statKey="special"
-                          iv={defender.build!.iv.special}
+                          statKey={splitSpecial ? "sp_defense" : "special"}
+                          iv={ivField(
+                            defender.build!,
+                            splitSpecial ? "sp_defense" : "special",
+                          )}
+                          rulesGeneration={rulesGeneration}
                           onChange={(v) =>
-                            setStatExpValue("defender", "special", v)
+                            setStatExpValue(
+                              "defender",
+                              splitSpecial ? "sp_defense" : "special",
+                              v,
+                            )
                           }
                         />
                       ) : null}
@@ -1727,7 +1836,9 @@ export function DamageCalcDialog({
                               ? ` ／ ぼうぎょ ${defenderStats.defense}`
                               : ""}
                             {isSpecialMove
-                              ? ` ／ とくしゅ ${defenderStats.special}`
+                              ? splitSpecial
+                                ? ` ／ とくぼう ${defenderStats.sp_defense}`
+                                : ` ／ とくしゅ ${(defenderStats as Gen1StatBlock).special}`
                               : ""}
                           </Text>
                         </>
@@ -1749,13 +1860,21 @@ export function DamageCalcDialog({
                             />
                           ) : (
                             <StageStepper
-                              label="とくしゅ"
-                              value={defender.specialStage}
+                              label={ivStatLabel(
+                                splitSpecial ? "sp_defense" : "special",
+                                rulesGeneration,
+                              )}
+                              value={
+                                splitSpecial
+                                  ? defender.spDefenseStage
+                                  : defender.specialStage
+                              }
                               onChange={(v) =>
-                                setDefender((c) => ({
-                                  ...c,
-                                  specialStage: v,
-                                }))
+                                setDefender((c) =>
+                                  splitSpecial
+                                    ? { ...c, spDefenseStage: v }
+                                    : { ...c, specialStage: v },
+                                )
                               }
                             />
                           )}

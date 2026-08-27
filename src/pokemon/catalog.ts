@@ -102,21 +102,12 @@ export function getTypes(pokemon: PokemonSpecies): string[] {
   return names;
 }
 
-export function getDisplayBaseStats(pokemon: PokemonSpecies): {
-  hp: number;
-  attack: number;
-  defense: number;
-  special: number;
-  speed: number;
-} {
-  return {
-    hp: pokemon.base_hp,
-    attack: pokemon.base_attack,
-    defense: pokemon.base_defense,
-    special: pokemon.base_special ?? pokemon.base_sp_attack ?? 0,
-    speed: pokemon.base_speed,
-  };
-}
+export {
+  getDisplayBaseStats,
+  getBaseStatTotal,
+  getStatValue,
+  type DisplayBaseStats,
+} from "./baseStatFilters";
 
 export const TYPE_COLORS: Record<string, string> = {
   ノーマル: "#A8A878",

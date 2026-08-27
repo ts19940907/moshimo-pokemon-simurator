@@ -450,6 +450,7 @@ export function SetPokemonScreen() {
           levelCapMode={levelCapMode}
           moveGenerationOptions={moveGenerationOptions}
           itemGenerationOptions={itemGenerationOptions}
+          rulesGeneration={rulesGeneration}
           excludedToolIds={excludedToolIds}
           onClose={() => setDialogOpen(false)}
           onSave={(build) => updateMember(build.speciesId, build)}

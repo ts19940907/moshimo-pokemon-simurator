@@ -6,12 +6,14 @@ export type PartySide = "a" | "b";
 
 export type BattleGender = "none" | "male" | "female";
 
-/** Gen1 DV / Stat Exp fields (Special is single). */
+/** Gen1 DV / Stat Exp fields. Gen2+ uses sp_attack / sp_defense instead of special. */
 export type Gen1StatBlock = {
   hp: number;
   attack: number;
   defense: number;
   special: number;
+  sp_attack: number;
+  sp_defense: number;
   speed: number;
 };
 
@@ -74,8 +76,24 @@ export function createDefaultBuild(
     nameJa: species.name_ja,
     level: Math.min(50, maxLevelForCap(levelCapMode)),
     gender: defaultBattleGender(species.gender),
-    iv: { hp: 15, attack: 15, defense: 15, special: 15, speed: 15 },
-    statExp: { hp: 0, attack: 0, defense: 0, special: 0, speed: 0 },
+    iv: {
+      hp: 15,
+      attack: 15,
+      defense: 15,
+      special: 15,
+      sp_attack: 15,
+      sp_defense: 15,
+      speed: 15,
+    },
+    statExp: {
+      hp: 0,
+      attack: 0,
+      defense: 0,
+      special: 0,
+      sp_attack: 0,
+      sp_defense: 0,
+      speed: 0,
+    },
     moveIds: [null, null, null, null],
     toolId: null,
   };

@@ -184,6 +184,7 @@ export function SelectBattlePokemonScreen() {
   const isLocalBoth = opponentType === "local_both";
   const isCpu = opponentType === "cpu";
   const needsSideB = isLocalBoth || isCpu;
+  const rulesGeneration = Number(params.rulesGeneration) || 1;
   const matchBackground = useMemo(
     () => matchBackgroundForRules(parseRulesGeneration(params)),
     [params.rulesGeneration],
@@ -272,6 +273,7 @@ export function SelectBattlePokemonScreen() {
             cpuMembers: sideB.members,
             playerMembers: sideA.members,
             speciesById,
+            rulesGeneration,
           })
         : [];
     startBattle(
