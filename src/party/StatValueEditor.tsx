@@ -5,8 +5,13 @@ import {
   GEN1_DV_MAX,
   GEN1_STAT_EXP_MAX,
 } from "./gen1Stats";
+import {
+  findStatExpForLevel50DeltaGen2,
+  type Gen2StatBlock,
+} from "./gen2Stats";
 import type { Gen1StatBlock } from "./types";
 import type { PokemonSpecies } from "../pokemon/types";
+import { usesSplitSpecial } from "../pokemon/baseStatFilters";
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
@@ -96,16 +101,47 @@ export function StatExpEditor({
   statKey,
   iv,
   onChange,
+  rulesGeneration = 1,
 }: {
   label: string;
   value: number;
   species: PokemonSpecies;
-  statKey: keyof Gen1StatBlock;
+  statKey: keyof Gen1StatBlock | keyof Gen2StatBlock;
   iv: number;
   onChange: (next: number) => void;
+  rulesGeneration?: number;
 }) {
-  const downExp = findStatExpForLevel50Delta(species, statKey, iv, value, -1);
-  const upExp = findStatExpForLevel50Delta(species, statKey, iv, value, 1);
+  const isGen2 = usesSplitSpecial(rulesGeneration);
+  const downExp = isGen2
+    ? findStatExpForLevel50DeltaGen2(
+        species,
+        statKey as keyof Gen2StatBlock,
+        iv,
+        value,
+        -1,
+      )
+    : findStatExpForLevel50Delta(
+        species,
+        statKey as keyof Gen1StatBlock,
+        iv,
+        value,
+        -1,
+      );
+  const upExp = isGen2
+    ? findStatExpForLevel50DeltaGen2(
+        species,
+        statKey as keyof Gen2StatBlock,
+        iv,
+        value,
+        1,
+      )
+    : findStatExpForLevel50Delta(
+        species,
+        statKey as keyof Gen1StatBlock,
+        iv,
+        value,
+        1,
+      );
 
   return (
     <View style={styles.statBlock}>

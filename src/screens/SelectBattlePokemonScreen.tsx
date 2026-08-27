@@ -251,6 +251,7 @@ export function SelectBattlePokemonScreen() {
   const needsSideB = isLocalBoth || isCpu;
   /** Opponent strength is only visible when both sides are human-controlled. */
   const canInspectOpponent = isLocalBoth;
+  const rulesGeneration = Number(params.rulesGeneration) || 1;
   const matchBackground = useMemo(
     () => matchBackgroundForRules(parseRulesGeneration(params)),
     [params.rulesGeneration],
@@ -382,6 +383,7 @@ export function SelectBattlePokemonScreen() {
             cpuMembers: sideB.members,
             playerMembers: sideA.members,
             speciesById,
+            rulesGeneration,
           })
         : [];
     startBattle(

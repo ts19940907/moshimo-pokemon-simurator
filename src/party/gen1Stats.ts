@@ -105,6 +105,12 @@ export function calcGen1Stats(
   build: Pick<PartyMemberBuild, "level" | "iv" | "statExp">,
 ): Gen1StatBlock {
   const level = Math.max(1, Math.min(100, Math.floor(build.level)));
+  const special = calcGen1OtherStat(
+    baseSpecial(species),
+    build.iv.special,
+    build.statExp.special,
+    level,
+  );
   return {
     hp: calcGen1Hp(species.base_hp, build.iv.hp, build.statExp.hp, level),
     attack: calcGen1OtherStat(
@@ -119,12 +125,9 @@ export function calcGen1Stats(
       build.statExp.defense,
       level,
     ),
-    special: calcGen1OtherStat(
-      baseSpecial(species),
-      build.iv.special,
-      build.statExp.special,
-      level,
-    ),
+    special,
+    sp_attack: special,
+    sp_defense: special,
     speed: calcGen1OtherStat(
       species.base_speed,
       build.iv.speed,

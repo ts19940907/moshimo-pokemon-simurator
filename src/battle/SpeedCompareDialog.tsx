@@ -23,12 +23,17 @@ import {
 } from "../party/types";
 import {
   formatDexNo,
-  getDisplayBaseStats,
   PAGE_SIZE,
   PARTY_SIZE,
   TYPE_COLORS,
   typeFilterOptions,
 } from "../pokemon/catalog";
+import {
+  baseStatFilterOptions,
+  emptyStatFilters,
+  speciesMatchesStatFilters,
+  type StatFiltersState,
+} from "../pokemon/baseStatFilters";
 import { PokemonAutocompleteField } from "../pokemon/PokemonAutocompleteField";
 import { PokemonTypeBadges } from "../pokemon/TypeBadges";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
@@ -67,29 +72,9 @@ type Props = {
   rulesGeneration?: number;
 };
 
-type StatKey = "hp" | "attack" | "defense" | "special" | "speed";
-type StatCompareMode = "gte" | "lte";
-type StatFilterEntry = { value: string; mode: StatCompareMode };
-type StatFiltersState = Record<StatKey, StatFilterEntry>;
 type DualTypeOrderMode = "any" | "exact";
 
 const MAX_TYPE_FILTERS = 2;
-
-const STAT_FILTERS: { key: StatKey; label: string }[] = [
-  { key: "hp", label: "HP" },
-  { key: "attack", label: "こうげき" },
-  { key: "defense", label: "ぼうぎょ" },
-  { key: "special", label: "とくしゅ" },
-  { key: "speed", label: "すばやさ" },
-];
-
-const EMPTY_STAT_FILTERS: StatFiltersState = {
-  hp: { value: "", mode: "gte" },
-  attack: { value: "", mode: "gte" },
-  defense: { value: "", mode: "gte" },
-  special: { value: "", mode: "gte" },
-  speed: { value: "", mode: "gte" },
-};
 
 function emptySide(): SideDraft {
   return {
@@ -173,22 +158,6 @@ function matchesNameQuery(pokemon: PokemonSpecies, query: string): boolean {
     String(pokemon.dex_no).includes(trimmed) ||
     formatDexNo(pokemon.dex_no).toLowerCase().includes(lower)
   );
-}
-
-function parseStatThreshold(value: string): number | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const n = Number(trimmed);
-  return Number.isFinite(n) ? n : null;
-}
-
-function matchesStatFilter(
-  statValue: number,
-  filter: StatFilterEntry,
-): boolean {
-  const threshold = parseStatThreshold(filter.value);
-  if (threshold == null) return true;
-  return filter.mode === "gte" ? statValue >= threshold : statValue <= threshold;
 }
 
 function matchesTypeFilter(
@@ -319,6 +288,10 @@ export function SpeedCompareDialog({
     () => typeFilterOptions(rulesGeneration),
     [rulesGeneration],
   );
+  const statFilterOptions = useMemo(
+    () => baseStatFilterOptions(rulesGeneration),
+    [rulesGeneration],
+  );
   const maxLevel = maxLevelForCap(levelCapMode);
   const [self, setSelf] = useState<SideDraft>(emptySide);
   const [foe, setFoe] = useState<SideDraft>(emptySide);
@@ -339,7 +312,7 @@ export function SpeedCompareDialog({
     useState<DualTypeOrderMode>("any");
   const [finalEvolutionOnly, setFinalEvolutionOnly] = useState(true);
   const [statFilters, setStatFilters] =
-    useState<StatFiltersState>(EMPTY_STAT_FILTERS);
+    useState<StatFiltersState>(emptyStatFilters);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [selfAcQuery, setSelfAcQuery] = useState("");
@@ -372,7 +345,7 @@ export function SpeedCompareDialog({
     setSingleTypeOnly(false);
     setDualOrderMode("any");
     setFinalEvolutionOnly(true);
-    setStatFilters(EMPTY_STAT_FILTERS);
+    setStatFilters(emptyStatFilters());
     setSuggestOpen(false);
     setPage(0);
   };
@@ -407,9 +380,8 @@ export function SpeedCompareDialog({
         return false;
       }
       if (finalEvolutionOnly && !pokemon.is_final_evolution) return false;
-      const stats = getDisplayBaseStats(pokemon);
-      for (const { key } of STAT_FILTERS) {
-        if (!matchesStatFilter(stats[key], statFilters[key])) return false;
+      if (!speciesMatchesStatFilters(pokemon, statFilters, rulesGeneration)) {
+        return false;
       }
       return true;
     });
@@ -421,6 +393,7 @@ export function SpeedCompareDialog({
     dualOrderMode,
     finalEvolutionOnly,
     statFilters,
+    rulesGeneration,
   ]);
 
   const suggestions = useMemo(() => {
@@ -966,7 +939,7 @@ export function SpeedCompareDialog({
                 />
 
                 <Text style={styles.filterLabel}>種族値</Text>
-                {STAT_FILTERS.map(({ key, label }) => (
+                {statFilterOptions.map(({ key, label }) => (
                   <View key={key} style={styles.statFilterRow}>
                     <Text style={styles.statFilterLabel}>{label}</Text>
                     <View style={styles.statModeRow}>

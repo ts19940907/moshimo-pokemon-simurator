@@ -1,6 +1,6 @@
 import type { GenerationFilterOptions } from "../match-setup/generationFilter";
 import type { LevelCapMode } from "../match-setup/types";
-import { BATTLE_PARTY_SIZE, getDisplayBaseStats, PARTY_SIZE } from "../pokemon/catalog";
+import { BATTLE_PARTY_SIZE, getBaseStatTotal, getDisplayBaseStats, PARTY_SIZE } from "../pokemon/catalog";
 import type { Move } from "../pokemon/moves";
 import { fetchMovesForPokemon } from "../pokemon/moveRepository";
 import type { PokemonSpecies } from "../pokemon/types";
@@ -25,9 +25,11 @@ function shuffle<T>(items: T[]): T[] {
   return next;
 }
 
-function bst(species: PokemonSpecies): number {
-  const s = getDisplayBaseStats(species);
-  return s.hp + s.attack + s.defense + s.special + s.speed;
+function bst(species: PokemonSpecies, rulesGeneration: number): number {
+  return getBaseStatTotal(
+    getDisplayBaseStats(species, rulesGeneration),
+    rulesGeneration,
+  );
 }
 
 function typeMatchupScore(
@@ -87,7 +89,7 @@ export async function generateCpuParty(input: {
   const finals = input.speciesPool.filter((s) => s.is_final_evolution);
   const pool = (finals.length >= PARTY_SIZE ? finals : input.speciesPool)
     .slice()
-    .sort((a, b) => bst(b) - bst(a));
+    .sort((a, b) => bst(b, input.rulesGeneration) - bst(a, input.rulesGeneration));
 
   const preferred = pool.filter((s) => !playerDex.has(s.dex_no));
   const fallback = pool.filter((s) => playerDex.has(s.dex_no));
@@ -132,17 +134,17 @@ export async function generateCpuParty(input: {
 function scoreCpuMemberForPlayerTeam(
   cpu: PokemonSpecies,
   playerTeam: PokemonSpecies[],
+  rulesGeneration: number,
 ): number {
   let score = 0;
-  const cpuBst = bst(cpu);
+  const cpuBst = bst(cpu, rulesGeneration);
   score += cpuBst / 100;
   for (const foe of playerTeam) {
     const offense = typeMatchupScore(cpu, foe);
     const defense = typeMatchupScore(foe, cpu);
     score += offense * 2;
     score -= defense * 1.5;
-    // Prefer solid base Speed / bulk vs common threats
-    score += getDisplayBaseStats(cpu).speed / 200;
+    score += getDisplayBaseStats(cpu, rulesGeneration).speed / 200;
   }
   return score;
 }
@@ -155,7 +157,9 @@ export function pickCpuBattleThree(input: {
   cpuMembers: PartyMemberBuild[];
   playerMembers: PartyMemberBuild[];
   speciesById: Record<string, PokemonSpecies>;
+  rulesGeneration?: number;
 }): string[] {
+  const rulesGeneration = input.rulesGeneration ?? 1;
   const playerSpecies = input.playerMembers
     .map((m) => input.speciesById[m.speciesId])
     .filter((s): s is PokemonSpecies => Boolean(s));
@@ -164,7 +168,7 @@ export function pickCpuBattleThree(input: {
     .map((member) => {
       const species = input.speciesById[member.speciesId];
       const score = species
-        ? scoreCpuMemberForPlayerTeam(species, playerSpecies)
+        ? scoreCpuMemberForPlayerTeam(species, playerSpecies, rulesGeneration)
         : 0;
       return { member, score };
     })
@@ -196,8 +200,8 @@ export function pickCpuBattleThree(input: {
     const sb = input.speciesById[b];
     if (!sa || !sb) return 0;
     return (
-      scoreCpuMemberForPlayerTeam(sb, playerSpecies) -
-      scoreCpuMemberForPlayerTeam(sa, playerSpecies)
+      scoreCpuMemberForPlayerTeam(sb, playerSpecies, rulesGeneration) -
+      scoreCpuMemberForPlayerTeam(sa, playerSpecies, rulesGeneration)
     );
   });
 
