@@ -9,6 +9,16 @@ import {
 import { GEN1_MOVE_POOL, pickMetronomeMove } from "./gen1MovePool";
 import { gen1TypeEffectiveness } from "./gen1TypeChart";
 import {
+  heldItemAccuracyFactor,
+  heldItemCritDenomModifier,
+  processLeftovers,
+  rollFocusBandSurvival,
+  rollKingsRockFlinch,
+  rollQuickClaw,
+  tryHpThresholdBerry,
+  tryStatusCureBerry,
+} from "./toolEffects";
+import {
   createStages,
   createVolatiles,
   stagedStat,
@@ -90,9 +100,17 @@ function rollTrapTurns(meta: MoveEffectMeta): number {
 /** Gen1 crit: high-crit moves use /64, else /512; Focus Energy quarters (cart glitch). */
 function rollsCrit(attacker: BattleFighter, move: Move): boolean {
   const baseSpeed = attacker.species.base_speed;
-  const highCrit = (metaOf(move).crit_rate ?? 0) > 0;
+  let highCrit = (metaOf(move).crit_rate ?? 0) > 0;
   let denom = highCrit ? 64 : 512;
   if (attacker.volatiles.focusEnergy) denom *= 4;
+  const toolId =
+    attacker.heldTool && !attacker.heldTool.consumed
+      ? attacker.heldTool.pokeapiId
+      : null;
+  const critMod = heldItemCritDenomModifier(attacker, toolId, highCrit);
+  highCrit = critMod.highCrit;
+  if (critMod.highCrit) denom = 64;
+  denom = Math.max(1, Math.floor(denom / critMod.denomFactor));
   const threshold = Math.min(255, Math.floor((baseSpeed * 100) / denom));
   return randInt(0, 255) < threshold;
 }
@@ -139,8 +157,21 @@ function applyDamage(
     return { dealt: amount, brokeSub: false };
   }
   const before = target.currentHp;
-  target.currentHp = Math.max(0, target.currentHp - amount);
+  let nextHp = Math.max(0, target.currentHp - amount);
+  const toolId =
+    target.heldTool && !target.heldTool.consumed
+      ? target.heldTool.pokeapiId
+      : null;
+  if (nextHp <= 0 && toolId != null && rollFocusBandSurvival(toolId)) {
+    nextHp = 1;
+    opts?.logs?.push(
+      `${target.member.nameJa}は　きあいのハチマキで　耐えた！`,
+    );
+  }
+  target.currentHp = nextHp;
   const dealt = before - target.currentHp;
+  // HP berries are applied by the caller after the damage beat is emitted,
+  // so the UI can show HP drop then heal.
   noteHpDamage(target, dealt, opts?.move, opts?.logs);
   return { dealt, brokeSub: false };
 }
@@ -170,6 +201,10 @@ function calcDamage(
       attackerBurn: attacker.status === "burn",
       defenderReflect: defenderField.reflect,
       defenderLightScreen: defenderField.lightScreen,
+      attackerItemPokeapiId:
+        attacker.heldTool && !attacker.heldTool.consumed
+          ? attacker.heldTool.pokeapiId
+          : null,
     },
   );
   if (before <= 0) return 0;
@@ -211,33 +246,35 @@ function applyAilment(
   logs: TurnLogLine[],
   name: string,
   fromSide?: PartySide,
-): void {
+): boolean {
   if (ailment === "confusion") {
     if (target.volatiles.confusionTurns <= 0) {
       target.volatiles.confusionTurns = randInt(2, 5);
       logs.push(`${name}は　こんらんした！`);
+      return true;
     }
-    return;
+    return false;
   }
-  if (ailment === "trap") return;
+  if (ailment === "trap") return false;
   if (ailment === "leech-seed") {
     if (
       target.species.type1 === 5 ||
       target.species.type2 === 5
     ) {
       logs.push("しかし　うまく　決まらなかった！");
-      return;
+      return false;
     }
     if (!target.volatiles.leechSeed) {
       target.volatiles.leechSeed = true;
       target.volatiles.leechSeedFrom = fromSide ?? null;
       logs.push(`${name}に　やどりぎのタネを　植え付けた！`);
+      return true;
     }
-    return;
+    return false;
   }
   if (!canStatus(target, ailment)) {
     logs.push("しかし　うまく　決まらなかった！");
-    return;
+    return false;
   }
   if (
     ailment === "paralysis" ||
@@ -256,7 +293,59 @@ function applyAilment(
       poison: "どくを　あびた",
     };
     logs.push(`${name}は　${ja[ailment] ?? ailment}！`);
+    return true;
   }
+  return false;
+}
+
+/**
+ * After HP dropped: emit current logs (damage), then berry heal on its own beat
+ * so the HP bar goes down then up.
+ */
+function emitDamageThenHpBerry(
+  target: BattleFighter,
+  logs: TurnLogLine[],
+  emitBeat?: (lines: TurnLogLine[]) => void,
+): void {
+  if (emitBeat) {
+    if (logs.length) {
+      emitBeat([...logs]);
+      logs.length = 0;
+    }
+    const berryLogs: TurnLogLine[] = [];
+    if (tryHpThresholdBerry(target, berryLogs) && berryLogs.length) {
+      emitBeat(berryLogs);
+    }
+    return;
+  }
+  tryHpThresholdBerry(target, logs);
+}
+
+/**
+ * After an ailment was applied: flush a beat (so UI shows the status),
+ * then apply a curing berry on its own beat.
+ */
+function emitAilmentThenBerry(
+  target: BattleFighter,
+  ailment: BattleStatus | "confusion",
+  applied: boolean,
+  logs: TurnLogLine[],
+  emitBeat?: (lines: TurnLogLine[]) => void,
+): void {
+  if (!applied) return;
+
+  if (emitBeat) {
+    if (logs.length) {
+      emitBeat([...logs]);
+      logs.length = 0;
+    }
+    const cureLogs: TurnLogLine[] = [];
+    if (tryStatusCureBerry(target, ailment, cureLogs) && cureLogs.length) {
+      emitBeat(cureLogs);
+    }
+    return;
+  }
+  tryStatusCureBerry(target, ailment, logs);
 }
 
 function stageChangePhrase(delta: number): string {
@@ -349,7 +438,13 @@ function checkAccuracy(
   if (move.accuracy == null) return true; // Swift etc.
   const accStage = attacker.stages.accuracy - defender.stages.evasion;
   const mult = stageMultiplierClamped(accStage);
-  const thresh = Math.floor((move.accuracy * mult * 255) / 100);
+  const defenderToolId =
+    defender.heldTool && !defender.heldTool.consumed
+      ? defender.heldTool.pokeapiId
+      : null;
+  const thresh = Math.floor(
+    (move.accuracy * mult * 255 * heldItemAccuracyFactor(defenderToolId)) / 100,
+  );
   return randInt(0, 255) < Math.min(255, thresh);
 }
 
@@ -608,8 +703,11 @@ function finishThrashLock(
       attacker.volatiles.lockTurnsLeft = 0;
       if (attacker.volatiles.confusionTurns <= 0) {
         attacker.volatiles.confusionTurns = randInt(2, 5);
+        logs.push(`${attacker.member.nameJa}は　疲れ果てて　こんらんした！`);
+        tryStatusCureBerry(attacker, "confusion", logs);
+      } else {
+        logs.push(`${attacker.member.nameJa}は　疲れ果てて　こんらんした！`);
       }
-      logs.push(`${attacker.member.nameJa}は　疲れ果てて　こんらんした！`);
     }
   }
 }
@@ -744,12 +842,10 @@ function executeMove(
     attacker.currentHp = attacker.maxHp;
     attacker.status = "sleep";
     // After Rest: one full asleep turn, then a wake turn that cannot move.
+    // Chesto / Lum wake immediately (Gen2 held berry).
     attacker.sleepTurns = 1;
     logs.push(`${attacker.member.nameJa}は　眠って　HPを　回復した！`);
-    if (emitBeat && logs.length) {
-      emitBeat([...logs]);
-      logs.length = 0;
-    }
+    emitAilmentThenBerry(attacker, "sleep", true, logs, emitBeat);
     attacker.volatiles.lastMoveUsed = move;
     return;
   }
@@ -848,6 +944,7 @@ function executeMove(
     if (result.brokeSub) {
       logs.push(`${defender.member.nameJa}の　みがわりが　消えた！`);
     }
+    emitDamageThenHpBerry(defender, logs, emitBeat);
     attacker.volatiles.lastMoveUsed = move;
     return;
   }
@@ -956,6 +1053,7 @@ function executeMove(
       defender.volatiles.trapTurns = left + 1;
       logs.push(`しめつけが　続いている！（残り${left + 1}ターン）`);
     }
+    emitDamageThenHpBerry(defender, logs, emitBeat);
     attacker.volatiles.lastMoveUsed = move;
     return;
   }
@@ -991,16 +1089,28 @@ function executeMove(
       emitBeat([...logs]);
       logs.length = 0;
     }
-    applyAilment(
+    const applied = applyAilment(
       defender,
       meta.ailment,
       logs,
       defender.member.nameJa,
       attacker.side,
     );
-    if (emitBeat && logs.length) {
-      emitBeat([...logs]);
-      logs.length = 0;
+    if (
+      meta.ailment === "paralysis" ||
+      meta.ailment === "sleep" ||
+      meta.ailment === "freeze" ||
+      meta.ailment === "burn" ||
+      meta.ailment === "poison" ||
+      meta.ailment === "confusion"
+    ) {
+      emitAilmentThenBerry(
+        defender,
+        meta.ailment as BattleStatus | "confusion",
+        applied,
+        logs,
+        emitBeat,
+      );
     }
     attacker.volatiles.lastMoveUsed = move;
     return;
@@ -1045,6 +1155,7 @@ function executeMove(
     if (result.brokeSub) {
       logs.push(`${defender.member.nameJa}の　みがわりが　消えた！`);
     }
+    emitDamageThenHpBerry(defender, logs, emitBeat);
     attacker.volatiles.lastMoveUsed = move;
     return;
   }
@@ -1055,6 +1166,7 @@ function executeMove(
     if (code === "unique-crash") {
       attacker.currentHp = Math.max(0, attacker.currentHp - 1);
       logs.push(`${attacker.member.nameJa}は　激しく　地面に　ぶつかった！`);
+      emitDamageThenHpBerry(attacker, logs, emitBeat);
     }
     finishThrashLock(attacker, move, logs);
     attacker.volatiles.lastMoveUsed = move;
@@ -1090,11 +1202,12 @@ function executeMove(
     totalDealt = result.dealt;
     brokeSub = result.brokeSub;
     if (emitBeat) {
-      emitBeat([
-        ...logs,
+      logs.push(
         `${defender.member.nameJa}に　${result.dealt}の　ダメージ！`,
-      ]);
-      logs.length = 0;
+      );
+      emitDamageThenHpBerry(defender, logs, emitBeat);
+    } else {
+      tryHpThresholdBerry(defender, logs);
     }
   } else {
     const hits = rollHits(meta);
@@ -1129,6 +1242,10 @@ function executeMove(
         ];
         logs.length = 0;
         emitBeat(beatLogs);
+        const berryLogs: TurnLogLine[] = [];
+        if (tryHpThresholdBerry(defender, berryLogs) && berryLogs.length) {
+          emitBeat(berryLogs);
+        }
       }
     }
     if (hits > 1) {
@@ -1138,14 +1255,15 @@ function executeMove(
         // Own beat so HP bar already refreshed per hit; announce count after
         emitBeat([hitMsg]);
       }
-    } else if (emitBeat && logs.length) {
-      emitBeat([
-        ...logs,
+    } else if (emitBeat) {
+      logs.push(
         perHit > 0
           ? `${defender.member.nameJa}に　${totalDealt}の　ダメージ！`
           : `${defender.member.nameJa}には　効果がないようだ…`,
-      ]);
-      logs.length = 0;
+      );
+      emitDamageThenHpBerry(defender, logs, emitBeat);
+    } else {
+      tryHpThresholdBerry(defender, logs);
     }
   }
 
@@ -1172,26 +1290,50 @@ function executeMove(
     const recoil = Math.max(1, Math.floor((totalDealt * Math.abs(meta.drain)) / 100));
     attacker.currentHp = Math.max(0, attacker.currentHp - recoil);
     logs.push(`${attacker.member.nameJa}は　反動を　受けた！`);
+    emitDamageThenHpBerry(attacker, logs, emitBeat);
   }
 
   if (meta.flinch_chance > 0 && chance(meta.flinch_chance)) {
     if (defender.volatiles.substituteHp <= 0) defender.volatiles.flinch = true;
+  }
+  const attackerToolId =
+    attacker.heldTool && !attacker.heldTool.consumed
+      ? attacker.heldTool.pokeapiId
+      : null;
+  if (
+    rollKingsRockFlinch(attackerToolId, move, totalDealt) &&
+    defender.volatiles.substituteHp <= 0
+  ) {
+    defender.volatiles.flinch = true;
+    logs.push(`${defender.member.nameJa}は　ひるんでいる！`);
   }
 
   if (meta.ailment && meta.ailment !== "trap") {
     if (defender.volatiles.substituteHp <= 0) {
       const pct = meta.ailment_chance > 0 ? meta.ailment_chance : 100;
       if (chance(pct)) {
-        applyAilment(
+        const applied = applyAilment(
           defender,
           meta.ailment,
           logs,
           defender.member.nameJa,
           attacker.side,
         );
-        if (emitBeat && logs.length) {
-          emitBeat([...logs]);
-          logs.length = 0;
+        if (
+          meta.ailment === "paralysis" ||
+          meta.ailment === "sleep" ||
+          meta.ailment === "freeze" ||
+          meta.ailment === "burn" ||
+          meta.ailment === "poison" ||
+          meta.ailment === "confusion"
+        ) {
+          emitAilmentThenBerry(
+            defender,
+            meta.ailment as BattleStatus | "confusion",
+            applied,
+            logs,
+            emitBeat,
+          );
         }
       }
     }
@@ -1264,6 +1406,8 @@ export function buildFighter(input: {
   /** Gen1: major status persists on the bench. */
   status?: BattleStatus;
   sleepTurns?: number;
+  toolPokeapiId?: number | null;
+  toolConsumed?: boolean;
 }): BattleFighter {
   return {
     side: input.side,
@@ -1277,6 +1421,12 @@ export function buildFighter(input: {
     status: input.status ?? null,
     sleepTurns: input.sleepTurns ?? 0,
     volatiles: createVolatiles(),
+    heldTool: input.toolPokeapiId
+      ? {
+          pokeapiId: Number(input.toolPokeapiId),
+          consumed: input.toolConsumed ?? false,
+        }
+      : null,
   };
 }
 
@@ -1300,6 +1450,16 @@ export function resolveTurnSteps(input: {
   const { fighterA, fighterB, actionA, actionB, field } = input;
   fighterA.volatiles.physicalDamageTakenThisTurn = 0;
   fighterB.volatiles.physicalDamageTakenThisTurn = 0;
+  fighterA.volatiles.quickClawActive = rollQuickClaw(
+    fighterA.heldTool && !fighterA.heldTool.consumed
+      ? fighterA.heldTool.pokeapiId
+      : null,
+  );
+  fighterB.volatiles.quickClawActive = rollQuickClaw(
+    fighterB.heldTool && !fighterB.heldTool.consumed
+      ? fighterB.heldTool.pokeapiId
+      : null,
+  );
 
   const pushStep = (
     logs: TurnLogLine[],
@@ -1340,19 +1500,42 @@ export function resolveTurnSteps(input: {
     { fighter: fighterB, foe: fighterA, action: actionB },
   ];
 
+  const orderKey = (slot: Slot, useClaw: boolean) => {
+    const pri = actionPriority(slot.action);
+    const spd =
+      effectiveSpeed(slot.fighter) +
+      (useClaw && slot.fighter.volatiles.quickClawActive ? 100000 : 0);
+    return { pri, spd };
+  };
+
+  const compareSlots = (x: Slot, y: Slot, useClaw: boolean): number => {
+    const kx = orderKey(x, useClaw);
+    const ky = orderKey(y, useClaw);
+    if (ky.pri !== kx.pri) return ky.pri - kx.pri;
+    if (ky.spd !== kx.spd) return ky.spd - kx.spd;
+    return 0;
+  };
+
   slots.sort((x, y) => {
-    const p = actionPriority(y.action) - actionPriority(x.action);
-    if (p !== 0) return p;
-    const sx = effectiveSpeed(x.fighter);
-    const sy = effectiveSpeed(y.fighter);
-    if (sx !== sy) return sy - sx;
+    const c = compareSlots(x, y, true);
+    if (c !== 0) return c;
     return speedTieBreak() ? -1 : 1;
   });
 
-  for (const slot of slots) {
+  for (let slotIndex = 0; slotIndex < slots.length; slotIndex += 1) {
+    const slot = slots[slotIndex]!;
     if (slot.fighter.currentHp <= 0) continue;
     if (slot.action.type === "switch") continue;
     if (slot.action.type !== "move") continue;
+
+    const foeIndex = slots.findIndex((s) => s.fighter.side === slot.foe.side);
+    const actsBeforeFoe = foeIndex < 0 || slotIndex < foeIndex;
+    // Announce whenever Quick Claw rolled this turn and this side moves first.
+    if (slot.fighter.volatiles.quickClawActive && actsBeforeFoe) {
+      pushStep([
+        `${slot.fighter.member.nameJa}の　せんせいのツメが　発動した！`,
+      ]);
+    }
 
     const logs: TurnLogLine[] = [];
     if (!canAct(slot.fighter, logs)) {
@@ -1379,6 +1562,11 @@ export function resolveTurnSteps(input: {
         slot.fighter.volatiles.lockTurnsLeft = 0;
       }
       pushStep(logs);
+      {
+        const berryLogs: TurnLogLine[] = [];
+        tryHpThresholdBerry(slot.fighter, berryLogs);
+        if (berryLogs.length) pushStep(berryLogs);
+      }
       continue;
     }
     if (slot.foe.currentHp <= 0 && slot.action.move.damage_class !== "status") {
@@ -1533,29 +1721,45 @@ export function resolveTurnSteps(input: {
     }
     tryEndTurnStatus(fighterA, fighterB, endLogs);
     tryEndTurnStatus(fighterB, fighterA, endLogs);
+    if (endLogs.length) pushStep(endLogs);
+
+    for (const fighter of [fighterA, fighterB]) {
+      const berryLogs: TurnLogLine[] = [];
+      tryHpThresholdBerry(fighter, berryLogs);
+      if (berryLogs.length) pushStep(berryLogs);
+    }
+
+    const leftoverLogs: TurnLogLine[] = [];
+    processLeftovers(fighterA, leftoverLogs);
+    processLeftovers(fighterB, leftoverLogs);
+    if (leftoverLogs.length) pushStep(leftoverLogs);
+
+    const faintLogs: TurnLogLine[] = [];
     if (
       fighterA.currentHp <= 0 &&
-      !endLogs.some((l) => l.includes(`${fighterA.member.nameJa}は　たおれた`)) &&
+      !faintLogs.some((l) => l.includes(`${fighterA.member.nameJa}は　たおれた`)) &&
       !steps.some((s) =>
         s.logs.some((l) => l.includes(`${fighterA.member.nameJa}は　たおれた`)),
       )
     ) {
-      endLogs.push(`${fighterA.member.nameJa}は　たおれた！`);
+      faintLogs.push(`${fighterA.member.nameJa}は　たおれた！`);
     }
     if (
       fighterB.currentHp <= 0 &&
-      !endLogs.some((l) => l.includes(`${fighterB.member.nameJa}は　たおれた`)) &&
+      !faintLogs.some((l) => l.includes(`${fighterB.member.nameJa}は　たおれた`)) &&
       !steps.some((s) =>
         s.logs.some((l) => l.includes(`${fighterB.member.nameJa}は　たおれた`)),
       )
     ) {
-      endLogs.push(`${fighterB.member.nameJa}は　たおれた！`);
+      faintLogs.push(`${fighterB.member.nameJa}は　たおれた！`);
     }
-    pushStep(endLogs);
+    if (faintLogs.length) pushStep(faintLogs);
   }
 
   fighterA.volatiles.flinch = false;
   fighterB.volatiles.flinch = false;
+  fighterA.volatiles.quickClawActive = false;
+  fighterB.volatiles.quickClawActive = false;
 
   return {
     steps,

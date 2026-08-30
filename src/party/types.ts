@@ -30,6 +30,11 @@ export type PartyMemberBuild = {
   moveIds: [string | null, string | null, string | null, string | null];
   /** Held item (tool) id (UUID). None = null. Gen1 unused. */
   toolId: string | null;
+  /**
+   * Cached PokeAPI item id for battle (survives if tool master fetch fails).
+   * Prefer this over looking up toolId in toolsById during battle.
+   */
+  toolPokeapiId?: number | null;
 };
 
 export type PartySetupState = {
@@ -96,6 +101,7 @@ export function createDefaultBuild(
     },
     moveIds: [null, null, null, null],
     toolId: null,
+    toolPokeapiId: null,
   };
 }
 
