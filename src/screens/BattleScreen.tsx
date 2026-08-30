@@ -97,7 +97,11 @@ const STATUS_LABEL: Record<string, string> = {
 function statusBadges(
   fighter: BattleFighter | null | undefined,
   displayedHp?: number,
-  options?: { hideDeferred?: boolean },
+  options?: {
+    hideDeferred?: boolean;
+    statusOverride?: BattleStatus | undefined;
+    confusionOverride?: number | undefined;
+  },
 ): string[] {
   if (!fighter) return [];
   const badges: string[] = [];
@@ -106,10 +110,18 @@ function statusBadges(
     badges.push("ひんし");
     return badges;
   }
-  if (fighter.status) {
-    badges.push(STATUS_LABEL[fighter.status] ?? fighter.status);
+  const status =
+    options && "statusOverride" in (options ?? {})
+      ? options?.statusOverride
+      : fighter.status;
+  if (status) {
+    badges.push(STATUS_LABEL[status] ?? status);
   }
-  if (fighter.volatiles.confusionTurns > 0) badges.push("こんらん");
+  const confusionTurns =
+    options && "confusionOverride" in (options ?? {})
+      ? (options?.confusionOverride ?? 0)
+      : fighter.volatiles.confusionTurns;
+  if (confusionTurns > 0) badges.push("こんらん");
   if (fighter.volatiles.trapTurns > 0) {
     badges.push(`しめつけ(残り${fighter.volatiles.trapTurns})`);
   }
@@ -372,6 +384,17 @@ export function BattleScreen() {
    * Shown again after those animations finish if still active.
    */
   const [hideDeferredBadges, setHideDeferredBadges] = useState(false);
+  /**
+   * Status / confusion shown on the field during turn playback.
+   * Updated after each step's logs so badges are not ahead of the text.
+   * null = use live fighter values (between turns).
+   */
+  const [statusDisplay, setStatusDisplay] = useState<{
+    a: BattleStatus;
+    b: BattleStatus;
+    confusionA: number;
+    confusionB: number;
+  } | null>(null);
 
   const resolveMember = (
     side: PartySide,
@@ -849,6 +872,13 @@ export function BattleScreen() {
     setMenu("root");
     // 交代・行動ログのあいだは「ため」「反動」を出さない
     setHideDeferredBadges(true);
+    // Freeze badges at pre-turn status so resolveTurn mutations are not visible yet.
+    setStatusDisplay({
+      a: fightersRef.current.a?.status ?? null,
+      b: fightersRef.current.b?.status ?? null,
+      confusionA: fightersRef.current.a?.volatiles.confusionTurns ?? 0,
+      confusionB: fightersRef.current.b?.volatiles.confusionTurns ?? 0,
+    });
     bumpFighters();
 
     if (nextA.type === "switch") {
@@ -889,8 +919,7 @@ export function BattleScreen() {
         spendPp(step.ppSpent.speciesId, step.ppSpent.moveId);
       }
       // Apply this beat's HP with its logs so bars drop in attack order.
-      // Badges (status / leech seed / disable) refresh AFTER the matching log
-      // so they appear when the effect message is shown, not before.
+      // Status badges update AFTER the matching log (see below).
       if (step.hpSnapshot) {
         setFieldHp({ a: step.hpSnapshot.a, b: step.hpSnapshot.b });
         persistSnapshotHp(step.hpSnapshot);
@@ -905,6 +934,10 @@ export function BattleScreen() {
         await playLog(step.logs);
       } else {
         await sleep(420);
+      }
+      // Reveal status / confusion only after the effect lines have played.
+      if (step.statusSnapshot) {
+        setStatusDisplay(step.statusSnapshot);
       }
       bumpFighters();
       if (step.forceSwitchSide) {
@@ -943,6 +976,7 @@ export function BattleScreen() {
 
     persistFighterHp();
     // 交代・行動演出のあと、溜め／反動中ならバッジを表示
+    setStatusDisplay(null);
     setHideDeferredBadges(false);
     bumpFighters();
 
@@ -1293,6 +1327,12 @@ export function BattleScreen() {
                     hpDisplay={foeHpAsPercent ? "percent" : "absolute"}
                     badges={statusBadges(fighterB, fieldHp?.b, {
                       hideDeferred: hideDeferredBadges,
+                      ...(statusDisplay
+                        ? {
+                            statusOverride: statusDisplay.b,
+                            confusionOverride: statusDisplay.confusionB,
+                          }
+                        : {}),
                     })}
                   />
                   <View style={styles.fieldDivider} />
@@ -1305,6 +1345,12 @@ export function BattleScreen() {
                     maxHp={fighterA?.maxHp}
                     badges={statusBadges(fighterA, fieldHp?.a, {
                       hideDeferred: hideDeferredBadges,
+                      ...(statusDisplay
+                        ? {
+                            statusOverride: statusDisplay.a,
+                            confusionOverride: statusDisplay.confusionA,
+                          }
+                        : {}),
                     })}
                   />
                 </View>
@@ -1684,8 +1730,8 @@ export function BattleScreen() {
             <Pressable
               onPress={() => {
                 if (!partyActionTarget) return;
+                // Keep party action open under inspect (same as 選出画面).
                 setInspectTarget(partyActionTarget);
-                setPartyActionTarget(null);
               }}
               style={styles.primaryButton}
             >
