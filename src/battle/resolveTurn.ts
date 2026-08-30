@@ -737,11 +737,19 @@ function executeMove(
     return;
   }
   if (code === "unique-rest") {
+    if (emitBeat && logs.length) {
+      emitBeat([...logs]);
+      logs.length = 0;
+    }
     attacker.currentHp = attacker.maxHp;
     attacker.status = "sleep";
     // After Rest: one full asleep turn, then a wake turn that cannot move.
     attacker.sleepTurns = 1;
     logs.push(`${attacker.member.nameJa}は　眠って　HPを　回復した！`);
+    if (emitBeat && logs.length) {
+      emitBeat([...logs]);
+      logs.length = 0;
+    }
     attacker.volatiles.lastMoveUsed = move;
     return;
   }
@@ -978,6 +986,11 @@ function executeMove(
       attacker.volatiles.lastMoveUsed = move;
       return;
     }
+    // Flush the move-name beat first so the status badge is not shown early.
+    if (emitBeat && logs.length) {
+      emitBeat([...logs]);
+      logs.length = 0;
+    }
     applyAilment(
       defender,
       meta.ailment,
@@ -985,6 +998,10 @@ function executeMove(
       defender.member.nameJa,
       attacker.side,
     );
+    if (emitBeat && logs.length) {
+      emitBeat([...logs]);
+      logs.length = 0;
+    }
     attacker.volatiles.lastMoveUsed = move;
     return;
   }
@@ -1172,6 +1189,10 @@ function executeMove(
           defender.member.nameJa,
           attacker.side,
         );
+        if (emitBeat && logs.length) {
+          emitBeat([...logs]);
+          logs.length = 0;
+        }
       }
     }
   }
@@ -1285,6 +1306,7 @@ export function resolveTurnSteps(input: {
     ppSpent: TurnStep["ppSpent"] = null,
     forceSwitchSide: PartySide | null = null,
     hpSnapshot?: { a: number; b: number },
+    statusSnapshot?: TurnStep["statusSnapshot"],
   ) => {
     if (logs.length === 0 && !ppSpent && !forceSwitchSide) return;
     steps.push({
@@ -1294,6 +1316,12 @@ export function resolveTurnSteps(input: {
       hpSnapshot: hpSnapshot ?? {
         a: fighterA.currentHp,
         b: fighterB.currentHp,
+      },
+      statusSnapshot: statusSnapshot ?? {
+        a: fighterA.status,
+        b: fighterB.status,
+        confusionA: fighterA.volatiles.confusionTurns,
+        confusionB: fighterB.volatiles.confusionTurns,
       },
     });
   };
@@ -1389,13 +1417,24 @@ export function resolveTurnSteps(input: {
       logs: TurnLogLine[];
       hpA: number;
       hpB: number;
+      statusA: BattleStatus;
+      statusB: BattleStatus;
+      confusionA: number;
+      confusionB: number;
     }[] = [];
+    const captureStatus = () => ({
+      statusA: fighterA.status,
+      statusB: fighterB.status,
+      confusionA: fighterA.volatiles.confusionTurns,
+      confusionB: fighterB.volatiles.confusionTurns,
+    });
     const emitBeat = (lines: TurnLogLine[]) => {
       if (lines.length) {
         beats.push({
           logs: lines,
           hpA: fighterA.currentHp,
           hpB: fighterB.currentHp,
+          ...captureStatus(),
         });
       }
     };
@@ -1407,6 +1446,7 @@ export function resolveTurnSteps(input: {
         logs: [...logs],
         hpA: fighterA.currentHp,
         hpB: fighterB.currentHp,
+        ...captureStatus(),
       });
     }
 
@@ -1418,6 +1458,7 @@ export function resolveTurnSteps(input: {
           logs: [faintLine],
           hpA: fighterA.currentHp,
           hpB: fighterB.currentHp,
+          ...captureStatus(),
         });
       }
     }
@@ -1429,6 +1470,7 @@ export function resolveTurnSteps(input: {
           logs: [faintLine],
           hpA: fighterA.currentHp,
           hpB: fighterB.currentHp,
+          ...captureStatus(),
         });
       }
     }
@@ -1454,6 +1496,12 @@ export function resolveTurnSteps(input: {
             : null,
           index === beats.length - 1 ? ctx.forceSwitchSide : null,
           { a: beat.hpA, b: beat.hpB },
+          {
+            a: beat.statusA,
+            b: beat.statusB,
+            confusionA: beat.confusionA,
+            confusionB: beat.confusionB,
+          },
         );
       });
     }

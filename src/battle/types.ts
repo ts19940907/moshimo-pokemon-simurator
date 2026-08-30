@@ -102,6 +102,16 @@ export type TurnStep = {
   forceSwitchSide?: PartySide | null;
   /** HP after this beat (for multi-hit bar updates). */
   hpSnapshot?: { a: number; b: number };
+  /**
+   * Status / confusion as of this beat (for badge timing).
+   * Applied after the step's logs so badges appear with the effect text.
+   */
+  statusSnapshot?: {
+    a: BattleStatus;
+    b: BattleStatus;
+    confusionA: number;
+    confusionB: number;
+  };
 };
 
 export function createVolatiles(): VolatileFlags {
