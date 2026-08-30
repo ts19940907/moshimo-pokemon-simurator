@@ -395,18 +395,6 @@ export function BattleScreen() {
   const bumpFighters = () => setFighterTick((n) => n + 1);
   /** Display HP during step playback (multi-hit snapshots). */
   const [fieldHp, setFieldHp] = useState<{ a: number; b: number } | null>(null);
-  /** Status badges during step playback (ailment → berry cure ordering). */
-  const [statusDisplay, setStatusDisplay] = useState<{
-    a: BattleStatus;
-    b: BattleStatus;
-    confusionA: number;
-    confusionB: number;
-  } | null>(null);
-  /**
-   * Hide 「ため」「反動」 while switch / turn logs play.
-   * Shown again after those animations finish if still active.
-   */
-  const [hideDeferredBadges, setHideDeferredBadges] = useState(false);
   /**
    * Status / confusion shown on the field during turn playback.
    * Updated after each step's logs so badges are not ahead of the text.
@@ -418,6 +406,11 @@ export function BattleScreen() {
     confusionA: number;
     confusionB: number;
   } | null>(null);
+  /**
+   * Hide 「ため」「反動」 while switch / turn logs play.
+   * Shown again after those animations finish if still active.
+   */
+  const [hideDeferredBadges, setHideDeferredBadges] = useState(false);
 
   const resolveMember = (
     side: PartySide,
