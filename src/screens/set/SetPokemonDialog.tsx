@@ -12,6 +12,7 @@ import {
 
 import type { Move, MoveDamageClass } from "../../pokemon/moves";
 import { fetchMovesForPokemon } from "../../pokemon/moveRepository";
+import { applyMoveTypesForGeneration } from "../../pokemon/moveTypeByGeneration";
 import type { Tool } from "../../pokemon/tools";
 import { toolCategoryJa } from "../../pokemon/tools";
 import { fetchTools } from "../../pokemon/toolRepository";
@@ -811,7 +812,11 @@ export function SetPokemonDialog({
 
   useEffect(() => {
     if (!visible) return;
-    setDraft({ ...member, toolId: member.toolId ?? null });
+    setDraft({
+      ...member,
+      toolId: member.toolId ?? null,
+      toolPokeapiId: member.toolPokeapiId ?? null,
+    });
     setErrorMessage(null);
     setToolsError(null);
     setPickingSlot(null);
@@ -820,15 +825,29 @@ export function SetPokemonDialog({
   }, [visible, member]);
 
   useEffect(() => {
+    if (!visible || rulesGeneration < 2) return;
+    if (!draft.toolId || draft.toolPokeapiId != null) return;
+    const tool = tools.find((row) => row.id === draft.toolId);
+    if (!tool) return;
+    setDraft((current) => ({
+      ...current,
+      toolPokeapiId: Number(tool.pokeapi_id),
+    }));
+  }, [visible, rulesGeneration, tools, draft.toolId, draft.toolPokeapiId]);
+
+  useEffect(() => {
     if (!visible) return;
     let cancelled = false;
     (async () => {
       try {
         setLoadingMoves(true);
         setErrorMessage(null);
-        const rows = await fetchMovesForPokemon(
-          member.speciesId,
-          moveGenerationOptions,
+        const rows = applyMoveTypesForGeneration(
+          await fetchMovesForPokemon(
+            member.speciesId,
+            moveGenerationOptions,
+          ),
+          rulesGeneration,
         );
         if (!cancelled) setMoves(rows);
       } catch (error) {
@@ -844,10 +863,16 @@ export function SetPokemonDialog({
     return () => {
       cancelled = true;
     };
-  }, [visible, member.speciesId, moveGenerationOptions]);
+  }, [visible, member.speciesId, moveGenerationOptions, rulesGeneration]);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible || rulesGeneration < 2) {
+      if (!visible) {
+        setTools([]);
+        setToolsError(null);
+      }
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -870,7 +895,7 @@ export function SetPokemonDialog({
     return () => {
       cancelled = true;
     };
-  }, [visible, itemGenerationOptions]);
+  }, [visible, itemGenerationOptions, rulesGeneration]);
 
   const filteredMoves = useMemo(
     () => moves.filter((move) => matchesMoveFilters(move, moveFilters)),
@@ -1017,13 +1042,27 @@ export function SetPokemonDialog({
     if (toolId && excludedToolIdSet.has(toolId) && toolId !== draft.toolId) {
       return;
     }
-    setDraft((current) => ({ ...current, toolId }));
+    const tool = toolId ? tools.find((row) => row.id === toolId) : null;
+    setDraft((current) => ({
+      ...current,
+      toolId,
+      toolPokeapiId: tool ? Number(tool.pokeapi_id) : null,
+    }));
   };
 
   const handleSave = () => {
+    const tool =
+      rulesGeneration >= 2 && draft.toolId
+        ? (tools.find((row) => row.id === draft.toolId) ?? null)
+        : null;
     onSave({
       ...draft,
       level: clamp(draft.level, 1, maxLevel),
+      toolId: rulesGeneration >= 2 ? draft.toolId : null,
+      toolPokeapiId:
+        rulesGeneration >= 2
+          ? (tool ? Number(tool.pokeapi_id) : draft.toolPokeapiId ?? null)
+          : null,
     });
     onClose();
   };
@@ -1303,6 +1342,8 @@ export function SetPokemonDialog({
               );
             })}
 
+            {rulesGeneration >= 2 ? (
+              <>
             <Text style={styles.section}>持ち物</Text>
             {loadingTools ? <ActivityIndicator color="#1f6b4a" /> : null}
             {toolsError ? <Text style={styles.error}>{toolsError}</Text> : null}
@@ -1378,6 +1419,8 @@ export function SetPokemonDialog({
                 </View>
               ) : null}
             </View>
+              </>
+            ) : null}
           </ScrollView>
 
           <View style={styles.footer}>

@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { usePartySetup } from "../party/PartySetupContext";
+import { hasDuplicateTools } from "../party/validatePartySetup";
 import {
   GEN1_STAT_KEYS,
   GEN1_STAT_LABELS,
@@ -88,6 +89,7 @@ export function SetPokemonScreen() {
   const [typeChartOpen, setTypeChartOpen] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [movesRequiredOpen, setMovesRequiredOpen] = useState(false);
+  const [duplicateToolsOpen, setDuplicateToolsOpen] = useState(false);
   const [moveNames, setMoveNames] = useState<Record<string, string>>({});
   const [toolName, setToolName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -275,6 +277,11 @@ export function SetPokemonScreen() {
       return;
     }
 
+    if (rulesGeneration >= 2 && hasDuplicateTools(members)) {
+      setDuplicateToolsOpen(true);
+      return;
+    }
+
     commitEditingParty();
     clearEditingParty();
 
@@ -321,7 +328,9 @@ export function SetPokemonScreen() {
               {isOpponentSide ? "相手の個体を設定する" : "個体を設定する"}
             </Text>
             <Text style={styles.lead}>
-              ポケモンを選んでフォーカスし、「設定する」からレベル・性別・個体値・努力値・技・持ち物を編集します。
+              ポケモンを選んでフォーカスし、「設定する」からレベル・性別・個体値・努力値・技
+              {rulesGeneration >= 2 ? "・持ち物" : ""}
+              を編集します。
             </Text>
             <Pressable
               onPress={() => setTypeChartOpen(true)}
@@ -408,12 +417,16 @@ export function SetPokemonScreen() {
                         )
                         .join(" ／ ")}
                     </Text>
-                    <Text style={styles.blockTitle}>持ち物</Text>
-                    <Text style={styles.blockBody}>
-                      {focused.toolId
-                        ? (toolName ?? "（読込中）")
-                        : "なし"}
-                    </Text>
+                    {rulesGeneration >= 2 ? (
+                      <>
+                        <Text style={styles.blockTitle}>持ち物</Text>
+                        <Text style={styles.blockBody}>
+                          {focused.toolId
+                            ? (toolName ?? "（読込中）")
+                            : "なし"}
+                        </Text>
+                      </>
+                    ) : null}
 
                     <Pressable
                       onPress={() => setDialogOpen(true)}
@@ -485,6 +498,28 @@ export function SetPokemonScreen() {
             </Text>
             <Pressable
               onPress={() => setMovesRequiredOpen(false)}
+              style={styles.confirmPrimary}
+            >
+              <Text style={styles.confirmPrimaryText}>OK</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={duplicateToolsOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDuplicateToolsOpen(false)}
+      >
+        <View style={styles.confirmBackdrop}>
+          <View style={styles.confirmSheet}>
+            <Text style={styles.confirmTitle}>持ち物が重複しています</Text>
+            <Text style={styles.confirmBody}>
+              同じ持ち物を複数のポケモンに持たせることはできません。重複している持ち物を変更してください。
+            </Text>
+            <Pressable
+              onPress={() => setDuplicateToolsOpen(false)}
               style={styles.confirmPrimary}
             >
               <Text style={styles.confirmPrimaryText}>OK</Text>

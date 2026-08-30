@@ -60,6 +60,7 @@ function buildMembersFromSpecies(
         dexNo: species.dex_no,
         nameJa: species.name_ja,
         toolId: existing.toolId ?? null,
+        toolPokeapiId: existing.toolPokeapiId ?? null,
       };
     }
     return createDefaultBuild(species, levelCapMode);

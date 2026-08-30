@@ -47,6 +47,8 @@ export type VolatileFlags = {
   physicalDamageTakenThisTurn: number;
   /** Transformed this battle. */
   transformed: boolean;
+  /** Quick Claw activated this turn. */
+  quickClawActive: boolean;
 };
 
 /** Per-side field effects. Gen1 mist/reflect/light screen last until switch-out. */
@@ -84,6 +86,8 @@ export type BattleFighter = {
   status: BattleStatus;
   sleepTurns: number;
   volatiles: VolatileFlags;
+  /** Held item pokeapi id; null when none or Gen1 rules. */
+  heldTool: { pokeapiId: number; consumed: boolean } | null;
 };
 
 export type BattleAction =
@@ -102,6 +106,18 @@ export type TurnStep = {
   forceSwitchSide?: PartySide | null;
   /** HP after this beat (for multi-hit bar updates). */
   hpSnapshot?: { a: number; b: number };
+  /**
+   * Status as of this beat (for badge timing).
+   * Used so berries can show the ailment before the cure message.
+   */
+  statusSnapshot?: {
+    a: BattleStatus;
+    b: BattleStatus;
+    confusionA: number;
+    confusionB: number;
+  };
+  /** Restore PP after spending (Leppa Berry). */
+  ppRestore?: { speciesId: string; moveId: string; amount: number } | null;
 };
 
 export function createVolatiles(): VolatileFlags {
@@ -131,6 +147,7 @@ export function createVolatiles(): VolatileFlags {
     rageActive: false,
     physicalDamageTakenThisTurn: 0,
     transformed: false,
+    quickClawActive: false,
   };
 }
 

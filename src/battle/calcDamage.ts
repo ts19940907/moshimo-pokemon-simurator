@@ -2,6 +2,7 @@ import type { Gen1StatBlock } from "../party/types";
 import type { Move } from "../pokemon/moves";
 import type { PokemonSpecies } from "../pokemon/types";
 import { gen1TypeEffectiveness } from "./gen1TypeChart";
+import { heldItemDamageMultiplier } from "./toolEffects";
 import { stagedStat } from "./types";
 
 /** Extensible bag for future weather / items / abilities / terrain. */
@@ -15,6 +16,8 @@ export type DamageCalcModifiers = {
   terrainId?: string | null;
   attackerItemId?: string | null;
   defenderItemId?: string | null;
+  /** PokeAPI held-item id for type-boost damage (Gen2+). */
+  attackerItemPokeapiId?: number | null;
   attackerAbilityId?: string | null;
   defenderAbilityId?: string | null;
 };
@@ -131,10 +134,10 @@ export function damageBeforeRandom(
   const isPhysical = move.damage_class === "physical";
   const atkStat = isPhysical
     ? sides.attackerStats.attack
-    : sides.attackerStats.special;
+    : (sides.attackerStats.sp_attack ?? sides.attackerStats.special);
   const defStat = isPhysical
     ? sides.defenderStats.defense
-    : sides.defenderStats.special;
+    : (sides.defenderStats.sp_defense ?? sides.defenderStats.special);
   const atkStage = clampStage(
     isPhysical ? sides.attackerAttackStage : sides.attackerSpecialStage,
   );
@@ -161,6 +164,13 @@ export function damageBeforeRandom(
   );
   damage = Math.floor(damage * stab(move.type_id, sides.attackerSpecies));
   damage = Math.floor(damage * typeEffectiveness);
+  damage = Math.floor(
+    damage *
+      heldItemDamageMultiplier(
+        move.type_id,
+        modifiers.attackerItemPokeapiId ?? null,
+      ),
+  );
 
   if (!modifiers.crit) {
     if (isPhysical && modifiers.defenderReflect) {

@@ -24,6 +24,7 @@ import {
   pokemonGenerationFilterFromParams,
 } from "../match-setup/params";
 import { usePartySetup } from "../party/PartySetupContext";
+import { hasDuplicateTools } from "../party/validatePartySetup";
 import {
   createDefaultBuild,
   genderLabel,
@@ -66,6 +67,7 @@ import {
   fetchPokemonIdsForMoves,
   searchMoves,
 } from "../pokemon/moveRepository";
+import { applyMoveTypesForGeneration } from "../pokemon/moveTypeByGeneration";
 import type { Tool } from "../pokemon/tools";
 import { fetchToolsByIds } from "../pokemon/toolRepository";
 import { fetchPokemonSpecies } from "../pokemon/repository";
@@ -971,6 +973,7 @@ export function SelectPokemonScreen() {
   const [movesById, setMovesById] = useState<Record<string, Move>>({});
   const [toolsById, setToolsById] = useState<Record<string, Tool>>({});
   const [movesRequiredOpen, setMovesRequiredOpen] = useState(false);
+  const [duplicateToolsOpen, setDuplicateToolsOpen] = useState(false);
   const [partyRequiredOpen, setPartyRequiredOpen] = useState(false);
   const [typeChartOpen, setTypeChartOpen] = useState(false);
   const [simulatorOpen, setSimulatorOpen] = useState(false);
@@ -1399,7 +1402,10 @@ export function SelectPokemonScreen() {
     let cancelled = false;
     (async () => {
       try {
-        const moves = await fetchMovesByIds([...ids]);
+        const moves = applyMoveTypesForGeneration(
+          await fetchMovesByIds([...ids]),
+          rulesGeneration,
+        );
         if (cancelled) return;
         const map: Record<string, Move> = {};
         for (const move of moves) map[move.id] = move;
@@ -1411,7 +1417,7 @@ export function SelectPokemonScreen() {
     return () => {
       cancelled = true;
     };
-  }, [buildsBySpeciesId]);
+  }, [buildsBySpeciesId, rulesGeneration]);
 
   useEffect(() => {
     const ids = new Set<string>();
@@ -1456,6 +1462,11 @@ export function SelectPokemonScreen() {
     );
     if (missingMoves.length > 0) {
       setMovesRequiredOpen(true);
+      return;
+    }
+
+    if (rulesGeneration >= 2 && hasDuplicateTools(orderedMembers)) {
+      setDuplicateToolsOpen(true);
       return;
     }
 
@@ -1938,7 +1949,9 @@ export function SelectPokemonScreen() {
               </Pressable>
             </View>
             <Text style={styles.partyHint}>
-              「設定」で個体値・努力値・技・持ち物を編集、「解除」で選択を外せます。図鑑一覧を再タップしても解除されません（技絞り込み中は技を反映します）。
+              「設定」で個体値・努力値・技
+              {rulesGeneration >= 2 ? "・持ち物" : ""}
+              を編集、「解除」で選択を外せます。図鑑一覧を再タップしても解除されません（技絞り込み中は技を反映します）。
             </Text>
             <ScrollView
               style={styles.partyReviewScroll}
@@ -2001,9 +2014,11 @@ export function SelectPokemonScreen() {
                       <Text style={styles.partyMoves} numberOfLines={2}>
                         {moveLabel}
                       </Text>
-                      <Text style={styles.partyMoves} numberOfLines={1}>
-                        持ち物: {toolLabel}
-                      </Text>
+                      {rulesGeneration >= 2 ? (
+                        <Text style={styles.partyMoves} numberOfLines={1}>
+                          持ち物: {toolLabel}
+                        </Text>
+                      ) : null}
                       <View style={styles.partyActions}>
                         <Pressable
                           accessibilityRole="button"
@@ -2224,6 +2239,28 @@ export function SelectPokemonScreen() {
             </Text>
             <Pressable
               onPress={() => setMovesRequiredOpen(false)}
+              style={styles.confirmPrimary}
+            >
+              <Text style={styles.confirmPrimaryText}>OK</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={duplicateToolsOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDuplicateToolsOpen(false)}
+      >
+        <View style={styles.confirmBackdrop}>
+          <View style={styles.confirmSheet}>
+            <Text style={styles.confirmTitle}>持ち物が重複しています</Text>
+            <Text style={styles.confirmBody}>
+              同じ持ち物を複数のポケモンに持たせることはできません。重複している持ち物を変更してください。
+            </Text>
+            <Pressable
+              onPress={() => setDuplicateToolsOpen(false)}
               style={styles.confirmPrimary}
             >
               <Text style={styles.confirmPrimaryText}>OK</Text>

@@ -34,7 +34,8 @@ import {
 import { getMoveByPokeapiId } from "../battle/gen1MovePool";
 import { moveGenerationFilterFromParams, parseRulesGeneration } from "../match-setup/params";
 import type { OpponentType } from "../match-setup/types";
-import { calcGen1Stats } from "../party/gen1Stats";
+import { computeMemberBattleStats, tryLeppaBerry } from "../battle/toolEffects";
+import { applyMoveTypesForGeneration } from "../pokemon/moveTypeByGeneration";
 import { usePartySetup } from "../party/PartySetupContext";
 import {
   GEN1_STAT_KEYS,
@@ -50,6 +51,8 @@ import {
 } from "../pokemon/moveRepository";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
 import { fetchPokemonSpecies } from "../pokemon/repository";
+import { fetchToolsByIds } from "../pokemon/toolRepository";
+import type { Tool } from "../pokemon/tools";
 import type { PokemonSpecies } from "../pokemon/types";
 import { matchBackgroundForRules } from "../match-setup/backgrounds";
 import { MatchScreenBackground } from "../match-setup/MatchScreenBackground";
@@ -98,7 +101,11 @@ const STATUS_LABEL: Record<string, string> = {
 function statusBadges(
   fighter: BattleFighter | null | undefined,
   displayedHp?: number,
-  options?: { hideDeferred?: boolean },
+  options?: {
+    hideDeferred?: boolean;
+    statusOverride?: BattleStatus | undefined;
+    confusionOverride?: number | undefined;
+  },
 ): string[] {
   if (!fighter) return [];
   const badges: string[] = [];
@@ -107,10 +114,18 @@ function statusBadges(
     badges.push("ひんし");
     return badges;
   }
-  if (fighter.status) {
-    badges.push(STATUS_LABEL[fighter.status] ?? fighter.status);
+  const status =
+    options && "statusOverride" in (options ?? {})
+      ? options?.statusOverride
+      : fighter.status;
+  if (status) {
+    badges.push(STATUS_LABEL[status] ?? status);
   }
-  if (fighter.volatiles.confusionTurns > 0) badges.push("こんらん");
+  const confusionTurns =
+    options && "confusionOverride" in (options ?? {})
+      ? (options?.confusionOverride ?? 0)
+      : fighter.volatiles.confusionTurns;
+  if (confusionTurns > 0) badges.push("こんらん");
   if (fighter.volatiles.trapTurns > 0) {
     badges.push(`しめつけ(残り${fighter.volatiles.trapTurns})`);
   }
@@ -304,6 +319,14 @@ export function BattleScreen() {
     () => matchBackgroundForRules(parseRulesGeneration(params)),
     [params.rulesGeneration],
   );
+  const rulesGeneration = useMemo(() => {
+    const fromParams = parseRulesGeneration(params);
+    const fromParty =
+      getSide("a")?.rulesGeneration ?? getSide("b")?.rulesGeneration;
+    // Prefer party-stored generation when params are missing/wrong.
+    if (fromParty != null && fromParty >= 1) return fromParty;
+    return fromParams;
+  }, [params.rulesGeneration, getSide]);
 
   const [menu, setMenu] = useState<CommandMenu>("root");
   const [pickPhase, setPickPhase] = useState<PickPhase>("a");
@@ -347,6 +370,8 @@ export function BattleScreen() {
   const fieldRef = useRef<BattleFieldState>(createBattleField());
   /** Persist HP across switches (瀕死維持). */
   const hpBySpeciesIdRef = useRef<Record<string, number>>({});
+  /** One-time held items consumed this battle (berries). */
+  const consumedToolBySpeciesIdRef = useRef<Record<string, boolean>>({});
   /** Gen1: major status / sleep counter persist on the bench. */
   const statusBySpeciesIdRef = useRef<Record<string, BattleStatus>>({});
   const sleepTurnsBySpeciesIdRef = useRef<Record<string, number>>({});
@@ -362,12 +387,21 @@ export function BattleScreen() {
     revealedMoveIdsBySpeciesId: {},
   });
   const movesByIdRef = useRef<Record<string, Move>>({});
+  const toolsByIdRef = useRef<Record<string, Tool>>({});
+  const [toolsById, setToolsById] = useState<Record<string, Tool>>({});
   const learnsetBySpeciesIdRef = useRef<Record<string, Move[]>>({});
   const ppRemainingRef = useRef<Record<string, number>>({});
   const [fighterTick, setFighterTick] = useState(0);
   const bumpFighters = () => setFighterTick((n) => n + 1);
   /** Display HP during step playback (multi-hit snapshots). */
   const [fieldHp, setFieldHp] = useState<{ a: number; b: number } | null>(null);
+  /** Status badges during step playback (ailment → berry cure ordering). */
+  const [statusDisplay, setStatusDisplay] = useState<{
+    a: BattleStatus;
+    b: BattleStatus;
+    confusionA: number;
+    confusionB: number;
+  } | null>(null);
   /**
    * Hide 「ため」「反動」 while switch / turn logs play.
    * Shown again after those animations finish if still active.
@@ -429,6 +463,32 @@ export function BattleScreen() {
         for (const row of rows) map[row.id] = row;
         setSpeciesById(map);
 
+        const toolIds = new Set<string>();
+        for (const side of ["a", "b"] as PartySide[]) {
+          for (const member of getSide(side)?.members ?? []) {
+            if (member.toolId) toolIds.add(member.toolId);
+          }
+        }
+        const toolRows = await fetchToolsByIds([...toolIds]);
+        if (cancelled) return;
+        const toolMap: Record<string, Tool> = {};
+        for (const tool of toolRows) toolMap[tool.id] = tool;
+        toolsByIdRef.current = toolMap;
+        setToolsById(toolMap);
+
+        // Backfill pokeapi ids onto party members when missing (older builds).
+        for (const side of ["a", "b"] as PartySide[]) {
+          const party = getSide(side);
+          if (!party) continue;
+          for (const member of party.members) {
+            if (!member.toolId || member.toolPokeapiId != null) continue;
+            const fromMap = toolMap[member.toolId]?.pokeapi_id;
+            if (fromMap != null) {
+              member.toolPokeapiId = Number(fromMap);
+            }
+          }
+        }
+
         const nextHp: Record<string, number> = {};
         const nextStatus: Record<string, BattleStatus> = {};
         const nextSleep: Record<string, number> = {};
@@ -439,7 +499,12 @@ export function BattleScreen() {
           );
           const species = map[speciesId];
           if (!member || !species) return null;
-          const stats = calcGen1Stats(species, member);
+          const { stats, toolPokeapiId } = computeMemberBattleStats(
+            species,
+            member,
+            rulesGeneration,
+            toolsByIdRef.current,
+          );
           nextHp[speciesId] = stats.hp;
           nextStatus[speciesId] = null;
           nextSleep[speciesId] = 0;
@@ -452,6 +517,8 @@ export function BattleScreen() {
             maxHp: stats.hp,
             status: null,
             sleepTurns: 0,
+            toolPokeapiId,
+            toolConsumed: consumedToolBySpeciesIdRef.current[speciesId] ?? false,
           });
         };
 
@@ -464,7 +531,12 @@ export function BattleScreen() {
             );
             const species = map[speciesId];
             if (!member || !species) continue;
-            nextHp[speciesId] = calcGen1Stats(species, member).hp;
+            nextHp[speciesId] = computeMemberBattleStats(
+              species,
+              member,
+              rulesGeneration,
+              toolsByIdRef.current,
+            ).stats.hp;
             nextStatus[speciesId] = null;
             nextSleep[speciesId] = 0;
           }
@@ -472,6 +544,7 @@ export function BattleScreen() {
         hpBySpeciesIdRef.current = nextHp;
         statusBySpeciesIdRef.current = nextStatus;
         sleepTurnsBySpeciesIdRef.current = nextSleep;
+        consumedToolBySpeciesIdRef.current = {};
         fieldRef.current = createBattleField();
         cpuKnowledgeRef.current = { revealedMoveIdsBySpeciesId: {} };
         seenOnFieldRef.current = new Set();
@@ -502,7 +575,10 @@ export function BattleScreen() {
               }
             }
           }
-          const moveRows = await fetchMovesByIds([...allMoveIds]);
+          const moveRows = applyMoveTypesForGeneration(
+            await fetchMovesByIds([...allMoveIds]),
+            rulesGeneration,
+          );
           if (cancelled) return;
           const byId: Record<string, Move> = {};
           for (const move of moveRows) byId[move.id] = move;
@@ -529,9 +605,9 @@ export function BattleScreen() {
 
           const learnsets: Record<string, Move[]> = {};
           for (const speciesId of lineup.a) {
-            learnsets[speciesId] = await fetchMovesForPokemon(
-              speciesId,
-              moveGenerationOptions,
+            learnsets[speciesId] = applyMoveTypesForGeneration(
+              await fetchMovesForPokemon(speciesId, moveGenerationOptions),
+              rulesGeneration,
             );
             if (cancelled) return;
           }
@@ -552,7 +628,7 @@ export function BattleScreen() {
     return () => {
       cancelled = true;
     };
-  }, [lineup, getSide, isCpu, moveGenerationOptions]);
+  }, [lineup, getSide, isCpu, moveGenerationOptions, rulesGeneration]);
 
   useEffect(() => {
     if (menu !== "fight" || !controllingMember || !battleMoveIds) {
@@ -564,7 +640,10 @@ export function BattleScreen() {
       try {
         setMovesLoading(true);
         const ids = battleMoveIds.filter((id): id is string => Boolean(id));
-        const rows = await fetchMovesByIds(ids);
+        const rows = applyMoveTypesForGeneration(
+          await fetchMovesByIds(ids),
+          rulesGeneration,
+        );
         if (cancelled) return;
         const byId = new Map(rows.map((move) => [move.id, move]));
         const slots = battleMoveIds.map((id) =>
@@ -576,7 +655,9 @@ export function BattleScreen() {
           for (const move of rows) {
             const key = ppKey(controllingMember.speciesId, move.id);
             if (next[key] == null) next[key] = move.pp ?? 0;
+            movesByIdRef.current[move.id] = move;
           }
+          ppRemainingRef.current = { ...ppRemainingRef.current, ...next };
           return next;
         });
       } catch {
@@ -604,8 +685,16 @@ export function BattleScreen() {
   const inspectStats =
     inspectFighter?.stats ??
     (inspectMember && inspectSpecies
-      ? calcGen1Stats(inspectSpecies, inspectMember)
+      ? computeMemberBattleStats(
+          inspectSpecies,
+          inspectMember,
+          rulesGeneration,
+          toolsById,
+        ).stats
       : null);
+  const inspectToolName = inspectMember?.toolId
+    ? (toolsById[inspectMember.toolId]?.name_ja ?? "—")
+    : "なし";
   const inspectMoveIds =
     inspectFighter?.member.moveIds ?? inspectMember?.moveIds ?? null;
   const inspectMoveKey = inspectMoveIds?.map((id) => id ?? "").join(",") ?? "";
@@ -637,7 +726,10 @@ export function BattleScreen() {
       try {
         setInspectMovesLoading(true);
         const ids = inspectMoveIds.filter((id): id is string => Boolean(id));
-        const rows = await fetchMovesByIds(ids);
+        const rows = applyMoveTypesForGeneration(
+          await fetchMovesByIds(ids),
+          rulesGeneration,
+        );
         if (cancelled) return;
         const byId = new Map(rows.map((move) => [move.id, move]));
         setInspectMoves(
@@ -735,15 +827,43 @@ export function BattleScreen() {
     ppRemainingRef.current = ppRemaining;
   }, [ppRemaining]);
 
-  const spendPp = (speciesId: string, moveId: string) => {
+  const spendPp = (
+    speciesId: string,
+    moveId: string,
+  ): { restoreAmount: number; log: string | null } => {
     const key = ppKey(speciesId, moveId);
-    setPpRemaining((current) => {
-      const remaining = current[key];
-      if (remaining == null) return current;
-      const next = { ...current, [key]: Math.max(0, remaining - 1) };
-      ppRemainingRef.current = next;
-      return next;
-    });
+    const remaining = ppRemainingRef.current[key];
+    if (remaining == null) return { restoreAmount: 0, log: null };
+    // Only consume Leppa when this spend actually empties the move's PP.
+    if (remaining <= 0) return { restoreAmount: 0, log: null };
+    const after = Math.max(0, remaining - 1);
+    const fighter =
+      fightersRef.current.a?.speciesId === speciesId
+        ? fightersRef.current.a
+        : fightersRef.current.b?.speciesId === speciesId
+          ? fightersRef.current.b
+          : null;
+    const move =
+      movesByIdRef.current[moveId] ??
+      equippedMoves.find((m) => m?.id === moveId) ??
+      null;
+    const maxPp = Math.max(0, move?.pp ?? remaining);
+    const leppaLogs: string[] = [];
+    const restoreAmount =
+      after === 0 && fighter
+        ? tryLeppaBerry(fighter, after, maxPp, leppaLogs)
+        : 0;
+    const nextValue = after + restoreAmount;
+    const next = { ...ppRemainingRef.current, [key]: nextValue };
+    ppRemainingRef.current = next;
+    setPpRemaining(next);
+    if (fighter?.heldTool?.consumed) {
+      consumedToolBySpeciesIdRef.current[speciesId] = true;
+    }
+    return {
+      restoreAmount,
+      log: leppaLogs[0] ?? null,
+    };
   };
 
   const cpuSwitchOptions = (side: PartySide = "b") => {
@@ -789,7 +909,12 @@ export function BattleScreen() {
     const member = resolveMember(side, speciesId);
     const species = speciesId ? speciesById[speciesId] : null;
     if (!member || !species) return;
-    const stats = calcGen1Stats(species, member);
+    const { stats, toolPokeapiId } = computeMemberBattleStats(
+      species,
+      member,
+      rulesGeneration,
+      toolsByIdRef.current,
+    );
     const stored = hpBySpeciesIdRef.current[speciesId];
     const hp =
       stored != null ? Math.max(0, Math.min(stats.hp, stored)) : stats.hp;
@@ -808,6 +933,9 @@ export function BattleScreen() {
       statusBySpeciesIdRef.current[prev.speciesId] = prev.status;
       sleepTurnsBySpeciesIdRef.current[prev.speciesId] = prev.sleepTurns;
       hpBySpeciesIdRef.current[prev.speciesId] = prev.currentHp;
+      if (prev.heldTool?.consumed) {
+        consumedToolBySpeciesIdRef.current[prev.speciesId] = true;
+      }
       prev.volatiles.bindingMove = null;
       prev.volatiles.bindingTurnsLeft = 0;
       prev.volatiles.trapTurns = 0;
@@ -828,6 +956,8 @@ export function BattleScreen() {
       maxHp: stats.hp,
       status: storedStatus,
       sleepTurns: storedSleep,
+      toolPokeapiId,
+      toolConsumed: consumedToolBySpeciesIdRef.current[speciesId] ?? false,
     });
     markSeenOnField(speciesId);
     bumpFighters();
@@ -886,15 +1016,26 @@ export function BattleScreen() {
     });
 
     for (const step of result.steps) {
+      const stepLogs = [...step.logs];
       if (step.ppSpent) {
-        spendPp(step.ppSpent.speciesId, step.ppSpent.moveId);
+        const leppa = spendPp(step.ppSpent.speciesId, step.ppSpent.moveId);
+        if (leppa.log) stepLogs.push(leppa.log);
       }
       // Apply this beat's HP with its logs so bars drop in attack order.
-      // Badges (status / leech seed / disable) refresh AFTER the matching log
-      // so they appear when the effect message is shown, not before.
+      // Status snapshot lets berries show the ailment badge before the cure line.
+      if (step.statusSnapshot) {
+        setStatusDisplay(step.statusSnapshot);
+      }
       if (step.hpSnapshot) {
         setFieldHp({ a: step.hpSnapshot.a, b: step.hpSnapshot.b });
         persistSnapshotHp(step.hpSnapshot);
+      }
+      // Persist consumed berries so switch-in does not restore the item.
+      for (const side of ["a", "b"] as const) {
+        const f = fightersRef.current[side];
+        if (f?.heldTool?.consumed) {
+          consumedToolBySpeciesIdRef.current[f.speciesId] = true;
+        }
       }
       await sleep(0);
       await new Promise<void>((resolve) => {
@@ -902,8 +1043,8 @@ export function BattleScreen() {
           requestAnimationFrame(() => resolve());
         });
       });
-      if (step.logs.length > 0) {
-        await playLog(step.logs);
+      if (stepLogs.length > 0) {
+        await playLog(stepLogs);
       } else {
         await sleep(420);
       }
@@ -944,6 +1085,7 @@ export function BattleScreen() {
 
     persistFighterHp();
     // 交代・行動演出のあと、溜め／反動中ならバッジを表示
+    setStatusDisplay(null);
     setHideDeferredBadges(false);
     bumpFighters();
 
@@ -1294,6 +1436,12 @@ export function BattleScreen() {
                     hpDisplay={foeHpAsPercent ? "percent" : "absolute"}
                     badges={statusBadges(fighterB, fieldHp?.b, {
                       hideDeferred: hideDeferredBadges,
+                      ...(statusDisplay
+                        ? {
+                            statusOverride: statusDisplay.b,
+                            confusionOverride: statusDisplay.confusionB,
+                          }
+                        : {}),
                     })}
                   />
                   <View style={styles.fieldDivider} />
@@ -1306,6 +1454,12 @@ export function BattleScreen() {
                     maxHp={fighterA?.maxHp}
                     badges={statusBadges(fighterA, fieldHp?.a, {
                       hideDeferred: hideDeferredBadges,
+                      ...(statusDisplay
+                        ? {
+                            statusOverride: statusDisplay.a,
+                            confusionOverride: statusDisplay.confusionA,
+                          }
+                        : {}),
                     })}
                   />
                 </View>
@@ -1545,7 +1699,12 @@ export function BattleScreen() {
                           const hp = hpBySpeciesIdRef.current[speciesId];
                           const maxHp =
                             member && species
-                              ? calcGen1Stats(species, member).hp
+                              ? computeMemberBattleStats(
+                                  species,
+                                  member,
+                                  rulesGeneration,
+                                  toolsByIdRef.current,
+                                ).stats.hp
                               : 0;
                           const fainted = (hp ?? 0) <= 0;
                           return (
@@ -1876,13 +2035,16 @@ export function BattleScreen() {
                 <Text style={styles.modalBody}>実数値が計算できません。</Text>
               )}
 
-              <Text style={styles.inspectSection}>特性・性格・持ち物</Text>
+              <Text style={styles.inspectSection}>
+                特性・性格{rulesGeneration >= 2 ? "・持ち物" : ""}
+              </Text>
               <Text style={styles.modalBody}>特性：—（将来対応）</Text>
               <Text style={styles.modalBody}>性格：—（将来対応）</Text>
-              <Text style={styles.modalBody}>
-                持ち物：
-                {inspectMember?.toolId ? "設定あり（表示は今後対応）" : "なし"}
-              </Text>
+              {rulesGeneration >= 2 ? (
+                <Text style={styles.modalBody}>
+                  持ち物：{inspectToolName}
+                </Text>
+              ) : null}
 
               <Pressable
                 onPress={() => {
@@ -1975,7 +2137,12 @@ export function BattleScreen() {
                       : fighterB?.speciesId) === member.speciesId;
                   const hp = hpBySpeciesIdRef.current[member.speciesId];
                   const maxHp = species
-                    ? calcGen1Stats(species, member).hp
+                    ? computeMemberBattleStats(
+                        species,
+                        member,
+                        rulesGeneration,
+                        toolsByIdRef.current,
+                      ).stats.hp
                     : 0;
                   const fainted = hp != null && hp <= 0;
                   return (
