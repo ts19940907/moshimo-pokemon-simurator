@@ -30,6 +30,13 @@ import {
   type TurnLogLine,
   type TurnStep,
 } from "./types";
+import {
+  setWeather,
+  tickWeather,
+  weatherGuaranteesHit,
+  weatherIdFromMovePokeapi,
+  weatherSkipsSolarBeamCharge,
+} from "./weather";
 
 type ExecCtx = {
   forceSwitchSide: PartySide | null;
@@ -182,6 +189,7 @@ function calcDamage(
   move: Move,
   crit: boolean,
   defenderField: SideFieldEffects,
+  weatherId: string | null,
 ): number {
   const { damage: before } = damageBeforeRandom(
     {
@@ -201,6 +209,7 @@ function calcDamage(
       attackerBurn: attacker.status === "burn",
       defenderReflect: defenderField.reflect,
       defenderLightScreen: defenderField.lightScreen,
+      weatherId,
       attackerItemPokeapiId:
         attacker.heldTool && !attacker.heldTool.consumed
           ? attacker.heldTool.pokeapiId
@@ -226,11 +235,17 @@ function fixedDamage(
   return randInt(range.min, range.max);
 }
 
-function canStatus(target: BattleFighter, ailment: string): boolean {
+function canStatus(
+  target: BattleFighter,
+  ailment: string,
+  weatherId: string | null = null,
+): boolean {
   // Gen1: major status cannot be overwritten (Rest is the exception, handled separately).
   if (target.status) return false;
   if (ailment === "paralysis" && target.species.type1 === 4) return false;
   if (ailment === "burn" && target.species.type1 === 2) return false;
+  // Gen2: cannot freeze while sunny.
+  if (ailment === "freeze" && weatherId === "sun") return false;
   if (
     (ailment === "poison" || ailment === "toxic") &&
     (target.species.type1 === 8 || target.species.type2 === 8)
@@ -246,6 +261,7 @@ function applyAilment(
   logs: TurnLogLine[],
   name: string,
   fromSide?: PartySide,
+  weatherId: string | null = null,
 ): boolean {
   if (ailment === "confusion") {
     if (target.volatiles.confusionTurns <= 0) {
@@ -272,7 +288,7 @@ function applyAilment(
     }
     return false;
   }
-  if (!canStatus(target, ailment)) {
+  if (!canStatus(target, ailment, weatherId)) {
     logs.push("しかし　うまく　決まらなかった！");
     return false;
   }
@@ -427,6 +443,7 @@ function checkAccuracy(
   attacker: BattleFighter,
   defender: BattleFighter,
   move: Move,
+  weatherId: string | null = null,
 ): boolean {
   // Gen1: only Swift reliably hits Fly / Dig mid-charge
   if (
@@ -435,6 +452,7 @@ function checkAccuracy(
   ) {
     return false;
   }
+  if (weatherGuaranteesHit(weatherId, move.pokeapi_id)) return true;
   if (move.accuracy == null) return true; // Swift etc.
   const accStage = attacker.stages.accuracy - defender.stages.evasion;
   const mult = stageMultiplierClamped(accStage);
@@ -577,6 +595,7 @@ function canAct(
         },
         false,
         { mist: false, reflect: false, lightScreen: false },
+        null,
       );
       fighter.currentHp = Math.max(0, fighter.currentHp - dmg);
       logs.push(`わけも　わからず　自分を　攻撃した！`);
@@ -726,8 +745,12 @@ function executeMove(
   const category = move.effect_category ?? "damage";
   const meta = metaOf(move);
 
-  // Two-turn charge: wind-up turn
-  if (code === "unique-charge" && !attacker.volatiles.chargingMove) {
+  // Two-turn charge: wind-up turn (Solar Beam skips charge in sun)
+  if (
+    code === "unique-charge" &&
+    !attacker.volatiles.chargingMove &&
+    !weatherSkipsSolarBeamCharge(field.weather?.id ?? null, move.pokeapi_id)
+  ) {
     attacker.volatiles.chargingMove = move;
     if (move.pokeapi_id === 19) attacker.volatiles.semiInvulnerable = "fly";
     if (move.pokeapi_id === 91) attacker.volatiles.semiInvulnerable = "dig";
@@ -763,7 +786,7 @@ function executeMove(
     logs.push(`${attacker.member.nameJa}の　${move.name_ja}！`);
   }
 
-  // Field effects (Mist / Reflect / Light Screen / Haze)
+  // Field effects (Mist / Reflect / Light Screen)
   if (category === "field-effect" || move.pokeapi_id === 54 || move.pokeapi_id === 113 || move.pokeapi_id === 115) {
     const side = field[attacker.side];
     if (move.pokeapi_id === 54) {
@@ -785,6 +808,16 @@ function executeMove(
       return;
     }
   }
+  // Gen2 weather (Rain Dance / Sunny Day)
+  {
+    const weatherId = weatherIdFromMovePokeapi(move.pokeapi_id);
+    if (weatherId) {
+      field.weather = setWeather(field.weather, weatherId, logs);
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
+  }
+  // Haze: reset all stat stages (must not catch weather moves)
   if (category === "whole-field-effect" || move.pokeapi_id === 114) {
     for (const f of [attacker, defender]) {
       f.stages = {
@@ -807,7 +840,7 @@ function executeMove(
     move.pokeapi_id === 18 ||
     move.pokeapi_id === 46
   ) {
-    if (!checkAccuracy(attacker, defender, move)) {
+    if (!checkAccuracy(attacker, defender, move, field.weather?.id ?? null)) {
       logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
       attacker.volatiles.lastMoveUsed = move;
       return;
@@ -1001,7 +1034,7 @@ function executeMove(
       attacker.volatiles.lastMoveUsed = move;
       return;
     }
-    if (!checkAccuracy(attacker, defender, move)) {
+    if (!checkAccuracy(attacker, defender, move, field.weather?.id ?? null)) {
       logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
       attacker.volatiles.lastMoveUsed = move;
       return;
@@ -1079,7 +1112,7 @@ function executeMove(
       attacker.volatiles.lastMoveUsed = move;
       return;
     }
-    if (!checkAccuracy(attacker, defender, move)) {
+    if (!checkAccuracy(attacker, defender, move, field.weather?.id ?? null)) {
       logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
       attacker.volatiles.lastMoveUsed = move;
       return;
@@ -1095,6 +1128,7 @@ function executeMove(
       logs,
       defender.member.nameJa,
       attacker.side,
+      field.weather?.id ?? null,
     );
     if (
       meta.ailment === "paralysis" ||
@@ -1116,7 +1150,7 @@ function executeMove(
     return;
   }
   if (code === "unique-ohko" || category === "ohko") {
-    if (!checkAccuracy(attacker, defender, move)) {
+    if (!checkAccuracy(attacker, defender, move, field.weather?.id ?? null)) {
       logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
       attacker.volatiles.lastMoveUsed = move;
       return;
@@ -1139,7 +1173,7 @@ function executeMove(
 
   // Gen1 Counter: 2× physical damage taken this turn
   if (move.pokeapi_id === 68) {
-    if (!checkAccuracy(attacker, defender, move)) {
+    if (!checkAccuracy(attacker, defender, move, field.weather?.id ?? null)) {
       logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
       attacker.volatiles.lastMoveUsed = move;
       return;
@@ -1161,7 +1195,7 @@ function executeMove(
   }
 
   // Damage-dealing path (including partial trap / hyper beam / fixed / explosion)
-  if (!checkAccuracy(attacker, defender, move)) {
+  if (!checkAccuracy(attacker, defender, move, field.weather?.id ?? null)) {
     logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
     if (code === "unique-crash") {
       attacker.currentHp = Math.max(0, attacker.currentHp - 1);
@@ -1222,6 +1256,7 @@ function executeMove(
             move,
             crit,
             field[defender.side],
+            field.weather?.id ?? null,
           );
     if (code === "unique-explosion" && perHit > 0) {
       perHit = Math.max(1, perHit * 2);
@@ -1318,6 +1353,7 @@ function executeMove(
           logs,
           defender.member.nameJa,
           attacker.side,
+          field.weather?.id ?? null,
         );
         if (
           meta.ailment === "paralysis" ||
@@ -1722,6 +1758,12 @@ export function resolveTurnSteps(input: {
     tryEndTurnStatus(fighterA, fighterB, endLogs);
     tryEndTurnStatus(fighterB, fighterA, endLogs);
     if (endLogs.length) pushStep(endLogs);
+
+    {
+      const weatherLogs: TurnLogLine[] = [];
+      field.weather = tickWeather(field.weather, weatherLogs);
+      if (weatherLogs.length) pushStep(weatherLogs);
+    }
 
     for (const fighter of [fighterA, fighterB]) {
       const berryLogs: TurnLogLine[] = [];

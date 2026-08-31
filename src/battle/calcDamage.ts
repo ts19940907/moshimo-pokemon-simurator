@@ -4,6 +4,10 @@ import type { PokemonSpecies } from "../pokemon/types";
 import { gen1TypeEffectiveness } from "./gen1TypeChart";
 import { heldItemDamageMultiplier } from "./toolEffects";
 import { stagedStat } from "./types";
+import {
+  weatherSolarBeamMultiplier,
+  weatherTypeDamageMultiplier,
+} from "./weather";
 
 /** Extensible bag for future weather / items / abilities / terrain. */
 export type DamageCalcModifiers = {
@@ -11,7 +15,7 @@ export type DamageCalcModifiers = {
   attackerBurn: boolean;
   defenderReflect: boolean;
   defenderLightScreen: boolean;
-  /** Reserved — ignored in Gen1 formula for now. */
+  /** Active weather id (`rain` / `sun` / …). */
   weatherId?: string | null;
   terrainId?: string | null;
   attackerItemId?: string | null;
@@ -169,6 +173,17 @@ export function damageBeforeRandom(
       heldItemDamageMultiplier(
         move.type_id,
         modifiers.attackerItemPokeapiId ?? null,
+      ),
+  );
+  damage = Math.floor(
+    damage *
+      weatherTypeDamageMultiplier(modifiers.weatherId ?? null, move.type_id),
+  );
+  damage = Math.floor(
+    damage *
+      weatherSolarBeamMultiplier(
+        modifiers.weatherId ?? null,
+        move.pokeapi_id,
       ),
   );
 

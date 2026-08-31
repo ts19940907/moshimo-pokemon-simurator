@@ -2255,11 +2255,18 @@ export function BattleScreen() {
             })}
             {fieldRef.current.weather ? (
               <Text style={styles.detailStat}>
-                天気：{fieldRef.current.weather.id}（残り
-                {fieldRef.current.weather.turnsLeft}）
+                天気：
+                {fieldRef.current.weather.id === "rain"
+                  ? "あめ"
+                  : fieldRef.current.weather.id === "sun"
+                    ? "はれ"
+                    : fieldRef.current.weather.id}
+                {fieldRef.current.weather.turnsLeft != null
+                  ? `（残り${fieldRef.current.weather.turnsLeft}）`
+                  : ""}
               </Text>
             ) : (
-              <Text style={styles.detailStat}>天気：なし（将来対応）</Text>
+              <Text style={styles.detailStat}>天気：なし</Text>
             )}
             {fieldRef.current.terrain ? (
               <Text style={styles.detailStat}>

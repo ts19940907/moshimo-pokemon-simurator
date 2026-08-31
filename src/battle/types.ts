@@ -1,6 +1,7 @@
 import type { Move } from "../pokemon/moves";
 import type { PokemonSpecies } from "../pokemon/types";
 import type { Gen1StatBlock, PartyMemberBuild, PartySide } from "../party/types";
+import type { BattleWeather } from "./weather";
 
 export type BattleStatus =
   | "paralysis"
@@ -61,8 +62,8 @@ export type SideFieldEffects = {
 export type BattleFieldState = {
   a: SideFieldEffects;
   b: SideFieldEffects;
-  /** Reserved for later gens (weather / terrain with turns). */
-  weather: { id: string; turnsLeft: number } | null;
+  /** Active weather (Gen2+: Rain Dance / Sunny Day / …). */
+  weather: BattleWeather | null;
   terrain: { id: string; turnsLeft: number } | null;
 };
 
