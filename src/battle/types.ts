@@ -50,6 +50,37 @@ export type VolatileFlags = {
   transformed: boolean;
   /** Quick Claw activated this turn. */
   quickClawActive: boolean;
+  /**
+   * Gen2 Protect / Detect / Endure for the current turn.
+   * Cleared at end of turn.
+   */
+  protection: null | "protect" | "endure";
+  /** Consecutive successful Protect-family uses (for Gen2 success decay). */
+  protectStreak: number;
+  /** Set when a Protect-family move succeeded this turn (streak bookkeeping). */
+  usedProtectFamilyThisTurn: boolean;
+  /** Ghost Curse residual (Gen2). */
+  cursed: boolean;
+  /** Mean Look / Spider Web: cannot switch or be forced out. */
+  cannotEscape: boolean;
+  /** Lock-On / Mind Reader: next move ignores accuracy / semi-invulnerable. */
+  sureHit: boolean;
+  /** Foresight: Normal/Fighting can hit Ghost. */
+  foresight: boolean;
+  /** Destiny Bond active until end of turn. */
+  destinyBond: boolean;
+  /** Attract: opposite-gender infatuation. */
+  infatuated: boolean;
+  /** Perish Song counter; null = none. Faint at 0 after decrement. */
+  perishCount: number | null;
+  /** Nightmare residual while sleeping. */
+  nightmare: boolean;
+  /** Special damage taken this turn (Mirror Coat). */
+  specialDamageTakenThisTurn: number;
+  /** Moves known for Sleep Talk / Sketch (filled by battle UI when available). */
+  knownMoves: Move[];
+  /** Baton Pass pending: next switch keeps stages/some volatiles. */
+  batonPass: boolean;
 };
 
 /** Per-side field effects. Gen1 mist/reflect/light screen last until switch-out. */
@@ -57,6 +88,10 @@ export type SideFieldEffects = {
   mist: boolean;
   reflect: boolean;
   lightScreen: boolean;
+  /** Gen2 Spikes (single layer). */
+  spikes: boolean;
+  /** Gen2 Safeguard remaining turns (including this turn's end tick). */
+  safeguardTurns: number;
 };
 
 export type BattleFieldState = {
@@ -65,6 +100,16 @@ export type BattleFieldState = {
   /** Active weather (Gen2+: Rain Dance / Sunny Day / …). */
   weather: BattleWeather | null;
   terrain: { id: string; turnsLeft: number } | null;
+  /**
+   * Future Sight / similar delayed attacks.
+   * `turnsLeft` counts down each end-of-turn; hits when it reaches 0.
+   */
+  futureSight: {
+    targetSide: PartySide;
+    damage: number;
+    turnsLeft: number;
+    sourceName: string;
+  } | null;
 };
 
 export type BattleFighter = {
@@ -153,11 +198,31 @@ export function createVolatiles(): VolatileFlags {
     physicalDamageTakenThisTurn: 0,
     transformed: false,
     quickClawActive: false,
+    protection: null,
+    protectStreak: 0,
+    usedProtectFamilyThisTurn: false,
+    cursed: false,
+    cannotEscape: false,
+    sureHit: false,
+    foresight: false,
+    destinyBond: false,
+    infatuated: false,
+    perishCount: null,
+    nightmare: false,
+    specialDamageTakenThisTurn: 0,
+    knownMoves: [],
+    batonPass: false,
   };
 }
 
 export function createSideField(): SideFieldEffects {
-  return { mist: false, reflect: false, lightScreen: false };
+  return {
+    mist: false,
+    reflect: false,
+    lightScreen: false,
+    spikes: false,
+    safeguardTurns: 0,
+  };
 }
 
 export function createBattleField(): BattleFieldState {
@@ -166,6 +231,7 @@ export function createBattleField(): BattleFieldState {
     b: createSideField(),
     weather: null,
     terrain: null,
+    futureSight: null,
   };
 }
 

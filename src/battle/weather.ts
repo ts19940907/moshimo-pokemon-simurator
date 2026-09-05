@@ -1,10 +1,10 @@
 /** Gen2 battle weather ids. */
-export type WeatherId = "rain" | "sun";
+export type WeatherId = "rain" | "sun" | "sand";
 
 export type BattleWeather = {
   id: WeatherId;
   /**
-   * Remaining turns. `null` = no limit (Gen2 Rain Dance / Sunny Day).
+   * Remaining turns. `null` = no limit (Gen2 weather moves).
    * Later gens can use a positive number.
    */
   turnsLeft: number | null;
@@ -13,12 +13,14 @@ export type BattleWeather = {
 export const WEATHER_LABEL_JA: Record<WeatherId, string> = {
   rain: "あめ",
   sun: "はれ",
+  sand: "すなあらし",
 };
 
 /** PokeAPI move ids that set weather. */
 export const WEATHER_MOVE_POKEAPI = {
   RAIN_DANCE: 240,
   SUNNY_DAY: 241,
+  SANDSTORM: 201,
 } as const;
 
 export function weatherIdFromMovePokeapi(
@@ -26,6 +28,7 @@ export function weatherIdFromMovePokeapi(
 ): WeatherId | null {
   if (pokeapiId === WEATHER_MOVE_POKEAPI.RAIN_DANCE) return "rain";
   if (pokeapiId === WEATHER_MOVE_POKEAPI.SUNNY_DAY) return "sun";
+  if (pokeapiId === WEATHER_MOVE_POKEAPI.SANDSTORM) return "sand";
   return null;
 }
 
@@ -38,8 +41,10 @@ export function setWeather(
   const next: BattleWeather = { id, turnsLeft: null };
   if (id === "rain") {
     logs.push("雨が　降り始めた！");
-  } else {
+  } else if (id === "sun") {
     logs.push("日差しが　強くなった！");
+  } else {
+    logs.push("砂あらしが　吹き始めた！");
   }
   return next;
 }
@@ -58,17 +63,26 @@ export function tickWeather(
   if (left <= 0) {
     if (weather.id === "rain") {
       logs.push("雨が　降り止んだ！");
-    } else {
+    } else if (weather.id === "sun") {
       logs.push("日差しが　弱まった！");
+    } else {
+      logs.push("砂あらしが　おさまった！");
     }
     return null;
   }
   return { id: weather.id, turnsLeft: left };
 }
 
+/** Gen2: Rock / Ground / Steel are immune to sand residual. */
+export function isSandstormImmune(type1: number, type2: number): boolean {
+  const types = [type1, type2].filter((t) => t > 0);
+  return types.some((t) => t === 13 || t === 9 || t === 17);
+}
+
 /**
  * Gen2 type damage weather modifier (applied after STAB / type chart).
  * Rain: Water ×1.5, Fire ×0.5. Sun: Fire ×1.5, Water ×0.5.
+ * Sand: no offensive multiplier in Gen2.
  */
 export function weatherTypeDamageMultiplier(
   weatherId: string | null | undefined,

@@ -23,6 +23,7 @@ import {
   buildFighter,
   getForcedMove,
   resolveTurnSteps,
+  applySpikesOnSwitchIn,
 } from "../battle/resolveTurn";
 import {
   createBattleField,
@@ -284,6 +285,10 @@ function sideFieldSummary(field: BattleFieldState, side: PartySide): string[] {
   if (f.mist) lines.push("しろいきり：継続（交代まで）");
   if (f.reflect) lines.push("リフレクター：継続（交代まで）");
   if (f.lightScreen) lines.push("ひかりのかべ：継続（交代まで）");
+  if (f.spikes) lines.push("まきびし：継続");
+  if (f.safeguardTurns > 0) {
+    lines.push(`しんぴのまもり：残り${f.safeguardTurns}`);
+  }
   if (lines.length === 0) lines.push("場効果：なし");
   return lines;
 }
@@ -925,11 +930,15 @@ export function BattleScreen() {
       stored != null ? Math.max(0, Math.min(stats.hp, stored)) : stats.hp;
     const storedStatus = statusBySpeciesIdRef.current[speciesId] ?? null;
     const storedSleep = sleepTurnsBySpeciesIdRef.current[speciesId] ?? 0;
-    // Gen1: mist / reflect / light screen end on switch-out
+    // Gen1: mist / reflect / light screen end on switch-out.
+    // Gen2 spikes / safeguard remain on the side.
+    const prevField = fieldRef.current[side];
     fieldRef.current[side] = {
       mist: false,
       reflect: false,
       lightScreen: false,
+      spikes: prevField.spikes,
+      safeguardTurns: prevField.safeguardTurns,
     };
     // End binding if either side switches
     const prev = fightersRef.current[side];
@@ -952,6 +961,16 @@ export function BattleScreen() {
       other.volatiles.trapTurns = 0;
       other.volatiles.trapDamage = 0;
     }
+    const prevFighter = fightersRef.current[side];
+    const baton = prevFighter?.volatiles.batonPass
+      ? {
+          stages: { ...prevFighter.stages },
+          focusEnergy: prevFighter.volatiles.focusEnergy,
+          cursed: prevFighter.volatiles.cursed,
+          perishCount: prevFighter.volatiles.perishCount,
+        }
+      : null;
+
     fightersRef.current[side] = buildFighter({
       side,
       member,
@@ -964,6 +983,28 @@ export function BattleScreen() {
       toolPokeapiId,
       toolConsumed: consumedToolBySpeciesIdRef.current[speciesId] ?? false,
     });
+    const switched = fightersRef.current[side];
+    if (switched) {
+      switched.volatiles.knownMoves = member.moveIds
+        .map((id) => (id ? movesByIdRef.current[id] : null))
+        .filter((m): m is Move => Boolean(m));
+      if (baton) {
+        switched.stages = baton.stages;
+        switched.volatiles.focusEnergy = baton.focusEnergy;
+        switched.volatiles.cursed = baton.cursed;
+        switched.volatiles.perishCount = baton.perishCount;
+      }
+      const spikeLogs: string[] = [];
+      applySpikesOnSwitchIn(switched, fieldRef.current, spikeLogs);
+      if (spikeLogs.length) {
+        hpBySpeciesIdRef.current[speciesId] = switched.currentHp;
+        setFieldHp({
+          a: fightersRef.current.a?.currentHp ?? 0,
+          b: fightersRef.current.b?.currentHp ?? 0,
+        });
+        void playLog(spikeLogs);
+      }
+    }
     markSeenOnField(speciesId);
     bumpFighters();
   };
@@ -1220,6 +1261,13 @@ export function BattleScreen() {
     }
 
     if (pickPhase === "a") {
+      if (
+        action.type === "switch" &&
+        fightersRef.current.a?.volatiles.cannotEscape
+      ) {
+        setLog(["逃げられない！"]);
+        return;
+      }
       actionARef.current = action;
       setActionA(action);
       setMenu("root");
@@ -1253,6 +1301,13 @@ export function BattleScreen() {
     }
 
     if (pickPhase === "b") {
+      if (
+        action.type === "switch" &&
+        fightersRef.current.b?.volatiles.cannotEscape
+      ) {
+        setLog(["逃げられない！"]);
+        return;
+      }
       setActionB(action);
       setMenu("root");
       const pendingA = actionARef.current;
@@ -2274,7 +2329,9 @@ export function BattleScreen() {
                   ? "あめ"
                   : fieldRef.current.weather.id === "sun"
                     ? "はれ"
-                    : fieldRef.current.weather.id}
+                    : fieldRef.current.weather.id === "sand"
+                      ? "すなあらし"
+                      : fieldRef.current.weather.id}
                 {fieldRef.current.weather.turnsLeft != null
                   ? `（残り${fieldRef.current.weather.turnsLeft}）`
                   : ""}
