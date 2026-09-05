@@ -904,6 +904,7 @@ export function BattleScreen() {
       knowledge: cpuKnowledgeRef.current,
       foeLearnset: learnsetBySpeciesIdRef.current[foe.species.id] ?? [],
       switchOptions: cpuSwitchOptions("b"),
+      rulesGeneration,
     });
   };
 
@@ -1024,6 +1025,7 @@ export function BattleScreen() {
       actionA: nextA,
       actionB: nextB,
       field: fieldRef.current,
+      rulesGeneration,
     });
 
     for (const step of result.steps) {
@@ -2227,10 +2229,22 @@ export function BattleScreen() {
                         こうげき {formatStage(f.stages.attack)} ／ ぼうぎょ{" "}
                         {formatStage(f.stages.defense)}
                       </Text>
-                      <Text style={styles.detailStat}>
-                        とくしゅ {formatStage(f.stages.special)} ／ すばやさ{" "}
-                        {formatStage(f.stages.speed)}
-                      </Text>
+                      {rulesGeneration >= 2 ? (
+                        <>
+                          <Text style={styles.detailStat}>
+                            とくこう {formatStage(f.stages.sp_attack)} ／ とくぼう{" "}
+                            {formatStage(f.stages.sp_defense)}
+                          </Text>
+                          <Text style={styles.detailStat}>
+                            すばやさ {formatStage(f.stages.speed)}
+                          </Text>
+                        </>
+                      ) : (
+                        <Text style={styles.detailStat}>
+                          とくしゅ {formatStage(f.stages.special)} ／ すばやさ{" "}
+                          {formatStage(f.stages.speed)}
+                        </Text>
+                      )}
                       <Text style={styles.detailStat}>
                         めいちゅう {formatStage(f.stages.accuracy)} ／ かいひ{" "}
                         {formatStage(f.stages.evasion)}

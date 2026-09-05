@@ -1,6 +1,7 @@
 import type { PartySide } from "../party/types";
 import type { Move, MoveEffectMeta } from "../pokemon/moves";
 import { EMPTY_EFFECT_META } from "../pokemon/moves";
+import { usesSplitSpecial } from "../pokemon/baseStatFilters";
 import {
   applyDamageRoll,
   damageBeforeRandom,
@@ -41,6 +42,8 @@ import {
 type ExecCtx = {
   forceSwitchSide: PartySide | null;
 };
+
+type StageKey = keyof BattleFighter["stages"];
 
 function metaOf(move: Move): MoveEffectMeta {
   const base = move.effect_meta ?? EMPTY_EFFECT_META;
@@ -183,6 +186,24 @@ function applyDamage(
   return { dealt, brokeSub: false };
 }
 
+function specialAttackStage(
+  fighter: BattleFighter,
+  rulesGeneration: number,
+): number {
+  return usesSplitSpecial(rulesGeneration)
+    ? fighter.stages.sp_attack
+    : fighter.stages.special;
+}
+
+function specialDefenseStage(
+  fighter: BattleFighter,
+  rulesGeneration: number,
+): number {
+  return usesSplitSpecial(rulesGeneration)
+    ? fighter.stages.sp_defense
+    : fighter.stages.special;
+}
+
 function calcDamage(
   attacker: BattleFighter,
   defender: BattleFighter,
@@ -190,6 +211,7 @@ function calcDamage(
   crit: boolean,
   defenderField: SideFieldEffects,
   weatherId: string | null,
+  rulesGeneration: number,
 ): number {
   const { damage: before } = damageBeforeRandom(
     {
@@ -197,11 +219,11 @@ function calcDamage(
       attackerSpecies: attacker.species,
       attackerStats: attacker.stats,
       attackerAttackStage: attacker.stages.attack,
-      attackerSpecialStage: attacker.stages.special,
+      attackerSpecialStage: specialAttackStage(attacker, rulesGeneration),
       defenderSpecies: defender.species,
       defenderStats: defender.stats,
       defenderDefenseStage: defender.stages.defense,
-      defenderSpecialStage: defender.stages.special,
+      defenderSpecialStage: specialDefenseStage(defender, rulesGeneration),
     },
     move,
     {
@@ -376,6 +398,61 @@ function stageChangePhrase(delta: number): string {
   return "下がった";
 }
 
+function resolveStageKey(
+  stat: string,
+  change: number,
+  rulesGeneration: number,
+): StageKey | null {
+  const split = usesSplitSpecial(rulesGeneration);
+  if (stat === "special-attack") return split ? "sp_attack" : "special";
+  if (stat === "special-defense") return split ? "sp_defense" : "special";
+  if (stat === "special") {
+    if (!split) return "special";
+    // Gen1 meta still uses "special"; Gen2 Growth raises SpA, Psychic lowers SpD.
+    return change < 0 ? "sp_defense" : "sp_attack";
+  }
+  if (
+    stat === "attack" ||
+    stat === "defense" ||
+    stat === "speed" ||
+    stat === "accuracy" ||
+    stat === "evasion"
+  ) {
+    return stat;
+  }
+  return null;
+}
+
+function stageLabel(key: StageKey, rulesGeneration: number): string {
+  const labels: Record<StageKey, string> = {
+    attack: "こうげき",
+    defense: "ぼうぎょ",
+    special: "とくしゅ",
+    sp_attack: usesSplitSpecial(rulesGeneration) ? "とくこう" : "とくしゅ",
+    sp_defense: usesSplitSpecial(rulesGeneration) ? "とくぼう" : "とくしゅ",
+    speed: "すばやさ",
+    accuracy: "めいちゅう率",
+    evasion: "かいひ率",
+  };
+  return labels[key];
+}
+
+function applyStageDelta(
+  who: BattleFighter,
+  key: StageKey,
+  change: number,
+): number {
+  const before = who.stages[key];
+  who.stages[key] = Math.max(-6, Math.min(6, before + change));
+  const delta = who.stages[key] - before;
+  // Gen1: keep SpA/SpD mirrors in sync with unified Special.
+  if (key === "special") {
+    who.stages.sp_attack = who.stages.special;
+    who.stages.sp_defense = who.stages.special;
+  }
+  return delta;
+}
+
 function applyStatChanges(
   user: BattleFighter,
   target: BattleFighter,
@@ -383,6 +460,7 @@ function applyStatChanges(
   logs: TurnLogLine[],
   towardTarget: boolean,
   field: BattleFieldState,
+  rulesGeneration: number,
 ): void {
   const changes = metaOf(move).stat_changes;
   if (!changes.length) return;
@@ -402,39 +480,15 @@ function applyStatChanges(
   for (const sc of changes) {
     const who = towardTarget ? target : user;
     const whoName = who.member.nameJa;
-    const key =
-      sc.stat === "special-attack" || sc.stat === "special-defense"
-        ? "special"
-        : sc.stat === "special"
-          ? "special"
-          : sc.stat;
-    if (
-      key !== "attack" &&
-      key !== "defense" &&
-      key !== "special" &&
-      key !== "speed" &&
-      key !== "accuracy" &&
-      key !== "evasion"
-    ) {
-      continue;
-    }
-    const before = who.stages[key];
-    who.stages[key] = Math.max(-6, Math.min(6, before + sc.change));
-    const delta = who.stages[key] - before;
+    const key = resolveStageKey(sc.stat, sc.change, rulesGeneration);
+    if (!key) continue;
+    const delta = applyStageDelta(who, key, sc.change);
     if (delta === 0) {
       logs.push(`${whoName}の　能力は　もう　変わらない！`);
       continue;
     }
-    const label: Record<string, string> = {
-      attack: "こうげき",
-      defense: "ぼうぎょ",
-      special: "とくしゅ",
-      speed: "すばやさ",
-      accuracy: "めいちゅう率",
-      evasion: "かいひ率",
-    };
     logs.push(
-      `${whoName}の　${label[key]}が　${stageChangePhrase(delta)}！`,
+      `${whoName}の　${stageLabel(key, rulesGeneration)}が　${stageChangePhrase(delta)}！`,
     );
   }
 }
@@ -509,6 +563,7 @@ function tryEndTurnStatus(
 function canAct(
   fighter: BattleFighter,
   logs: TurnLogLine[],
+  rulesGeneration = 1,
 ): boolean {
   const clearChargeIfAny = () => {
     if (fighter.volatiles.chargingMove) {
@@ -596,6 +651,7 @@ function canAct(
         false,
         { mist: false, reflect: false, lightScreen: false },
         null,
+        rulesGeneration,
       );
       fighter.currentHp = Math.max(0, fighter.currentHp - dmg);
       logs.push(`わけも　わからず　自分を　攻撃した！`);
@@ -740,6 +796,7 @@ function executeMove(
   emitBeat?: (lines: TurnLogLine[]) => void,
   fromMirror = false,
   ctx?: ExecCtx,
+  rulesGeneration = 1,
 ): void {
   const code = move.effect_code;
   const category = move.effect_category ?? "damage";
@@ -820,14 +877,7 @@ function executeMove(
   // Haze: reset all stat stages (must not catch weather moves)
   if (category === "whole-field-effect" || move.pokeapi_id === 114) {
     for (const f of [attacker, defender]) {
-      f.stages = {
-        attack: 0,
-        defense: 0,
-        special: 0,
-        speed: 0,
-        accuracy: 0,
-        evasion: 0,
-      };
+      f.stages = createStages();
     }
     logs.push("全ての　能力変化が　元に　戻った！");
     attacker.volatiles.lastMoveUsed = move;
@@ -936,14 +986,34 @@ function executeMove(
     }
     logs.push(`${attacker.member.nameJa}は　オウムがえしをした！`);
     attacker.volatiles.lastMoveUsed = move;
-    executeMove(attacker, defender, mirrored, logs, field, emitBeat, true, ctx);
+    executeMove(
+      attacker,
+      defender,
+      mirrored,
+      logs,
+      field,
+      emitBeat,
+      true,
+      ctx,
+      rulesGeneration,
+    );
     return;
   }
   if (code === "unique-metronome") {
     const picked = pickMetronomeMove();
     logs.push(`${picked.name_ja}が　でた！`);
     attacker.volatiles.lastMoveUsed = move;
-    executeMove(attacker, defender, picked, logs, field, emitBeat, true, ctx);
+    executeMove(
+      attacker,
+      defender,
+      picked,
+      logs,
+      field,
+      emitBeat,
+      true,
+      ctx,
+      rulesGeneration,
+    );
     return;
   }
   if (code === "unique-bide") {
@@ -1102,7 +1172,15 @@ function executeMove(
     const towardFoe =
       meta.stat_changes.length > 0 &&
       meta.stat_changes.every((sc) => sc.change < 0);
-    applyStatChanges(attacker, defender, move, logs, towardFoe, field);
+    applyStatChanges(
+      attacker,
+      defender,
+      move,
+      logs,
+      towardFoe,
+      field,
+      rulesGeneration,
+    );
     attacker.volatiles.lastMoveUsed = move;
     return;
   }
@@ -1257,6 +1335,7 @@ function executeMove(
             crit,
             field[defender.side],
             field.weather?.id ?? null,
+            rulesGeneration,
           );
     if (code === "unique-explosion" && perHit > 0) {
       perHit = Math.max(1, perHit * 2);
@@ -1383,9 +1462,18 @@ function executeMove(
       logs,
       category === "damage-lower",
       field,
+      rulesGeneration,
     );
   } else if (meta.stat_changes.length && meta.stat_chance > 0) {
-    applyStatChanges(attacker, defender, move, logs, true, field);
+    applyStatChanges(
+      attacker,
+      defender,
+      move,
+      logs,
+      true,
+      field,
+      rulesGeneration,
+    );
   }
 
   if (code === "unique-partial-trap") {
@@ -1476,6 +1564,7 @@ export function resolveTurnSteps(input: {
   actionA: BattleAction;
   actionB: BattleAction;
   field: BattleFieldState;
+  rulesGeneration?: number;
 }): {
   steps: TurnStep[];
   faintedA: boolean;
@@ -1484,6 +1573,7 @@ export function resolveTurnSteps(input: {
 } {
   const steps: TurnStep[] = [];
   const { fighterA, fighterB, actionA, actionB, field } = input;
+  const rulesGeneration = input.rulesGeneration ?? 1;
   fighterA.volatiles.physicalDamageTakenThisTurn = 0;
   fighterB.volatiles.physicalDamageTakenThisTurn = 0;
   fighterA.volatiles.quickClawActive = rollQuickClaw(
@@ -1574,7 +1664,7 @@ export function resolveTurnSteps(input: {
     }
 
     const logs: TurnLogLine[] = [];
-    if (!canAct(slot.fighter, logs)) {
+    if (!canAct(slot.fighter, logs, rulesGeneration)) {
       if (slot.fighter.volatiles.bindingMove) {
         const foe = slot.foe;
         slot.fighter.volatiles.bindingMove = null;
@@ -1664,7 +1754,17 @@ export function resolveTurnSteps(input: {
     };
 
     const ctx: ExecCtx = { forceSwitchSide: null };
-    executeMove(slot.fighter, slot.foe, move, logs, field, emitBeat, false, ctx);
+    executeMove(
+      slot.fighter,
+      slot.foe,
+      move,
+      logs,
+      field,
+      emitBeat,
+      false,
+      ctx,
+      rulesGeneration,
+    );
     if (logs.length) {
       beats.push({
         logs: [...logs],
@@ -1818,6 +1918,7 @@ export function resolveTurn(input: {
   actionA: BattleAction;
   actionB: BattleAction;
   field: BattleFieldState;
+  rulesGeneration?: number;
 }): {
   logs: TurnLogLine[];
   faintedA: boolean;

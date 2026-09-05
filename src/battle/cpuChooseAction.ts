@@ -1,5 +1,6 @@
 import { calcGen1Stats } from "../party/gen1Stats";
 import type { PartyMemberBuild } from "../party/types";
+import { usesSplitSpecial } from "../pokemon/baseStatFilters";
 import type { Move } from "../pokemon/moves";
 import { EMPTY_EFFECT_META } from "../pokemon/moves";
 import type { PokemonSpecies } from "../pokemon/types";
@@ -27,6 +28,24 @@ export type CpuKnowledge = {
 
 function metaOf(move: Move) {
   return move.effect_meta ?? EMPTY_EFFECT_META;
+}
+
+function specialAttackStage(
+  fighter: BattleFighter,
+  rulesGeneration: number,
+): number {
+  return usesSplitSpecial(rulesGeneration)
+    ? fighter.stages.sp_attack
+    : fighter.stages.special;
+}
+
+function specialDefenseStage(
+  fighter: BattleFighter,
+  rulesGeneration: number,
+): number {
+  return usesSplitSpecial(rulesGeneration)
+    ? fighter.stages.sp_defense
+    : fighter.stages.special;
 }
 
 function effectiveSpeed(fighter: BattleFighter): number {
@@ -79,6 +98,7 @@ function estimateMoveDamage(
   defender: BattleFighter,
   move: Move,
   field: BattleFieldState,
+  rulesGeneration: number,
 ): { min: number; max: number; avg: number; koLabel: string | null } {
   const range = calcDamageRange(
     {
@@ -86,11 +106,11 @@ function estimateMoveDamage(
       attackerSpecies: attacker.species,
       attackerStats: attacker.stats,
       attackerAttackStage: attacker.stages.attack,
-      attackerSpecialStage: attacker.stages.special,
+      attackerSpecialStage: specialAttackStage(attacker, rulesGeneration),
       defenderSpecies: defender.species,
       defenderStats: defender.stats,
       defenderDefenseStage: defender.stages.defense,
-      defenderSpecialStage: defender.stages.special,
+      defenderSpecialStage: specialDefenseStage(defender, rulesGeneration),
       defenderCurrentHp: defender.currentHp,
     },
     move,
@@ -109,6 +129,7 @@ function bestDamageAmong(
   defender: BattleFighter,
   moves: Move[],
   field: BattleFieldState,
+  rulesGeneration: number,
 ): number {
   let best = 0;
   for (const move of moves) {
@@ -116,7 +137,13 @@ function bestDamageAmong(
       const fixedIds = new Set([49, 82, 69, 101, 162, 149]);
       if (!fixedIds.has(move.pokeapi_id)) continue;
     }
-    const { avg } = estimateMoveDamage(attacker, defender, move, field);
+    const { avg } = estimateMoveDamage(
+      attacker,
+      defender,
+      move,
+      field,
+      rulesGeneration,
+    );
     best = Math.max(best, avg);
   }
   return best;
@@ -140,8 +167,10 @@ export function evaluateMatchup(input: {
   selfMoves: Move[];
   foeThreatMoves: Move[];
   field: BattleFieldState;
+  rulesGeneration?: number;
 }): MatchupStance {
   let score = 0;
+  const rulesGeneration = input.rulesGeneration ?? 1;
   const selfSpd = effectiveSpeed(input.self);
   const foeSpd = effectiveSpeed(input.foe);
   if (selfSpd > foeSpd) score += 1;
@@ -157,12 +186,14 @@ export function evaluateMatchup(input: {
     input.foe,
     input.selfMoves,
     input.field,
+    rulesGeneration,
   );
   const theirDmg = bestDamageAmong(
     input.foe,
     input.self,
     input.foeThreatMoves,
     input.field,
+    rulesGeneration,
   );
 
   if (ourDmg >= input.foe.currentHp) score += 2;
@@ -246,9 +277,11 @@ export function chooseCpuAction(input: {
   foeLearnset: Move[];
   /** Bench indices that are alive (not active). */
   switchOptions: { index: number; member: PartyMemberBuild; species: PokemonSpecies }[];
+  rulesGeneration?: number;
 }): BattleAction {
   const forced = getForcedMove(input.self);
   if (forced) return { type: "move", move: forced };
+  const rulesGeneration = input.rulesGeneration ?? 1;
 
   const selfMoves = availableMoves(
     input.self,
@@ -268,6 +301,7 @@ export function chooseCpuAction(input: {
     selfMoves,
     foeThreatMoves: threat,
     field: input.field,
+    rulesGeneration,
   });
 
   const scored: ScoredAction[] = [];
@@ -277,6 +311,7 @@ export function chooseCpuAction(input: {
     input.self,
     threat,
     input.field,
+    rulesGeneration,
   );
 
   for (const move of selfMoves) {
@@ -287,6 +322,7 @@ export function chooseCpuAction(input: {
         input.foe,
         move,
         input.field,
+        rulesGeneration,
       );
       score = 8 + avg / Math.max(1, input.foe.maxHp) * 40;
       if (min >= input.foe.currentHp) score += 25;

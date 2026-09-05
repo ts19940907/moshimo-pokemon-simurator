@@ -77,7 +77,10 @@ export type BattleFighter = {
   stages: {
     attack: number;
     defense: number;
+    /** Gen1 unified Special. Gen2 prefers sp_attack / sp_defense. */
     special: number;
+    sp_attack: number;
+    sp_defense: number;
     speed: number;
     accuracy: number;
     evasion: number;
@@ -171,6 +174,8 @@ export function createStages(): BattleFighter["stages"] {
     attack: 0,
     defense: 0,
     special: 0,
+    sp_attack: 0,
+    sp_defense: 0,
     speed: 0,
     accuracy: 0,
     evasion: 0,
