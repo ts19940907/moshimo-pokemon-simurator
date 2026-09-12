@@ -16,11 +16,15 @@ import { defaultMatchBackground } from "../match-setup/backgrounds";
 import { MatchScreenBackground } from "../match-setup/MatchScreenBackground";
 import {
   generationOptions,
+  itemPoolGenerationOptions,
   poolGenerationOptions,
 } from "../match-setup/options";
 import type { GenerationFilterOptions } from "../match-setup/generationFilter";
 import type { Generation, LevelCapMode } from "../match-setup/types";
-import { implementedGeneration } from "../match-setup/types";
+import {
+  implementedGeneration,
+  syncedItemGenerations,
+} from "../match-setup/types";
 import type { PartyMemberBuild } from "../party/types";
 import { getSelectableSpeciesFromList } from "../pokemon/catalog";
 import { fetchPokemonSpecies } from "../pokemon/repository";
@@ -40,6 +44,11 @@ export type SimulatorScreenProps = {
   onApplyToParty?: (build: PartyMemberBuild) => void;
   levelCapMode?: LevelCapMode;
   initialRulesGeneration?: Generation;
+  /** When opening from party select, inherit match pool settings. */
+  initialSyncGenerationsWithRules?: boolean;
+  initialPokemonGenerations?: Generation[];
+  initialMoveGenerations?: Generation[];
+  initialItemGenerations?: Generation[];
 };
 
 function labelOf<T extends string | number>(
@@ -153,11 +162,15 @@ function GenerationRadioGroup({
 
 function GenerationCheckboxGroup({
   values,
+  options = poolGenerationOptions,
   disabled,
+  allowEmpty = false,
   onChange,
 }: {
   values: Generation[];
+  options?: { value: Generation; title: string; disabled?: boolean }[];
   disabled?: boolean;
+  allowEmpty?: boolean;
   onChange: (values: Generation[]) => void;
 }) {
   const selected = new Set(values);
@@ -165,7 +178,7 @@ function GenerationCheckboxGroup({
   const toggle = (generation: Generation) => {
     if (disabled) return;
     if (selected.has(generation)) {
-      if (selected.size <= 1) return;
+      if (!allowEmpty && selected.size <= 1) return;
       onChange(values.filter((value) => value !== generation));
       return;
     }
@@ -174,9 +187,9 @@ function GenerationCheckboxGroup({
 
   return (
     <View style={styles.generationRow}>
-      {poolGenerationOptions.map((option) => {
+      {options.map((option) => {
         const isOn = selected.has(option.value);
-        const isDisabled = Boolean(disabled) || option.disabled;
+        const isDisabled = Boolean(disabled) || Boolean(option.disabled);
         return (
           <Pressable
             key={option.value}
@@ -218,20 +231,37 @@ export function SimulatorScreen({
   onApplyToParty,
   levelCapMode: levelCapModeProp,
   initialRulesGeneration,
+  initialSyncGenerationsWithRules,
+  initialPokemonGenerations,
+  initialMoveGenerations,
+  initialItemGenerations,
 }: SimulatorScreenProps) {
   const isDialog = presentation === "dialog";
   const [tab, setTab] = useState<SimulatorTab>("damage");
   const [rulesGeneration, setRulesGeneration] = useState<Generation>(
     initialRulesGeneration ?? implementedGeneration,
   );
-  const [syncGenerationsWithRules, setSyncGenerationsWithRules] =
-    useState(true);
-  const [pokemonGenerations, setPokemonGenerations] = useState<Generation[]>([
-    initialRulesGeneration ?? implementedGeneration,
-  ]);
-  const [moveGenerations, setMoveGenerations] = useState<Generation[]>([
-    initialRulesGeneration ?? implementedGeneration,
-  ]);
+  const [syncGenerationsWithRules, setSyncGenerationsWithRules] = useState(
+    initialSyncGenerationsWithRules ?? true,
+  );
+  const [pokemonGenerations, setPokemonGenerations] = useState<Generation[]>(
+    () =>
+      initialPokemonGenerations?.length
+        ? initialPokemonGenerations
+        : [initialRulesGeneration ?? implementedGeneration],
+  );
+  const [moveGenerations, setMoveGenerations] = useState<Generation[]>(() =>
+    initialMoveGenerations?.length
+      ? initialMoveGenerations
+      : [initialRulesGeneration ?? implementedGeneration],
+  );
+  const [itemGenerations, setItemGenerations] = useState<Generation[]>(() =>
+    initialItemGenerations
+      ? initialItemGenerations
+      : syncedItemGenerations(
+          initialRulesGeneration ?? implementedGeneration,
+        ),
+  );
   /** Page: Lv1–100. Dialog from party select may inherit match level cap. */
   const levelCapMode: LevelCapMode =
     levelCapModeProp ?? (isDialog ? "max_50" : "unlimited");
@@ -244,11 +274,38 @@ export function SimulatorScreen({
   useEffect(() => {
     if (!isDialog || !visible || initialRulesGeneration == null) return;
     setRulesGeneration(initialRulesGeneration);
-    setPokemonGenerations([initialRulesGeneration]);
-    setMoveGenerations([initialRulesGeneration]);
-    setSyncGenerationsWithRules(true);
+    const sync = initialSyncGenerationsWithRules ?? true;
+    setSyncGenerationsWithRules(sync);
+    setPokemonGenerations(
+      sync
+        ? [initialRulesGeneration]
+        : initialPokemonGenerations?.length
+          ? initialPokemonGenerations
+          : [initialRulesGeneration],
+    );
+    setMoveGenerations(
+      sync
+        ? [initialRulesGeneration]
+        : initialMoveGenerations?.length
+          ? initialMoveGenerations
+          : [initialRulesGeneration],
+    );
+    setItemGenerations(
+      sync
+        ? syncedItemGenerations(initialRulesGeneration)
+        : (initialItemGenerations ??
+          syncedItemGenerations(initialRulesGeneration)),
+    );
     setTab("damage");
-  }, [isDialog, visible, initialRulesGeneration]);
+  }, [
+    isDialog,
+    visible,
+    initialRulesGeneration,
+    initialSyncGenerationsWithRules,
+    initialPokemonGenerations,
+    initialMoveGenerations,
+    initialItemGenerations,
+  ]);
 
   const displayedPokemonGens = syncGenerationsWithRules
     ? [rulesGeneration]
@@ -256,6 +313,12 @@ export function SimulatorScreen({
   const displayedMoveGens = syncGenerationsWithRules
     ? [rulesGeneration]
     : moveGenerations;
+  const displayedItemGens =
+    rulesGeneration < 2
+      ? []
+      : syncGenerationsWithRules
+        ? syncedItemGenerations(rulesGeneration)
+        : itemGenerations;
 
   const generationSummary = syncGenerationsWithRules
     ? `ルール ${labelOf(rulesGeneration, generationOptions)}（世代合わせ ON）`
@@ -277,6 +340,15 @@ export function SimulatorScreen({
       introducedGenerations: displayedMoveGens,
     }),
     [syncGenerationsWithRules, rulesGeneration, displayedMoveGens],
+  );
+
+  const itemGenerationOptions: GenerationFilterOptions = useMemo(
+    () => ({
+      syncWithRules: syncGenerationsWithRules,
+      rulesGeneration,
+      introducedGenerations: displayedItemGens,
+    }),
+    [syncGenerationsWithRules, rulesGeneration, displayedItemGens],
   );
 
   const speciesPool = useMemo(
@@ -316,9 +388,13 @@ export function SimulatorScreen({
 
   const handleRulesChange = (value: Generation) => {
     setRulesGeneration(value);
+    if (value < 2) {
+      setItemGenerations([]);
+    }
     if (syncGenerationsWithRules) {
       setPokemonGenerations([value]);
       setMoveGenerations([value]);
+      setItemGenerations(syncedItemGenerations(value));
     }
   };
 
@@ -327,11 +403,17 @@ export function SimulatorScreen({
     if (enabled) {
       setPokemonGenerations([rulesGeneration]);
       setMoveGenerations([rulesGeneration]);
+      setItemGenerations(syncedItemGenerations(rulesGeneration));
     } else {
       setPokemonGenerations(
         pokemonGenerations.length > 0 ? pokemonGenerations : [1],
       );
       setMoveGenerations(moveGenerations.length > 0 ? moveGenerations : [1]);
+      setItemGenerations(
+        itemGenerations.length > 0
+          ? itemGenerations
+          : syncedItemGenerations(rulesGeneration),
+      );
     }
   };
 
@@ -424,6 +506,7 @@ export function SimulatorScreen({
                   speciesPool={speciesPool}
                   levelCapMode={levelCapMode}
                   moveGenerationOptions={moveGenerationOptions}
+                  itemGenerationOptions={itemGenerationOptions}
                   partyBuildsBySpeciesId={partyBuildsBySpeciesId}
                   partyDexNos={partyDexNos}
                   rulesGeneration={rulesGeneration}
@@ -510,6 +593,24 @@ export function SimulatorScreen({
                   values={displayedMoveGens}
                   disabled={syncGenerationsWithRules}
                   onChange={setMoveGenerations}
+                />
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>持ち物世代</Text>
+                <Text style={styles.sectionHint}>
+                  {rulesGeneration < 2
+                    ? "初代ルールでは持ち物は使えません。"
+                    : syncGenerationsWithRules
+                      ? "対戦ルール世代で使える持ち物（自動）"
+                      : "初登場世代（第2〜9世代・複数可）。"}
+                </Text>
+                <GenerationCheckboxGroup
+                  values={displayedItemGens}
+                  options={itemPoolGenerationOptions}
+                  disabled={syncGenerationsWithRules || rulesGeneration < 2}
+                  allowEmpty
+                  onChange={setItemGenerations}
                 />
               </View>
             </ScrollView>
@@ -679,6 +780,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
     color: "#5c564c",
+  },
+  sectionHint: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#8a8276",
   },
   generationRow: {
     flexDirection: "row",

@@ -26,9 +26,11 @@ import {
   createDefaultBuild,
   GEN1_STAT_LABELS,
   maxLevelForCap,
+  type Gen1SpecialSource,
   type Gen1StatBlock,
   type PartyMemberBuild,
 } from "../party/types";
+import { resolveGen1SpecialSource } from "../party/gen1Stats";
 import { usesSplitSpecial } from "../pokemon/baseStatFilters";
 import {
   formatDexNo,
@@ -47,6 +49,8 @@ import { PokemonAutocompleteField } from "../pokemon/PokemonAutocompleteField";
 import { MoveTypeBadge, PokemonTypeBadges } from "../pokemon/TypeBadges";
 import type { Move, MoveDamageClass } from "../pokemon/moves";
 import { fetchMovesForPokemon } from "../pokemon/moveRepository";
+import { fetchTools } from "../pokemon/toolRepository";
+import type { Tool } from "../pokemon/tools";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
 import {
   TYPE_BY_ID,
@@ -58,6 +62,14 @@ import {
   calcDamageRange,
   type DamageRangeResult,
 } from "./calcDamage";
+import {
+  applyHeldItemStats,
+  resolveHeldToolPokeapiId,
+} from "./toolEffects";
+import {
+  WEATHER_LABEL_JA,
+  type WeatherId,
+} from "./weather";
 
 type PickSide = "attacker" | "defender";
 
@@ -76,6 +88,8 @@ type Props = {
   speciesPool: PokemonSpecies[];
   levelCapMode: LevelCapMode;
   moveGenerationOptions: GenerationFilterOptions;
+  /** Held-item pool filter (Gen2+). Unused when rulesGeneration < 2. */
+  itemGenerationOptions?: GenerationFilterOptions;
   /** Current party builds keyed by species id. */
   partyBuildsBySpeciesId: Record<string, PartyMemberBuild>;
   /** Dex numbers already in the party. */
@@ -328,6 +342,65 @@ function StageStepper({
   );
 }
 
+function canChooseSpecialSource(
+  species: PokemonSpecies | null,
+  rulesGeneration: number,
+): boolean {
+  return (
+    !usesSplitSpecial(rulesGeneration) &&
+    species != null &&
+    species.introduced_generation >= 2
+  );
+}
+
+function SpecialSourceRadios({
+  species,
+  value,
+  onChange,
+}: {
+  species: PokemonSpecies;
+  value: Gen1SpecialSource | undefined;
+  onChange: (next: Gen1SpecialSource) => void;
+}) {
+  const selected = resolveGen1SpecialSource(species, value);
+  return (
+    <View style={styles.specialSourceInline}>
+      {(
+        [
+          { value: "sp_attack" as const, label: "特攻参照" },
+          { value: "sp_defense" as const, label: "特防参照" },
+        ] as const
+      ).map((option) => {
+        const isSelected = selected === option.value;
+        return (
+          <Pressable
+            key={option.value}
+            onPress={() => onChange(option.value)}
+            style={styles.specialSourceOption}
+          >
+            <View
+              style={[
+                styles.radioOuter,
+                isSelected && styles.radioOuterSelected,
+              ]}
+            >
+              {isSelected ? <View style={styles.radioInner} /> : null}
+            </View>
+            <Text
+              style={[
+                styles.specialSourceLabel,
+                isSelected && styles.specialSourceLabelSelected,
+              ]}
+            >
+              {option.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 function CheckRow({
   label,
   checked,
@@ -371,6 +444,7 @@ export function DamageCalcDialog({
   speciesPool,
   levelCapMode,
   moveGenerationOptions,
+  itemGenerationOptions,
   partyBuildsBySpeciesId,
   partyDexNos,
   onClose,
@@ -401,6 +475,10 @@ export function DamageCalcDialog({
   const [attackerBurn, setAttackerBurn] = useState(false);
   const [reflect, setReflect] = useState(false);
   const [lightScreen, setLightScreen] = useState(false);
+  const [weatherId, setWeatherId] = useState<WeatherId | null>(null);
+  const [tools, setTools] = useState<Tool[]>([]);
+  const [loadingTools, setLoadingTools] = useState(false);
+  const [pickingToolSide, setPickingToolSide] = useState<PickSide | null>(null);
 
   const [pickingSide, setPickingSide] = useState<PickSide | null>(null);
   const [pendingSpecies, setPendingSpecies] = useState<PokemonSpecies | null>(
@@ -430,6 +508,52 @@ export function DamageCalcDialog({
   const moveComboRef = useRef<View>(null);
 
   useEffect(() => {
+    if (rulesGeneration < 2) {
+      setWeatherId(null);
+      setTools([]);
+      setPickingToolSide(null);
+      setAttacker((current) =>
+        current.build
+          ? {
+              ...current,
+              build: { ...current.build, toolId: null, toolPokeapiId: null },
+            }
+          : current,
+      );
+      setDefender((current) =>
+        current.build
+          ? {
+              ...current,
+              build: { ...current.build, toolId: null, toolPokeapiId: null },
+            }
+          : current,
+      );
+    }
+  }, [rulesGeneration]);
+
+  useEffect(() => {
+    if (rulesGeneration < 2 || !itemGenerationOptions) {
+      setTools([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoadingTools(true);
+        const rows = await fetchTools(itemGenerationOptions);
+        if (!cancelled) setTools(rows);
+      } catch {
+        if (!cancelled) setTools([]);
+      } finally {
+        if (!cancelled) setLoadingTools(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [rulesGeneration, itemGenerationOptions]);
+
+  useEffect(() => {
     if (!pickingMove) return;
     if (typeof document === "undefined") return;
     const onPointerDown = (event: MouseEvent) => {
@@ -453,6 +577,7 @@ export function DamageCalcDialog({
     attackerBurn ||
     reflect ||
     lightScreen ||
+    weatherId != null ||
     attacker.attackStage !== 0 ||
     attacker.specialStage !== 0 ||
     attacker.spAttackStage !== 0 ||
@@ -471,6 +596,7 @@ export function DamageCalcDialog({
     setAttackerBurn(false);
     setReflect(false);
     setLightScreen(false);
+    setWeatherId(null);
     setPickingSide(null);
     setPendingSpecies(null);
     setAttackerAcQuery("");
@@ -742,6 +868,21 @@ export function DamageCalcDialog({
   );
 
   const splitSpecial = usesSplitSpecial(rulesGeneration);
+  const showHeldItems = rulesGeneration >= 2;
+  const toolsById = useMemo(
+    () => Object.fromEntries(tools.map((tool) => [tool.id, tool])),
+    [tools],
+  );
+
+  const setHeldTool = (side: PickSide, toolId: string | null) => {
+    const tool = toolId ? tools.find((row) => row.id === toolId) ?? null : null;
+    patchBuild(side, (build) => ({
+      ...build,
+      toolId,
+      toolPokeapiId: tool ? Number(tool.pokeapi_id) : null,
+    }));
+    setPickingToolSide(null);
+  };
 
   const damageResult: DamageRangeResult | null = useMemo(() => {
     if (!attacker.species || !attacker.build || !defender.species || !defender.build) {
@@ -758,14 +899,34 @@ export function DamageCalcDialog({
       defender.build,
       rulesGeneration,
     );
-    const atkStats = battleStatsForDamage(
-      atkRaw,
-      isPhysicalMove ? "physical" : "attacker-special",
+    const atkToolPokeapiId = resolveHeldToolPokeapiId(
+      attacker.build,
+      toolsById,
       rulesGeneration,
     );
-    const defStats = battleStatsForDamage(
-      defRaw,
-      isPhysicalMove ? "physical" : "defender-special",
+    const defToolPokeapiId = resolveHeldToolPokeapiId(
+      defender.build,
+      toolsById,
+      rulesGeneration,
+    );
+    const atkStats = applyHeldItemStats(
+      battleStatsForDamage(
+        atkRaw,
+        isPhysicalMove ? "physical" : "attacker-special",
+        rulesGeneration,
+      ),
+      attacker.species,
+      atkToolPokeapiId,
+      rulesGeneration,
+    );
+    const defStats = applyHeldItemStats(
+      battleStatsForDamage(
+        defRaw,
+        isPhysicalMove ? "physical" : "defender-special",
+        rulesGeneration,
+      ),
+      defender.species,
+      defToolPokeapiId,
       rulesGeneration,
     );
     return calcDamageRange(
@@ -791,6 +952,8 @@ export function DamageCalcDialog({
         attackerBurn,
         defenderReflect: reflect,
         defenderLightScreen: lightScreen,
+        weatherId: rulesGeneration >= 2 ? weatherId : null,
+        attackerItemPokeapiId: atkToolPokeapiId,
       },
     );
   }, [
@@ -801,9 +964,11 @@ export function DamageCalcDialog({
     attackerBurn,
     reflect,
     lightScreen,
+    weatherId,
     rulesGeneration,
     splitSpecial,
     isPhysicalMove,
+    toolsById,
   ]);
 
   const partyFull = partyDexNos.length >= PARTY_SIZE;
@@ -973,11 +1138,65 @@ export function DamageCalcDialog({
 
   const attackerStats =
     attacker.species && attacker.build
-      ? calcBattleStats(attacker.species, attacker.build, rulesGeneration)
+      ? applyHeldItemStats(
+          (() => {
+            const raw = calcBattleStats(
+              attacker.species,
+              attacker.build,
+              rulesGeneration,
+            );
+            if (usesSplitSpecial(rulesGeneration)) {
+              const gen2 = raw as Gen1StatBlock & {
+                sp_attack: number;
+                sp_defense: number;
+              };
+              return {
+                hp: gen2.hp,
+                attack: gen2.attack,
+                defense: gen2.defense,
+                special: gen2.sp_attack,
+                sp_attack: gen2.sp_attack,
+                sp_defense: gen2.sp_defense,
+                speed: gen2.speed,
+              };
+            }
+            return raw as Gen1StatBlock;
+          })(),
+          attacker.species,
+          resolveHeldToolPokeapiId(attacker.build, toolsById, rulesGeneration),
+          rulesGeneration,
+        )
       : null;
   const defenderStats =
     defender.species && defender.build
-      ? calcBattleStats(defender.species, defender.build, rulesGeneration)
+      ? applyHeldItemStats(
+          (() => {
+            const raw = calcBattleStats(
+              defender.species,
+              defender.build,
+              rulesGeneration,
+            );
+            if (usesSplitSpecial(rulesGeneration)) {
+              const gen2 = raw as Gen1StatBlock & {
+                sp_attack: number;
+                sp_defense: number;
+              };
+              return {
+                hp: gen2.hp,
+                attack: gen2.attack,
+                defense: gen2.defense,
+                special: gen2.sp_attack,
+                sp_attack: gen2.sp_attack,
+                sp_defense: gen2.sp_defense,
+                speed: gen2.speed,
+              };
+            }
+            return raw as Gen1StatBlock;
+          })(),
+          defender.species,
+          resolveHeldToolPokeapiId(defender.build, toolsById, rulesGeneration),
+          rulesGeneration,
+        )
       : null;
 
   const damagingMoves = moves.filter(
@@ -1475,6 +1694,81 @@ export function DamageCalcDialog({
                             }
                           />
 
+                          {showHeldItems ? (
+                            <>
+                              <Text style={styles.section}>持ち物</Text>
+                              <Pressable
+                                disabled={loadingTools}
+                                onPress={() => {
+                                  setPickingToolSide((current) =>
+                                    current === "attacker" ? null : "attacker",
+                                  );
+                                  setPickingMove(false);
+                                  setAttackerAcOpen(false);
+                                  setDefenderAcOpen(false);
+                                }}
+                                style={[
+                                  styles.comboBox,
+                                  loadingTools && styles.comboBoxDisabled,
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.comboPlaceholder,
+                                    attacker.build.toolId && styles.moveName,
+                                  ]}
+                                >
+                                  {attacker.build.toolId
+                                    ? (toolsById[attacker.build.toolId]
+                                        ?.name_ja ?? "持ち物")
+                                    : loadingTools
+                                      ? "読み込み中…"
+                                      : "なし"}
+                                </Text>
+                              </Pressable>
+                              {pickingToolSide === "attacker" ? (
+                                <ScrollView
+                                  style={styles.moveList}
+                                  nestedScrollEnabled
+                                  keyboardShouldPersistTaps="handled"
+                                >
+                                  <Pressable
+                                    onPress={() => setHeldTool("attacker", null)}
+                                    style={[
+                                      styles.moveItem,
+                                      !attacker.build.toolId &&
+                                        styles.moveItemSelected,
+                                    ]}
+                                  >
+                                    <Text style={styles.moveName}>なし</Text>
+                                  </Pressable>
+                                  {tools.map((tool) => (
+                                    <Pressable
+                                      key={tool.id}
+                                      onPress={() =>
+                                        setHeldTool("attacker", tool.id)
+                                      }
+                                      style={[
+                                        styles.moveItem,
+                                        attacker.build?.toolId === tool.id &&
+                                          styles.moveItemSelected,
+                                      ]}
+                                    >
+                                      <Text style={styles.moveName}>
+                                        {tool.name_ja}
+                                      </Text>
+                                      {tool.description ? (
+                                        <Text style={styles.moveMeta}>
+                                          {tool.description}
+                                        </Text>
+                                      ) : null}
+                                    </Pressable>
+                                  ))}
+                                </ScrollView>
+                              ) : null}
+                            </>
+                          ) : null}
+
                           {isPhysicalMove || isSpecialMove ? (
                             <>
                               <Text style={styles.section}>個体値（0〜15）</Text>
@@ -1556,13 +1850,40 @@ export function DamageCalcDialog({
                               {attackerStats ? (
                                 <>
                                   <Text style={styles.section}>実数値</Text>
-                                  <Text style={styles.computed}>
-                                    {isPhysicalMove
-                                      ? `こうげき ${attackerStats.attack}`
-                                      : splitSpecial
-                                        ? `とくこう ${attackerStats.sp_attack}`
-                                        : `とくしゅ ${(attackerStats as Gen1StatBlock).special}`}
-                                  </Text>
+                                  {isPhysicalMove ? (
+                                    <Text style={styles.computed}>
+                                      こうげき {attackerStats.attack}
+                                    </Text>
+                                  ) : splitSpecial ? (
+                                    <Text style={styles.computed}>
+                                      とくこう {attackerStats.sp_attack}
+                                    </Text>
+                                  ) : (
+                                    <View style={styles.computedRow}>
+                                      <Text style={styles.computed}>
+                                        とくしゅ{" "}
+                                        {
+                                          (attackerStats as Gen1StatBlock)
+                                            .special
+                                        }
+                                      </Text>
+                                      {canChooseSpecialSource(
+                                        attacker.species,
+                                        rulesGeneration,
+                                      ) ? (
+                                        <SpecialSourceRadios
+                                          species={attacker.species!}
+                                          value={attacker.build.specialSource}
+                                          onChange={(next) =>
+                                            patchBuild("attacker", (b) => ({
+                                              ...b,
+                                              specialSource: next,
+                                            }))
+                                          }
+                                        />
+                                      ) : null}
+                                    </View>
+                                  )}
                                 </>
                               ) : null}
 
@@ -1742,6 +2063,81 @@ export function DamageCalcDialog({
                         }
                       />
 
+                      {showHeldItems ? (
+                        <>
+                          <Text style={styles.section}>持ち物</Text>
+                          <Pressable
+                            disabled={loadingTools}
+                            onPress={() => {
+                              setPickingToolSide((current) =>
+                                current === "defender" ? null : "defender",
+                              );
+                              setPickingMove(false);
+                              setAttackerAcOpen(false);
+                              setDefenderAcOpen(false);
+                            }}
+                            style={[
+                              styles.comboBox,
+                              loadingTools && styles.comboBoxDisabled,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.comboPlaceholder,
+                                defender.build!.toolId && styles.moveName,
+                              ]}
+                            >
+                              {defender.build!.toolId
+                                ? (toolsById[defender.build!.toolId]
+                                    ?.name_ja ?? "持ち物")
+                                : loadingTools
+                                  ? "読み込み中…"
+                                  : "なし"}
+                            </Text>
+                          </Pressable>
+                          {pickingToolSide === "defender" ? (
+                            <ScrollView
+                              style={styles.moveList}
+                              nestedScrollEnabled
+                              keyboardShouldPersistTaps="handled"
+                            >
+                              <Pressable
+                                onPress={() => setHeldTool("defender", null)}
+                                style={[
+                                  styles.moveItem,
+                                  !defender.build!.toolId &&
+                                    styles.moveItemSelected,
+                                ]}
+                              >
+                                <Text style={styles.moveName}>なし</Text>
+                              </Pressable>
+                              {tools.map((tool) => (
+                                <Pressable
+                                  key={tool.id}
+                                  onPress={() =>
+                                    setHeldTool("defender", tool.id)
+                                  }
+                                  style={[
+                                    styles.moveItem,
+                                    defender.build?.toolId === tool.id &&
+                                      styles.moveItemSelected,
+                                  ]}
+                                >
+                                  <Text style={styles.moveName}>
+                                    {tool.name_ja}
+                                  </Text>
+                                  {tool.description ? (
+                                    <Text style={styles.moveMeta}>
+                                      {tool.description}
+                                    </Text>
+                                  ) : null}
+                                </Pressable>
+                              ))}
+                            </ScrollView>
+                          ) : null}
+                        </>
+                      ) : null}
+
                       <Text style={styles.section}>個体値（0〜15）</Text>
                       <IvStatEditor
                         label={GEN1_STAT_LABELS.hp}
@@ -1833,17 +2229,41 @@ export function DamageCalcDialog({
                       {defenderStats ? (
                         <>
                           <Text style={styles.section}>実数値</Text>
-                          <Text style={styles.computed}>
-                            HP {defenderStats.hp}
-                            {isPhysicalMove
-                              ? ` ／ ぼうぎょ ${defenderStats.defense}`
-                              : ""}
-                            {isSpecialMove
-                              ? splitSpecial
-                                ? ` ／ とくぼう ${defenderStats.sp_defense}`
-                                : ` ／ とくしゅ ${(defenderStats as Gen1StatBlock).special}`
-                              : ""}
-                          </Text>
+                          {isSpecialMove && !splitSpecial ? (
+                            <View style={styles.computedRow}>
+                              <Text style={styles.computed}>
+                                HP {defenderStats.hp}
+                                {` ／ とくしゅ ${(defenderStats as Gen1StatBlock).special}`}
+                              </Text>
+                              {canChooseSpecialSource(
+                                defender.species,
+                                rulesGeneration,
+                              ) ? (
+                                <SpecialSourceRadios
+                                  species={defender.species!}
+                                  value={defender.build!.specialSource}
+                                  onChange={(next) =>
+                                    patchBuild("defender", (b) => ({
+                                      ...b,
+                                      specialSource: next,
+                                    }))
+                                  }
+                                />
+                              ) : null}
+                            </View>
+                          ) : (
+                            <Text style={styles.computed}>
+                              HP {defenderStats.hp}
+                              {isPhysicalMove
+                                ? ` ／ ぼうぎょ ${defenderStats.defense}`
+                                : ""}
+                              {isSpecialMove
+                                ? splitSpecial
+                                  ? ` ／ とくぼう ${defenderStats.sp_defense}`
+                                  : ""
+                                : ""}
+                            </Text>
+                          )}
                         </>
                       ) : null}
 
@@ -1972,6 +2392,42 @@ export function DamageCalcDialog({
 
               <View style={styles.resultBox}>
                 <Text style={styles.columnTitle}>ダメージ結果</Text>
+                {rulesGeneration >= 2 ? (
+                  <>
+                    <Text style={styles.section}>天候</Text>
+                    <View style={styles.weatherRow}>
+                      {(
+                        [
+                          { value: null, label: "なし" },
+                          { value: "rain" as const, label: WEATHER_LABEL_JA.rain },
+                          { value: "sun" as const, label: WEATHER_LABEL_JA.sun },
+                          { value: "sand" as const, label: WEATHER_LABEL_JA.sand },
+                        ] as const
+                      ).map((option) => {
+                        const selected = weatherId === option.value;
+                        return (
+                          <Pressable
+                            key={option.label}
+                            onPress={() => setWeatherId(option.value)}
+                            style={[
+                              styles.weatherChip,
+                              selected && styles.weatherChipSelected,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.weatherChipText,
+                                selected && styles.weatherChipTextSelected,
+                              ]}
+                            >
+                              {option.label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </>
+                ) : null}
                 <CheckRow
                   label="急所"
                   checked={crit}
@@ -2001,6 +2457,9 @@ export function DamageCalcDialog({
                       {typeEffLabel(damageResult.typeEffectiveness)}
                       {damageResult.isFixed ? " ／ 固定ダメージ" : ""}
                       {crit ? " ／ 急所" : ""}
+                      {weatherId
+                        ? ` ／ ${WEATHER_LABEL_JA[weatherId]}`
+                        : ""}
                     </Text>
                   </>
                 ) : null}
@@ -2442,6 +2901,50 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#1d1a16",
   },
+  computedRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 8,
+  },
+  specialSourceInline: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 10,
+  },
+  specialSourceOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  radioOuter: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: "#8a8276",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+  },
+  radioOuterSelected: {
+    borderColor: "#1f6b4a",
+  },
+  radioInner: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#1f6b4a",
+  },
+  specialSourceLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#5c564c",
+  },
+  specialSourceLabelSelected: {
+    color: "#1f6b4a",
+  },
   stageRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -2606,6 +3109,32 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     position: "relative",
     zIndex: 0,
+  },
+  weatherRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 4,
+  },
+  weatherChip: {
+    borderWidth: 1,
+    borderColor: "#cfe3d6",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "#fffdf8",
+  },
+  weatherChipSelected: {
+    backgroundColor: "#1f6b4a",
+    borderColor: "#1f6b4a",
+  },
+  weatherChipText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#1d1a16",
+  },
+  weatherChipTextSelected: {
+    color: "#fff",
   },
   resultRange: {
     fontSize: 28,

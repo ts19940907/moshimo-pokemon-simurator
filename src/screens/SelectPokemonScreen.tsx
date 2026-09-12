@@ -21,6 +21,11 @@ import type {
 import {
   itemGenerationFilterFromParams,
   moveGenerationFilterFromParams,
+  parseItemGenerations,
+  parseMoveGenerations,
+  parsePokemonGenerations,
+  parseRulesGeneration,
+  parseSyncWithRules,
   pokemonGenerationFilterFromParams,
 } from "../match-setup/params";
 import { usePartySetup } from "../party/PartySetupContext";
@@ -84,7 +89,6 @@ import { generateCpuParty } from "../battle/cpuTeam";
 import { SimulatorScreen } from "./SimulatorScreen";
 import { matchBackgroundForRules } from "../match-setup/backgrounds";
 import { MatchScreenBackground } from "../match-setup/MatchScreenBackground";
-import { parseRulesGeneration } from "../match-setup/params";
 
 /** When 2 types are selected: ignore order vs type1/type2 order. */
 type DualTypeOrderMode = "any" | "exact";
@@ -933,6 +937,19 @@ export function SelectPokemonScreen() {
   );
   const restrictionMode = (params.restrictionMode ??
     "standard") as RestrictionMode;
+  const simulatorSyncWithRules = parseSyncWithRules(params);
+  const simulatorPokemonGenerations = useMemo(
+    () => parsePokemonGenerations(params),
+    [params.pokemonGenerations, params.pokemonGeneration],
+  );
+  const simulatorMoveGenerations = useMemo(
+    () => parseMoveGenerations(params),
+    [params.moveGenerations, params.moveGeneration],
+  );
+  const simulatorItemGenerations = useMemo(
+    () => parseItemGenerations(params),
+    [params.itemGenerations],
+  );
   const pokemonGenerationOptions = useMemo(
     () => pokemonGenerationFilterFromParams(params),
     [
@@ -2177,6 +2194,10 @@ export function SelectPokemonScreen() {
         showPartyActions
         levelCapMode={levelCapMode}
         initialRulesGeneration={(Number(params.rulesGeneration) || 1) as Generation}
+        initialSyncGenerationsWithRules={simulatorSyncWithRules}
+        initialPokemonGenerations={simulatorPokemonGenerations}
+        initialMoveGenerations={simulatorMoveGenerations}
+        initialItemGenerations={simulatorItemGenerations}
         partyBuildsBySpeciesId={buildsBySpeciesId}
         partyDexNos={selectedDexNos}
         onClose={() => setSimulatorOpen(false)}
