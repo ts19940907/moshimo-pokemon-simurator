@@ -6,6 +6,12 @@ export type PartySide = "a" | "b";
 
 export type BattleGender = "none" | "male" | "female";
 
+/**
+ * Under Gen1 rules, which Gen2 base feeds the unified Special stat.
+ * Only meaningful for Gen2-debut species (Gen1 debut always uses base_special).
+ */
+export type Gen1SpecialSource = "sp_attack" | "sp_defense";
+
 /** Gen1 DV / Stat Exp fields. Gen2+ uses sp_attack / sp_defense instead of special. */
 export type Gen1StatBlock = {
   hp: number;
@@ -26,6 +32,11 @@ export type PartyMemberBuild = {
   iv: Gen1StatBlock;
   /** Gen1 Stat Experience 0–65535 */
   statExp: Gen1StatBlock;
+  /**
+   * Gen1 rules + Gen2-debut species: Special base from SpA or SpD.
+   * Default sp_attack. Ignored for Gen1-debut species.
+   */
+  specialSource?: Gen1SpecialSource;
   /** Up to 4 move ids (UUID). Empty slot = null. */
   moveIds: [string | null, string | null, string | null, string | null];
   /** Held item (tool) id (UUID). None = null. Gen1 unused. */
@@ -99,6 +110,8 @@ export function createDefaultBuild(
       sp_defense: 0,
       speed: 0,
     },
+    specialSource:
+      species.introduced_generation >= 2 ? "sp_attack" : undefined,
     moveIds: [null, null, null, null],
     toolId: null,
     toolPokeapiId: null,

@@ -47,6 +47,8 @@ function normalizeMove(row: Move): Move {
 /**
  * Load moves linked to a resolved pokemon row id (including Gen1
  * pre-evolution learnsets), then apply generation filters on the move master.
+ * Junctions may point at any generation row for a pokeapi_id; all variants are
+ * loaded so Gen1-compat Dark/Steel→Normal rows can win under Gen1 rules.
  */
 export async function fetchMovesForPokemon(
   pokemonId: string,
@@ -70,10 +72,26 @@ export async function fetchMovesForPokemon(
     return [];
   }
 
+  const { data: linkedRows, error: linkedError } = await supabase
+    .from("moves")
+    .select("pokeapi_id")
+    .in("id", moveIds);
+
+  if (linkedError) {
+    throw new Error(`技マスタの取得に失敗しました: ${linkedError.message}`);
+  }
+
+  const pokeapiIds = [
+    ...new Set((linkedRows ?? []).map((row) => row.pokeapi_id as number)),
+  ];
+  if (pokeapiIds.length === 0) {
+    return [];
+  }
+
   const { data, error } = await supabase
     .from("moves")
     .select(MOVE_SELECT_COLUMNS)
-    .in("id", moveIds)
+    .in("pokeapi_id", pokeapiIds)
     .order("name_ja", { ascending: true });
 
   if (error) {
@@ -163,10 +181,11 @@ export async function fetchPokemonIdsForMoves(
 
   let matched: Set<string> | undefined;
   for (const moveId of moveIds) {
+    const variantIds = await expandMoveIdsToAllVariants([moveId]);
     const { data, error } = await supabase
       .from("pokemon_moves")
       .select("pokemon_id")
-      .eq("move_id", moveId);
+      .in("move_id", variantIds);
 
     if (error) {
       throw new Error(`技で覚えるポケモンの取得に失敗しました: ${error.message}`);
@@ -190,6 +209,45 @@ export async function fetchPokemonIdsForMoves(
   }
 
   return expandPokemonIdsWithGen1Evolutions(matched);
+}
+
+/**
+ * Expand selected move UUIDs to every generation row sharing the same pokeapi_id
+ * so Gen1-compat remaps still match Gen2 learnset junctions.
+ */
+async function expandMoveIdsToAllVariants(
+  moveIds: string[],
+): Promise<string[]> {
+  const unique = [...new Set(moveIds.filter(Boolean))];
+  if (unique.length === 0) return [];
+
+  const { data: linked, error: linkedError } = await supabase
+    .from("moves")
+    .select("pokeapi_id")
+    .in("id", unique);
+
+  if (linkedError) {
+    throw new Error(`技マスタの取得に失敗しました: ${linkedError.message}`);
+  }
+
+  const pokeapiIds = [
+    ...new Set((linked ?? []).map((row) => row.pokeapi_id as number)),
+  ];
+  if (pokeapiIds.length === 0) return unique;
+
+  const { data, error } = await supabase
+    .from("moves")
+    .select("id")
+    .in("pokeapi_id", pokeapiIds);
+
+  if (error) {
+    throw new Error(`技マスタの取得に失敗しました: ${error.message}`);
+  }
+
+  const expanded = [
+    ...new Set((data ?? []).map((row) => row.id as string)),
+  ];
+  return expanded.length > 0 ? expanded : unique;
 }
 
 /** Include Gen1 evolved forms so pre-evo-only moves still match finals in filters. */

@@ -108,6 +108,9 @@ function partyBuildsEqual(a: PartyMemberBuild, b: PartyMemberBuild): boolean {
     if (a.moveIds[i] !== b.moveIds[i]) return false;
   }
   if ((a.toolId ?? null) !== (b.toolId ?? null)) return false;
+  if ((a.specialSource ?? "sp_attack") !== (b.specialSource ?? "sp_attack")) {
+    return false;
+  }
   return true;
 }
 

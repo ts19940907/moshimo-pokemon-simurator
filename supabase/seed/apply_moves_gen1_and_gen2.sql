@@ -22,6 +22,10 @@
 -- Optional (Johto species missing):
 --    → gen2_all.sql
 --
+-- Gen1-compat remaps (Dark/Steel → Normal under Gen1 rules + Gen2 pool):
+--    → gen2_moves_gen1_type_remap.sql
+--    → gen2_pokemon_gen1_type_remap.sql  (after Johto species + learnsets)
+--
 -- psql one-shot alternative for steps 2–3:
 --    \i supabase/seed/gen2_moves_all.sql
 --

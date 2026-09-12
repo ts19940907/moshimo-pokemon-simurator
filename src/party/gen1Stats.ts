@@ -1,5 +1,9 @@
 import type { PokemonSpecies } from "../pokemon/types";
-import type { Gen1StatBlock, PartyMemberBuild } from "./types";
+import type {
+  Gen1SpecialSource,
+  Gen1StatBlock,
+  PartyMemberBuild,
+} from "./types";
 import { GEN1_STAT_KEYS, GEN1_STAT_LABELS } from "./types";
 
 export const GEN1_DV_MAX = 15;
@@ -34,18 +38,47 @@ export function calcGen1Hp(
   return Math.floor((((base + dv) * 2 + term) * level) / 100) + level + 10;
 }
 
-function baseSpecial(species: PokemonSpecies): number {
-  return species.base_special ?? species.base_sp_attack ?? 0;
+export function resolveGen1SpecialSource(
+  species: PokemonSpecies,
+  source: Gen1SpecialSource | undefined,
+): Gen1SpecialSource {
+  if (species.introduced_generation < 2) return "sp_attack";
+  return source ?? "sp_attack";
+}
+
+function baseSpecial(
+  species: PokemonSpecies,
+  source: Gen1SpecialSource | undefined,
+): number {
+  if (species.introduced_generation < 2) {
+    return species.base_special ?? species.base_sp_attack ?? 0;
+  }
+  const resolved = resolveGen1SpecialSource(species, source);
+  if (resolved === "sp_defense") {
+    return (
+      species.base_sp_defense ??
+      species.base_special ??
+      species.base_sp_attack ??
+      0
+    );
+  }
+  return (
+    species.base_sp_attack ??
+    species.base_special ??
+    species.base_sp_defense ??
+    0
+  );
 }
 
 export function gen1BaseForStat(
   species: PokemonSpecies,
   key: keyof Gen1StatBlock,
+  specialSource?: Gen1SpecialSource,
 ): number {
   if (key === "hp") return species.base_hp;
   if (key === "attack") return species.base_attack;
   if (key === "defense") return species.base_defense;
-  if (key === "special") return baseSpecial(species);
+  if (key === "special") return baseSpecial(species, specialSource);
   return species.base_speed;
 }
 
@@ -55,8 +88,9 @@ export function calcGen1StatValue(
   dv: number,
   statExp: number,
   level: number,
+  specialSource?: Gen1SpecialSource,
 ): number {
-  const base = gen1BaseForStat(species, key);
+  const base = gen1BaseForStat(species, key, specialSource);
   return key === "hp"
     ? calcGen1Hp(base, dv, statExp, level)
     : calcGen1OtherStat(base, dv, statExp, level);
@@ -78,14 +112,22 @@ export function findStatExpForLevel50Delta(
   dv: number,
   currentStatExp: number,
   delta: 1 | -1,
+  specialSource?: Gen1SpecialSource,
 ): number | null {
-  const current = calcGen1StatValue(species, key, dv, currentStatExp, 50);
+  const current = calcGen1StatValue(
+    species,
+    key,
+    dv,
+    currentStatExp,
+    50,
+    specialSource,
+  );
   const target = current + delta;
   let best: number | null = null;
 
   for (let term = 0; term <= GEN1_STAT_EXP_MAX_TERM; term += 1) {
     const { min, max } = statExpRangeForTerm(term);
-    const value = calcGen1StatValue(species, key, dv, min, 50);
+    const value = calcGen1StatValue(species, key, dv, min, 50, specialSource);
     if (value !== target) continue;
     const candidate = delta > 0 ? min : max;
     if (best == null) {
@@ -102,11 +144,11 @@ export function findStatExpForLevel50Delta(
 /** Compute Gen1 in-battle stats from species bases + build (IV/DV, Stat Exp, level). */
 export function calcGen1Stats(
   species: PokemonSpecies,
-  build: Pick<PartyMemberBuild, "level" | "iv" | "statExp">,
+  build: Pick<PartyMemberBuild, "level" | "iv" | "statExp" | "specialSource">,
 ): Gen1StatBlock {
   const level = Math.max(1, Math.min(100, Math.floor(build.level)));
   const special = calcGen1OtherStat(
-    baseSpecial(species),
+    baseSpecial(species, build.specialSource),
     build.iv.special,
     build.statExp.special,
     level,

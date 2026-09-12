@@ -8,7 +8,7 @@ export type BattleStatBlock = Gen1StatBlock | Gen2StatBlock;
 
 export function calcBattleStats(
   species: PokemonSpecies,
-  build: Pick<PartyMemberBuild, "level" | "iv" | "statExp">,
+  build: Pick<PartyMemberBuild, "level" | "iv" | "statExp" | "specialSource">,
   rulesGeneration: number,
 ): BattleStatBlock {
   if (usesSplitSpecial(rulesGeneration)) {

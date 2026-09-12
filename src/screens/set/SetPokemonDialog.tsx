@@ -28,6 +28,7 @@ import { PokemonTypeBadges } from "../../pokemon/TypeBadges";
 import {
   maxLevelForCap,
   type BattleGender,
+  type Gen1SpecialSource,
   type Gen1StatBlock,
   type PartyMemberBuild,
 } from "../../party/types";
@@ -35,6 +36,7 @@ import {
   findStatExpForLevel50Delta,
   GEN1_DV_MAX,
   GEN1_STAT_EXP_MAX,
+  resolveGen1SpecialSource,
 } from "../../party/gen1Stats";
 import { calcBattleStats } from "../../party/calcBattleStats";
 import {
@@ -787,11 +789,17 @@ export function SetPokemonDialog({
 }: Props) {
   const insets = useSafeAreaInsets();
   const splitSpecial = usesSplitSpecial(rulesGeneration);
+  const showSpecialSource =
+    !splitSpecial && species.introduced_generation >= 2;
   const editorKeys = useMemo(
     () => statEditorKeys(rulesGeneration),
     [rulesGeneration],
   );
   const [draft, setDraft] = useState<PartyMemberBuild>(member);
+  const specialSource = resolveGen1SpecialSource(
+    species,
+    draft.specialSource,
+  );
   const [moves, setMoves] = useState<Move[]>([]);
   const [tools, setTools] = useState<Tool[]>([]);
   const [loadingMoves, setLoadingMoves] = useState(false);
@@ -816,6 +824,9 @@ export function SetPokemonDialog({
       ...member,
       toolId: member.toolId ?? null,
       toolPokeapiId: member.toolPokeapiId ?? null,
+      specialSource:
+        member.specialSource ??
+        (species.introduced_generation >= 2 ? "sp_attack" : undefined),
     });
     setErrorMessage(null);
     setToolsError(null);
@@ -1019,6 +1030,7 @@ export function SetPokemonDialog({
           iv,
           currentEv,
           delta,
+          draft.specialSource,
         );
     if (next == null) return;
     setStatExp(key, next);
@@ -1185,6 +1197,7 @@ export function SetPokemonDialog({
                     iv,
                     value,
                     -1,
+                    draft.specialSource,
                   );
               const upExp = splitSpecial
                 ? findStatExpForLevel50DeltaGen2(
@@ -1200,6 +1213,7 @@ export function SetPokemonDialog({
                     iv,
                     value,
                     1,
+                    draft.specialSource,
                   );
               return (
                 <View key={`ev-${key}`} style={styles.statBlock}>
@@ -1245,6 +1259,47 @@ export function SetPokemonDialog({
                 <Text style={styles.statValue}>
                   {computedStatValue(computedStats, key, rulesGeneration)}
                 </Text>
+                {showSpecialSource && key === "special" ? (
+                  <View style={styles.specialSourceInline}>
+                    {(
+                      [
+                        { value: "sp_attack", label: "特攻参照" },
+                        { value: "sp_defense", label: "特防参照" },
+                      ] as const
+                    ).map((option) => {
+                      const selected = specialSource === option.value;
+                      return (
+                        <Pressable
+                          key={option.value}
+                          onPress={() =>
+                            setDraft((current) => ({
+                              ...current,
+                              specialSource: option.value as Gen1SpecialSource,
+                            }))
+                          }
+                          style={styles.specialSourceOption}
+                        >
+                          <View
+                            style={[
+                              styles.radioOuter,
+                              selected && styles.radioOuterSelected,
+                            ]}
+                          >
+                            {selected ? <View style={styles.radioInner} /> : null}
+                          </View>
+                          <Text
+                            style={[
+                              styles.specialSourceLabel,
+                              selected && styles.specialSourceLabelSelected,
+                            ]}
+                          >
+                            {option.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                ) : null}
               </View>
             ))}
 
@@ -1486,6 +1541,47 @@ const styles = StyleSheet.create({
     gap: 6,
     marginBottom: 4,
   },
+  specialSourceInline: {
+    flex: 1,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 10,
+    minWidth: 0,
+    marginLeft: 8,
+  },
+  specialSourceOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  radioOuter: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: "#8a8276",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+  },
+  radioOuterSelected: {
+    borderColor: "#1f6b4a",
+  },
+  radioInner: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#1f6b4a",
+  },
+  specialSourceLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#5c564c",
+  },
+  specialSourceLabelSelected: {
+    color: "#1f6b4a",
+  },
   statBtnRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -1553,11 +1649,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   statValue: {
-    flex: 1,
     fontSize: 15,
     fontWeight: "800",
     color: "#1d1a16",
     paddingVertical: 6,
+    minWidth: 36,
   },
   moveBlock: { gap: 8, marginBottom: 12 },
   moveLabel: { fontSize: 12, fontWeight: "700", color: "#5c564c" },

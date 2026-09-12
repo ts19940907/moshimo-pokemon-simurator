@@ -260,12 +260,18 @@ export function MenuScreen() {
   const displayedMoveGens = syncGenerationsWithRules
     ? [rulesGeneration]
     : moveGenerations;
-  const displayedItemGens = syncGenerationsWithRules
-    ? syncedItemGenerations(rulesGeneration)
-    : itemGenerations;
+  const displayedItemGens =
+    rulesGeneration < 2
+      ? []
+      : syncGenerationsWithRules
+        ? syncedItemGenerations(rulesGeneration)
+        : itemGenerations;
 
   const handleRulesChange = (value: Generation) => {
     setRulesGeneration(value);
+    if (value < 2) {
+      setItemGenerations([]);
+    }
     if (syncGenerationsWithRules) {
       setPokemonGenerations([value]);
       setMoveGenerations([value]);
@@ -389,16 +395,16 @@ export function MenuScreen() {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>使える持ち物</Text>
               <Text style={styles.sectionHint}>
-                {syncGenerationsWithRules
-                  ? rulesGeneration >= 2
+                {rulesGeneration < 2
+                  ? "初代ルールでは持ち物は使えません。"
+                  : syncGenerationsWithRules
                     ? "対戦ルール世代で使える持ち物（自動）"
-                    : "初代ルールでは持ち物は使えません（自動）"
-                  : "初登場世代（第2〜9世代・複数可）。未選択でも構いません。"}
+                    : "初登場世代（第2〜9世代・複数可）。未選択でも構いません。"}
               </Text>
               <GenerationCheckboxGroup
                 values={displayedItemGens}
                 options={itemPoolGenerationOptions}
-                disabled={syncGenerationsWithRules}
+                disabled={syncGenerationsWithRules || rulesGeneration < 2}
                 allowEmpty
                 onChange={setItemGenerations}
               />

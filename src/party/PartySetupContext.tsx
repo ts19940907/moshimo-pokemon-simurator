@@ -61,6 +61,9 @@ function buildMembersFromSpecies(
         nameJa: species.name_ja,
         toolId: existing.toolId ?? null,
         toolPokeapiId: existing.toolPokeapiId ?? null,
+        specialSource:
+          existing.specialSource ??
+          (species.introduced_generation >= 2 ? "sp_attack" : undefined),
       };
     }
     return createDefaultBuild(species, levelCapMode);
