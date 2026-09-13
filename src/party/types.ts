@@ -1,6 +1,8 @@
 import type { LevelCapMode } from "../match-setup/types";
 import type { Gender, PokemonSpecies } from "../pokemon/types";
 import { GENDER } from "../pokemon/types";
+import { DEFAULT_NATURE_ID, type NatureId } from "./natures";
+import { usesModernIvEv } from "./gen3Stats";
 
 export type PartySide = "a" | "b";
 
@@ -30,13 +32,20 @@ export type PartyMemberBuild = {
   level: number;
   gender: BattleGender;
   iv: Gen1StatBlock;
-  /** Gen1 Stat Experience 0–65535 */
+  /**
+   * Gen1–2: Stat Experience 0–65535.
+   * Gen3+: Effort Values 0–255 per stat (total ≤ 510). Same field, rules-dependent meaning.
+   */
   statExp: Gen1StatBlock;
   /**
    * Gen1 rules + Gen2-debut species: Special base from SpA or SpD.
    * Default sp_attack. Ignored for Gen1-debut species.
    */
   specialSource?: Gen1SpecialSource;
+  /** Selected ability id (UUID). Gen3+ only. */
+  abilityId?: string | null;
+  /** Nature id. Gen3+ only. */
+  natureId?: NatureId | null;
   /** Up to 4 move ids (UUID). Empty slot = null. */
   moveIds: [string | null, string | null, string | null, string | null];
   /** Held item (tool) id (UUID). None = null. Gen1 unused. */
@@ -85,7 +94,10 @@ export function defaultBattleGender(speciesGender: Gender): BattleGender {
 export function createDefaultBuild(
   species: PokemonSpecies,
   levelCapMode: LevelCapMode,
+  rulesGeneration = 1,
 ): PartyMemberBuild {
+  const ivMax = usesModernIvEv(rulesGeneration) ? 31 : 15;
+  const modern = usesModernIvEv(rulesGeneration);
   return {
     speciesId: species.id,
     dexNo: species.dex_no,
@@ -93,13 +105,13 @@ export function createDefaultBuild(
     level: Math.min(50, maxLevelForCap(levelCapMode)),
     gender: defaultBattleGender(species.gender),
     iv: {
-      hp: 15,
-      attack: 15,
-      defense: 15,
-      special: 15,
-      sp_attack: 15,
-      sp_defense: 15,
-      speed: 15,
+      hp: ivMax,
+      attack: ivMax,
+      defense: ivMax,
+      special: ivMax,
+      sp_attack: ivMax,
+      sp_defense: ivMax,
+      speed: ivMax,
     },
     statExp: {
       hp: 0,
@@ -112,6 +124,8 @@ export function createDefaultBuild(
     },
     specialSource:
       species.introduced_generation >= 2 ? "sp_attack" : undefined,
+    abilityId: modern ? species.ability1_id : null,
+    natureId: modern ? DEFAULT_NATURE_ID : null,
     moveIds: [null, null, null, null],
     toolId: null,
     toolPokeapiId: null,
