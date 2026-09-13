@@ -34,7 +34,6 @@ import {
 } from "../../party/types";
 import {
   findStatExpForLevel50Delta,
-  GEN1_DV_MAX,
   GEN1_STAT_EXP_MAX,
   resolveGen1SpecialSource,
 } from "../../party/gen1Stats";
@@ -42,6 +41,7 @@ import { calcBattleStats } from "../../party/calcBattleStats";
 import {
   effortValueHint,
   effortValueSectionLabel,
+  ivSectionLabel,
 } from "../../party/battleStatLabels";
 import {
   computedStatValue,
@@ -53,7 +53,27 @@ import {
   findStatExpForLevel50DeltaGen2,
   type Gen2StatBlock,
 } from "../../party/gen2Stats";
+import {
+  clampEvToMeaningfulAtLevel,
+  findEvForLevelDeltaGen3,
+  GEN3_EV_TOTAL_MAX,
+  ivMaxForRules,
+  maxEvForKey,
+  maxMeaningfulEvAtLevel,
+  totalEffortValues,
+  usesModernIvEv,
+} from "../../party/gen3Stats";
+import {
+  getNature,
+  natureEffectLabel,
+  NATURES,
+  type NatureId,
+} from "../../party/natures";
 import { usesSplitSpecial } from "../../pokemon/baseStatFilters";
+import {
+  fetchAbilitiesByIds,
+  type Ability,
+} from "../../pokemon/abilityRepository";
 import type { LevelCapMode } from "../../match-setup/types";
 import type { GenerationFilterOptions } from "../../match-setup/generationFilter";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -625,6 +645,115 @@ function MoveComboBox({
   );
 }
 
+function NatureComboBox({
+  value,
+  onChange,
+}: {
+  value: NatureId | null | undefined;
+  onChange: (natureId: NatureId) => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const selected = getNature(value);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return NATURES;
+    return NATURES.filter((nature) => {
+      const effect = natureEffectLabel(nature);
+      return (
+        nature.nameJa.toLowerCase().includes(q) ||
+        nature.id.toLowerCase().includes(q) ||
+        effect.toLowerCase().includes(q)
+      );
+    });
+  }, [query]);
+
+  const closeMenu = () => {
+    setMenuOpen(false);
+    setQuery("");
+  };
+
+  return (
+    <View style={styles.moveComboWrap}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="性格を選択"
+        onPress={() => setMenuOpen(true)}
+        style={[styles.moveComboSelect, styles.moveComboSelectFilled]}
+      >
+        <Text style={styles.moveComboSelectText} numberOfLines={1}>
+          {selected.nameJa}（{natureEffectLabel(selected)}）
+        </Text>
+        <Text style={styles.moveComboCaret}>▾</Text>
+      </Pressable>
+
+      <Modal
+        visible={menuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={closeMenu}
+      >
+        <View style={styles.moveComboBackdrop}>
+          <Pressable style={styles.moveComboDismiss} onPress={closeMenu} />
+          <View style={styles.moveComboSheet}>
+            <Text style={styles.moveComboTitle}>性格</Text>
+            <TextInput
+              style={styles.moveComboSearch}
+              value={query}
+              onChangeText={setQuery}
+              placeholder="性格名・補正で絞り込み"
+              placeholderTextColor="#9a9286"
+              autoCorrect={false}
+              autoCapitalize="none"
+            />
+            <ScrollView
+              style={styles.moveComboList}
+              keyboardShouldPersistTaps="handled"
+            >
+              {filtered.length === 0 ? (
+                <Text style={styles.moveEmpty}>該当する性格がありません。</Text>
+              ) : (
+                filtered.map((nature) => {
+                  const isSelected = nature.id === selected.id;
+                  return (
+                    <Pressable
+                      key={nature.id}
+                      accessibilityRole="button"
+                      onPress={() => {
+                        onChange(nature.id);
+                        closeMenu();
+                      }}
+                      style={[
+                        styles.moveComboItem,
+                        isSelected && styles.moveComboItemSelected,
+                      ]}
+                    >
+                      <View style={styles.moveComboItemBody}>
+                        <Text
+                          style={[
+                            styles.moveComboItemText,
+                            isSelected && styles.moveComboItemTextSelected,
+                          ]}
+                        >
+                          {nature.nameJa}
+                        </Text>
+                        <Text style={styles.moveComboItemMeta}>
+                          {natureEffectLabel(nature)}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
 function ToolComboBox({
   label,
   value,
@@ -789,6 +918,9 @@ export function SetPokemonDialog({
 }: Props) {
   const insets = useSafeAreaInsets();
   const splitSpecial = usesSplitSpecial(rulesGeneration);
+  const modernIvEv = usesModernIvEv(rulesGeneration);
+  const ivMax = ivMaxForRules(rulesGeneration);
+  const showAbilityNature = rulesGeneration >= 3;
   const showSpecialSource =
     !splitSpecial && species.introduced_generation >= 2;
   const editorKeys = useMemo(
@@ -802,10 +934,13 @@ export function SetPokemonDialog({
   );
   const [moves, setMoves] = useState<Move[]>([]);
   const [tools, setTools] = useState<Tool[]>([]);
+  const [abilities, setAbilities] = useState<Ability[]>([]);
   const [loadingMoves, setLoadingMoves] = useState(false);
   const [loadingTools, setLoadingTools] = useState(false);
+  const [loadingAbilities, setLoadingAbilities] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [toolsError, setToolsError] = useState<string | null>(null);
+  const [abilitiesError, setAbilitiesError] = useState<string | null>(null);
   const [pickingSlot, setPickingSlot] = useState<number | null>(null);
   const [pickingTool, setPickingTool] = useState(false);
   const [moveFilters, setMoveFilters] =
@@ -817,6 +952,10 @@ export function SetPokemonDialog({
     () => calcBattleStats(species, draft, rulesGeneration),
     [species, draft, rulesGeneration],
   );
+  const effortTotal = useMemo(
+    () => totalEffortValues(draft.statExp, splitSpecial),
+    [draft.statExp, splitSpecial],
+  );
 
   useEffect(() => {
     if (!visible) return;
@@ -827,13 +966,55 @@ export function SetPokemonDialog({
       specialSource:
         member.specialSource ??
         (species.introduced_generation >= 2 ? "sp_attack" : undefined),
+      abilityId:
+        member.abilityId ??
+        (rulesGeneration >= 3 ? species.ability1_id : null),
+      natureId:
+        member.natureId ?? (rulesGeneration >= 3 ? "hardy" : null),
     });
     setErrorMessage(null);
     setToolsError(null);
+    setAbilitiesError(null);
     setPickingSlot(null);
     setPickingTool(false);
     setMoveFilters(EMPTY_MOVE_FILTERS);
-  }, [visible, member]);
+  }, [visible, member, rulesGeneration, species]);
+
+  useEffect(() => {
+    if (!visible || !modernIvEv) return;
+    setDraft((current) => {
+      let changed = false;
+      const nextStatExp = { ...current.statExp };
+      for (const { key } of editorKeys) {
+        const statKey = key as keyof Gen2StatBlock;
+        const maxAllowed = maxEvForKey(current.statExp, statKey);
+        const iv = readStatBlockValue(current.iv, key);
+        const currentEv = readStatBlockValue(current.statExp, key);
+        const snapped = clampEvToMeaningfulAtLevel(
+          species,
+          statKey,
+          iv,
+          currentEv,
+          current.natureId,
+          current.level,
+          maxAllowed,
+        );
+        if (snapped !== currentEv) {
+          changed = true;
+          nextStatExp[key] = snapped;
+        }
+      }
+      return changed ? { ...current, statExp: nextStatExp } : current;
+    });
+  }, [
+    visible,
+    modernIvEv,
+    draft.level,
+    draft.natureId,
+    draft.iv,
+    species,
+    editorKeys,
+  ]);
 
   useEffect(() => {
     if (!visible || rulesGeneration < 2) return;
@@ -908,6 +1089,47 @@ export function SetPokemonDialog({
     };
   }, [visible, itemGenerationOptions, rulesGeneration]);
 
+  useEffect(() => {
+    if (!visible || rulesGeneration < 3) {
+      if (!visible) {
+        setAbilities([]);
+        setAbilitiesError(null);
+      }
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoadingAbilities(true);
+        setAbilitiesError(null);
+        // Gen3 has no hidden abilities in-game.
+        const rows = await fetchAbilitiesByIds([
+          species.ability1_id,
+          species.ability2_id,
+        ]);
+        if (!cancelled) setAbilities(rows);
+      } catch (error) {
+        if (!cancelled) {
+          setAbilitiesError(
+            error instanceof Error
+              ? error.message
+              : "特性の取得に失敗しました。",
+          );
+        }
+      } finally {
+        if (!cancelled) setLoadingAbilities(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    visible,
+    rulesGeneration,
+    species.ability1_id,
+    species.ability2_id,
+  ]);
+
   const filteredMoves = useMemo(
     () => moves.filter((move) => matchesMoveFilters(move, moveFilters)),
     [moves, moveFilters],
@@ -967,7 +1189,7 @@ export function SetPokemonDialog({
       ...current,
       iv: {
         ...current.iv,
-        [key]: clamp(value, 0, GEN1_DV_MAX),
+        [key]: clamp(value, 0, ivMax),
       },
     }));
   };
@@ -980,34 +1202,77 @@ export function SetPokemonDialog({
         [key]: clamp(
           parseIntOr(raw, readStatBlockValue(current.iv, key)),
           0,
-          GEN1_DV_MAX,
+          ivMax,
         ),
       },
     }));
   };
 
   const setStatExp = (key: StatEditorKey, value: number) => {
-    setDraft((current) => ({
-      ...current,
-      statExp: {
-        ...current.statExp,
-        [key]: clamp(value, 0, GEN1_STAT_EXP_MAX),
-      },
-    }));
+    setDraft((current) => {
+      if (!modernIvEv) {
+        return {
+          ...current,
+          statExp: {
+            ...current.statExp,
+            [key]: clamp(value, 0, GEN1_STAT_EXP_MAX),
+          },
+        };
+      }
+      const statKey = key as keyof Gen2StatBlock;
+      const maxAllowed = maxEvForKey(current.statExp, statKey);
+      const iv = readStatBlockValue(current.iv, key);
+      const next = clampEvToMeaningfulAtLevel(
+        species,
+        statKey,
+        iv,
+        value,
+        current.natureId,
+        current.level,
+        maxAllowed,
+      );
+      return {
+        ...current,
+        statExp: {
+          ...current.statExp,
+          [key]: next,
+        },
+      };
+    });
   };
 
   const patchStatExp = (key: StatEditorKey, raw: string) => {
-    setDraft((current) => ({
-      ...current,
-      statExp: {
-        ...current.statExp,
-        [key]: clamp(
-          parseIntOr(raw, readStatBlockValue(current.statExp, key)),
-          0,
-          GEN1_STAT_EXP_MAX,
-        ),
-      },
-    }));
+    setDraft((current) => {
+      const parsed = parseIntOr(raw, readStatBlockValue(current.statExp, key));
+      if (!modernIvEv) {
+        return {
+          ...current,
+          statExp: {
+            ...current.statExp,
+            [key]: clamp(parsed, 0, GEN1_STAT_EXP_MAX),
+          },
+        };
+      }
+      const statKey = key as keyof Gen2StatBlock;
+      const maxAllowed = maxEvForKey(current.statExp, statKey);
+      const iv = readStatBlockValue(current.iv, key);
+      const next = clampEvToMeaningfulAtLevel(
+        species,
+        statKey,
+        iv,
+        parsed,
+        current.natureId,
+        current.level,
+        maxAllowed,
+      );
+      return {
+        ...current,
+        statExp: {
+          ...current.statExp,
+          [key]: next,
+        },
+      };
+    });
   };
 
   const nudgeStatExpForLevel50 = (
@@ -1016,22 +1281,33 @@ export function SetPokemonDialog({
   ) => {
     const iv = readStatBlockValue(draft.iv, key);
     const currentEv = readStatBlockValue(draft.statExp, key);
-    const next = splitSpecial
-      ? findStatExpForLevel50DeltaGen2(
+    const next = modernIvEv
+      ? findEvForLevelDeltaGen3(
           species,
           key as keyof Gen2StatBlock,
           iv,
           currentEv,
+          draft.natureId,
+          draft.level,
+          maxEvForKey(draft.statExp, key as keyof Gen2StatBlock),
           delta,
         )
-      : findStatExpForLevel50Delta(
-          species,
-          key as keyof Gen1StatBlock,
-          iv,
-          currentEv,
-          delta,
-          draft.specialSource,
-        );
+      : splitSpecial
+        ? findStatExpForLevel50DeltaGen2(
+            species,
+            key as keyof Gen2StatBlock,
+            iv,
+            currentEv,
+            delta,
+          )
+        : findStatExpForLevel50Delta(
+            species,
+            key as keyof Gen1StatBlock,
+            iv,
+            currentEv,
+            delta,
+            draft.specialSource,
+          );
     if (next == null) return;
     setStatExp(key, next);
   };
@@ -1075,6 +1351,8 @@ export function SetPokemonDialog({
         rulesGeneration >= 2
           ? (tool ? Number(tool.pokeapi_id) : draft.toolPokeapiId ?? null)
           : null,
+      abilityId: showAbilityNature ? draft.abilityId ?? null : null,
+      natureId: showAbilityNature ? draft.natureId ?? null : null,
     });
     onClose();
   };
@@ -1132,7 +1410,62 @@ export function SetPokemonDialog({
               })}
             </View>
 
-            <Text style={styles.section}>個体値（0〜15）</Text>
+            {showAbilityNature ? (
+              <>
+                <Text style={styles.section}>特性</Text>
+                {loadingAbilities ? (
+                  <ActivityIndicator color="#1f6b4a" />
+                ) : null}
+                {abilitiesError ? (
+                  <Text style={styles.error}>{abilitiesError}</Text>
+                ) : null}
+                {abilities.length === 0 && !loadingAbilities ? (
+                  <Text style={styles.sectionHint}>
+                    このポケモンに設定できる特性データがありません。
+                  </Text>
+                ) : (
+                  <View style={styles.rowWrap}>
+                    {abilities.map((ability) => {
+                      const selected = draft.abilityId === ability.id;
+                      return (
+                        <Pressable
+                          key={ability.id}
+                          onPress={() =>
+                            setDraft((current) => ({
+                              ...current,
+                              abilityId: ability.id,
+                            }))
+                          }
+                          style={[styles.chip, selected && styles.chipSelected]}
+                        >
+                          <Text
+                            style={[
+                              styles.chipText,
+                              selected && styles.chipTextSelected,
+                            ]}
+                          >
+                            {ability.name_ja}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
+
+                <Text style={styles.section}>性格</Text>
+                <NatureComboBox
+                  value={draft.natureId}
+                  onChange={(natureId) =>
+                    setDraft((current) => ({
+                      ...current,
+                      natureId,
+                    }))
+                  }
+                />
+              </>
+            ) : null}
+
+            <Text style={styles.section}>{ivSectionLabel(rulesGeneration)}</Text>
             {editorKeys.map(({ key, label }) => {
               const value = readStatBlockValue(draft.iv, key);
               return (
@@ -1154,8 +1487,8 @@ export function SetPokemonDialog({
                     />
                     <StatAdjustButton
                       label="最大"
-                      disabled={value === GEN1_DV_MAX}
-                      onPress={() => setIv(key, GEN1_DV_MAX)}
+                      disabled={value === ivMax}
+                      onPress={() => setIv(key, ivMax)}
                     />
                     <StatAdjustButton
                       label="−1"
@@ -1164,7 +1497,7 @@ export function SetPokemonDialog({
                     />
                     <StatAdjustButton
                       label="+1"
-                      disabled={value >= GEN1_DV_MAX}
+                      disabled={value >= ivMax}
                       onPress={() => setIv(key, value + 1)}
                     />
                   </View>
@@ -1173,48 +1506,84 @@ export function SetPokemonDialog({
             })}
 
             <Text style={styles.section}>
-              {splitSpecial
-                ? effortValueSectionLabel(rulesGeneration)
-                : "努力値 / 基礎ポイント（0〜65535）"}
+              {effortValueSectionLabel(rulesGeneration)}
             </Text>
             <Text style={styles.sectionHint}>
               {effortValueHint(rulesGeneration)}
+              {modernIvEv
+                ? ` 合計 ${effortTotal} / ${GEN3_EV_TOTAL_MAX}`
+                : ""}
             </Text>
             {editorKeys.map(({ key, label }) => {
               const value = readStatBlockValue(draft.statExp, key);
               const iv = readStatBlockValue(draft.iv, key);
-              const downExp = splitSpecial
-                ? findStatExpForLevel50DeltaGen2(
+              const budgetCap = modernIvEv
+                ? maxEvForKey(draft.statExp, key as keyof Gen2StatBlock)
+                : GEN1_STAT_EXP_MAX;
+              const evCap = modernIvEv
+                ? maxMeaningfulEvAtLevel(
+                    species,
+                    key as keyof Gen2StatBlock,
+                    iv,
+                    draft.natureId,
+                    draft.level,
+                    budgetCap,
+                  )
+                : budgetCap;
+              const downExp = modernIvEv
+                ? findEvForLevelDeltaGen3(
                     species,
                     key as keyof Gen2StatBlock,
                     iv,
                     value,
+                    draft.natureId,
+                    draft.level,
+                    budgetCap,
                     -1,
                   )
-                : findStatExpForLevel50Delta(
-                    species,
-                    key as keyof Gen1StatBlock,
-                    iv,
-                    value,
-                    -1,
-                    draft.specialSource,
-                  );
-              const upExp = splitSpecial
-                ? findStatExpForLevel50DeltaGen2(
+                : splitSpecial
+                  ? findStatExpForLevel50DeltaGen2(
+                      species,
+                      key as keyof Gen2StatBlock,
+                      iv,
+                      value,
+                      -1,
+                    )
+                  : findStatExpForLevel50Delta(
+                      species,
+                      key as keyof Gen1StatBlock,
+                      iv,
+                      value,
+                      -1,
+                      draft.specialSource,
+                    );
+              const upExp = modernIvEv
+                ? findEvForLevelDeltaGen3(
                     species,
                     key as keyof Gen2StatBlock,
                     iv,
                     value,
+                    draft.natureId,
+                    draft.level,
+                    budgetCap,
                     1,
                   )
-                : findStatExpForLevel50Delta(
-                    species,
-                    key as keyof Gen1StatBlock,
-                    iv,
-                    value,
-                    1,
-                    draft.specialSource,
-                  );
+                : splitSpecial
+                  ? findStatExpForLevel50DeltaGen2(
+                      species,
+                      key as keyof Gen2StatBlock,
+                      iv,
+                      value,
+                      1,
+                    )
+                  : findStatExpForLevel50Delta(
+                      species,
+                      key as keyof Gen1StatBlock,
+                      iv,
+                      value,
+                      1,
+                      draft.specialSource,
+                    );
               return (
                 <View key={`ev-${key}`} style={styles.statBlock}>
                   <View style={styles.statRow}>
@@ -1234,16 +1603,16 @@ export function SetPokemonDialog({
                     />
                     <StatAdjustButton
                       label="最大"
-                      disabled={value === GEN1_STAT_EXP_MAX}
-                      onPress={() => setStatExp(key, GEN1_STAT_EXP_MAX)}
+                      disabled={value === evCap}
+                      onPress={() => setStatExp(key, evCap)}
                     />
                     <StatAdjustButton
-                      label="Lv50 −1"
+                      label={modernIvEv ? "実数値 −1" : "Lv50 −1"}
                       disabled={downExp == null}
                       onPress={() => nudgeStatExpForLevel50(key, -1)}
                     />
                     <StatAdjustButton
-                      label="Lv50 +1"
+                      label={modernIvEv ? "実数値 +1" : "Lv50 +1"}
                       disabled={upExp == null}
                       onPress={() => nudgeStatExpForLevel50(key, 1)}
                     />
@@ -1252,7 +1621,11 @@ export function SetPokemonDialog({
               );
             })}
 
-            <Text style={styles.section}>実数値（レベル・個体値・努力値から計算）</Text>
+            <Text style={styles.section}>
+              実数値（レベル・個体値・努力値
+              {showAbilityNature ? "・性格" : ""}
+              から計算）
+            </Text>
             {editorKeys.map(({ key, label }) => (
               <View key={`real-${key}`} style={styles.statRow}>
                 <Text style={styles.statLabel}>{label}</Text>

@@ -2,14 +2,22 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import {
   findStatExpForLevel50Delta,
-  GEN1_DV_MAX,
   GEN1_STAT_EXP_MAX,
 } from "./gen1Stats";
 import {
   findStatExpForLevel50DeltaGen2,
   type Gen2StatBlock,
 } from "./gen2Stats";
+import {
+  clampEvToMeaningfulAtLevel,
+  findEvForLevelDeltaGen3,
+  GEN3_EV_PER_STAT_MAX,
+  ivMaxForRules,
+  maxMeaningfulEvAtLevel,
+  usesModernIvEv,
+} from "./gen3Stats";
 import type { Gen1StatBlock } from "./types";
+import type { NatureId } from "./natures";
 import type { PokemonSpecies } from "../pokemon/types";
 import { usesSplitSpecial } from "../pokemon/baseStatFilters";
 
@@ -49,11 +57,14 @@ export function IvStatEditor({
   label,
   value,
   onChange,
+  rulesGeneration = 1,
 }: {
   label: string;
   value: number;
   onChange: (next: number) => void;
+  rulesGeneration?: number;
 }) {
+  const max = ivMaxForRules(rulesGeneration);
   return (
     <View style={styles.statBlock}>
       <View style={styles.statRow}>
@@ -63,7 +74,7 @@ export function IvStatEditor({
           keyboardType="number-pad"
           value={String(value)}
           onChangeText={(text) =>
-            onChange(clamp(parseIntOr(text, value), 0, GEN1_DV_MAX))
+            onChange(clamp(parseIntOr(text, value), 0, max))
           }
         />
       </View>
@@ -75,8 +86,8 @@ export function IvStatEditor({
         />
         <StatAdjustButton
           label="最大"
-          disabled={value === GEN1_DV_MAX}
-          onPress={() => onChange(GEN1_DV_MAX)}
+          disabled={value === max}
+          onPress={() => onChange(max)}
         />
         <StatAdjustButton
           label="−1"
@@ -85,7 +96,7 @@ export function IvStatEditor({
         />
         <StatAdjustButton
           label="+1"
-          disabled={value >= GEN1_DV_MAX}
+          disabled={value >= max}
           onPress={() => onChange(value + 1)}
         />
       </View>
@@ -93,7 +104,7 @@ export function IvStatEditor({
   );
 }
 
-/** 努力値: 0 / 最大 / Lv50実数値 ±1 */
+/** 努力値: 0 / 最大 / 実数値 ±1（Gen3は設定レベル基準） */
 export function StatExpEditor({
   label,
   value,
@@ -102,6 +113,9 @@ export function StatExpEditor({
   iv,
   onChange,
   rulesGeneration = 1,
+  natureId = null,
+  level = 50,
+  maxValue,
 }: {
   label: string;
   value: number;
@@ -110,38 +124,93 @@ export function StatExpEditor({
   iv: number;
   onChange: (next: number) => void;
   rulesGeneration?: number;
+  natureId?: NatureId | null;
+  level?: number;
+  /** Override max budget (e.g. Gen3 remaining EV budget). */
+  maxValue?: number;
 }) {
-  const isGen2 = usesSplitSpecial(rulesGeneration);
-  const downExp = isGen2
-    ? findStatExpForLevel50DeltaGen2(
+  const modern = usesModernIvEv(rulesGeneration);
+  const isGen2 = usesSplitSpecial(rulesGeneration) && !modern;
+  const budgetCap = maxValue ?? (modern ? GEN3_EV_PER_STAT_MAX : GEN1_STAT_EXP_MAX);
+  const max = modern
+    ? maxMeaningfulEvAtLevel(
+        species,
+        statKey as keyof Gen2StatBlock,
+        iv,
+        natureId,
+        level,
+        budgetCap,
+      )
+    : budgetCap;
+  const applyEv = (raw: number) => {
+    if (!modern) {
+      onChange(clamp(raw, 0, max));
+      return;
+    }
+    onChange(
+      clampEvToMeaningfulAtLevel(
+        species,
+        statKey as keyof Gen2StatBlock,
+        iv,
+        raw,
+        natureId,
+        level,
+        budgetCap,
+      ),
+    );
+  };
+  const downExp = modern
+    ? findEvForLevelDeltaGen3(
         species,
         statKey as keyof Gen2StatBlock,
         iv,
         value,
+        natureId,
+        level,
+        budgetCap,
         -1,
       )
-    : findStatExpForLevel50Delta(
-        species,
-        statKey as keyof Gen1StatBlock,
-        iv,
-        value,
-        -1,
-      );
-  const upExp = isGen2
-    ? findStatExpForLevel50DeltaGen2(
+    : isGen2
+      ? findStatExpForLevel50DeltaGen2(
+          species,
+          statKey as keyof Gen2StatBlock,
+          iv,
+          value,
+          -1,
+        )
+      : findStatExpForLevel50Delta(
+          species,
+          statKey as keyof Gen1StatBlock,
+          iv,
+          value,
+          -1,
+        );
+  const upExp = modern
+    ? findEvForLevelDeltaGen3(
         species,
         statKey as keyof Gen2StatBlock,
         iv,
         value,
+        natureId,
+        level,
+        budgetCap,
         1,
       )
-    : findStatExpForLevel50Delta(
-        species,
-        statKey as keyof Gen1StatBlock,
-        iv,
-        value,
-        1,
-      );
+    : isGen2
+      ? findStatExpForLevel50DeltaGen2(
+          species,
+          statKey as keyof Gen2StatBlock,
+          iv,
+          value,
+          1,
+        )
+      : findStatExpForLevel50Delta(
+          species,
+          statKey as keyof Gen1StatBlock,
+          iv,
+          value,
+          1,
+        );
 
   return (
     <View style={styles.statBlock}>
@@ -151,31 +220,29 @@ export function StatExpEditor({
           style={styles.statInput}
           keyboardType="number-pad"
           value={String(value)}
-          onChangeText={(text) =>
-            onChange(clamp(parseIntOr(text, value), 0, GEN1_STAT_EXP_MAX))
-          }
+          onChangeText={(text) => applyEv(parseIntOr(text, value))}
         />
       </View>
       <View style={styles.statBtnRow}>
         <StatAdjustButton
           label="0"
           disabled={value === 0}
-          onPress={() => onChange(0)}
+          onPress={() => applyEv(0)}
         />
         <StatAdjustButton
           label="最大"
-          disabled={value === GEN1_STAT_EXP_MAX}
-          onPress={() => onChange(GEN1_STAT_EXP_MAX)}
+          disabled={value === max}
+          onPress={() => applyEv(max)}
         />
         <StatAdjustButton
-          label="Lv50 −1"
+          label={modern ? "実数値 −1" : "Lv50 −1"}
           disabled={downExp == null}
           onPress={() => {
             if (downExp != null) onChange(downExp);
           }}
         />
         <StatAdjustButton
-          label="Lv50 +1"
+          label={modern ? "実数値 +1" : "Lv50 +1"}
           disabled={upExp == null}
           onPress={() => {
             if (upExp != null) onChange(upExp);

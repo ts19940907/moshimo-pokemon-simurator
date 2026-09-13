@@ -14,17 +14,21 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { usePartySetup } from "../party/PartySetupContext";
 import { hasDuplicateTools } from "../party/validatePartySetup";
 import {
-  GEN1_STAT_KEYS,
-  GEN1_STAT_LABELS,
   genderLabel,
   type PartyMemberBuild,
   type PartySide,
 } from "../party/types";
-import { calcGen1Stats, summarizeGen1Stats } from "../party/gen1Stats";
+import {
+  calcBattleStats,
+  summarizeBattleStats,
+} from "../party/calcBattleStats";
+import { getNature, natureEffectLabel } from "../party/natures";
+import { usesModernIvEv } from "../party/gen3Stats";
 import { formatDexNo } from "../pokemon/catalog";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
 import { fetchMovesForPokemon } from "../pokemon/moveRepository";
 import { fetchToolsByIds } from "../pokemon/toolRepository";
+import { fetchAbilitiesByIds } from "../pokemon/abilityRepository";
 import { fetchPokemonSpecies, filterSelectableSpecies } from "../pokemon/repository";
 import type { PokemonSpecies } from "../pokemon/types";
 import type { LevelCapMode, OpponentType } from "../match-setup/types";
@@ -38,6 +42,7 @@ import { SetPokemonDialog } from "./set/SetPokemonDialog";
 import { Gen1TypeChartDialog } from "../battle/Gen1TypeChartDialog";
 import { matchBackgroundForRules } from "../match-setup/backgrounds";
 import { MatchScreenBackground } from "../match-setup/MatchScreenBackground";
+import { readStatBlockValue, statEditorKeys } from "../party/statEditor";
 
 type MatchParams = {
   side?: string;
@@ -59,10 +64,15 @@ function parseSide(value: string | undefined): PartySide {
   return value === "b" ? "b" : "a";
 }
 
-function summarizeStats(block: PartyMemberBuild["iv"]): string {
-  return GEN1_STAT_KEYS.map(
-    (key) => `${GEN1_STAT_LABELS[key]}${block[key]}`,
-  ).join(" / ");
+function summarizeStats(
+  block: PartyMemberBuild["iv"],
+  rulesGeneration: number,
+): string {
+  return statEditorKeys(rulesGeneration)
+    .map(
+      ({ key, label }) => `${label}${readStatBlockValue(block, key)}`,
+    )
+    .join(" / ");
 }
 
 export function SetPokemonScreen() {
@@ -92,6 +102,7 @@ export function SetPokemonScreen() {
   const [duplicateToolsOpen, setDuplicateToolsOpen] = useState(false);
   const [moveNames, setMoveNames] = useState<Record<string, string>>({});
   const [toolName, setToolName] = useState<string | null>(null);
+  const [abilityName, setAbilityName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -235,6 +246,26 @@ export function SetPokemonScreen() {
     };
   }, [focused?.toolId]);
 
+  useEffect(() => {
+    if (rulesGeneration < 3 || !focused?.abilityId) {
+      setAbilityName(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = await fetchAbilitiesByIds([focused.abilityId]);
+        if (cancelled) return;
+        setAbilityName(rows[0]?.name_ja ?? null);
+      } catch {
+        if (!cancelled) setAbilityName(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [focused?.abilityId, rulesGeneration]);
+
   const excludedToolIds = useMemo(
     () =>
       members
@@ -328,7 +359,9 @@ export function SetPokemonScreen() {
               {isOpponentSide ? "相手の個体を設定する" : "個体を設定する"}
             </Text>
             <Text style={styles.lead}>
-              ポケモンを選んでフォーカスし、「設定する」からレベル・性別・個体値・努力値・技
+              ポケモンを選んでフォーカスし、「設定する」からレベル・性別
+              {rulesGeneration >= 3 ? "・特性・性格" : ""}
+              ・個体値・努力値・技
               {rulesGeneration >= 2 ? "・持ち物" : ""}
               を編集します。
             </Text>
@@ -397,18 +430,43 @@ export function SetPokemonScreen() {
 
                     <Text style={styles.blockTitle}>個体値</Text>
                     <Text style={styles.blockBody}>
-                      {summarizeStats(focused.iv)}
+                      {summarizeStats(focused.iv, rulesGeneration)}
                     </Text>
-                    <Text style={styles.blockTitle}>努力値（基礎ポイント）</Text>
+                    <Text style={styles.blockTitle}>
+                      {usesModernIvEv(rulesGeneration)
+                        ? "努力値"
+                        : "努力値（基礎ポイント）"}
+                    </Text>
                     <Text style={styles.blockBody}>
-                      {summarizeStats(focused.statExp)}
+                      {summarizeStats(focused.statExp, rulesGeneration)}
                     </Text>
                     <Text style={styles.blockTitle}>実数値</Text>
                     <Text style={styles.blockBody}>
-                      {summarizeGen1Stats(
-                        calcGen1Stats(focusedSpecies, focused),
+                      {summarizeBattleStats(
+                        calcBattleStats(
+                          focusedSpecies,
+                          focused,
+                          rulesGeneration,
+                        ),
+                        rulesGeneration,
                       )}
                     </Text>
+                    {rulesGeneration >= 3 ? (
+                      <>
+                        <Text style={styles.blockTitle}>特性</Text>
+                        <Text style={styles.blockBody}>
+                          {focused.abilityId
+                            ? (abilityName ?? "（読込中）")
+                            : "なし"}
+                        </Text>
+                        <Text style={styles.blockTitle}>性格</Text>
+                        <Text style={styles.blockBody}>
+                          {focused.natureId
+                            ? `${getNature(focused.natureId).nameJa}（${natureEffectLabel(getNature(focused.natureId))}）`
+                            : "なし"}
+                        </Text>
+                      </>
+                    ) : null}
                     <Text style={styles.blockTitle}>技</Text>
                     <Text style={styles.blockBody}>
                       {focused.moveIds

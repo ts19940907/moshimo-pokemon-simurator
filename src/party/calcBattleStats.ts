@@ -1,6 +1,7 @@
 import { usesSplitSpecial } from "../pokemon/baseStatFilters";
 import { calcGen1Stats } from "./gen1Stats";
 import { calcGen2Stats, type Gen2StatBlock } from "./gen2Stats";
+import { calcGen3Stats, usesModernIvEv } from "./gen3Stats";
 import type { Gen1StatBlock, PartyMemberBuild } from "./types";
 import type { PokemonSpecies } from "../pokemon/types";
 
@@ -8,9 +9,15 @@ export type BattleStatBlock = Gen1StatBlock | Gen2StatBlock;
 
 export function calcBattleStats(
   species: PokemonSpecies,
-  build: Pick<PartyMemberBuild, "level" | "iv" | "statExp" | "specialSource">,
+  build: Pick<
+    PartyMemberBuild,
+    "level" | "iv" | "statExp" | "specialSource" | "natureId"
+  >,
   rulesGeneration: number,
 ): BattleStatBlock {
+  if (usesModernIvEv(rulesGeneration)) {
+    return calcGen3Stats(species, build);
+  }
   if (usesSplitSpecial(rulesGeneration)) {
     return calcGen2Stats(species, build);
   }

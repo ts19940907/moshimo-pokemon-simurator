@@ -3,7 +3,7 @@ export const generations = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 export type Generation = (typeof generations)[number];
 
 /** Generations selectable in match setup UI. */
-export const implementedGenerations: readonly Generation[] = [1, 2];
+export const implementedGenerations: readonly Generation[] = [1, 2, 3];
 
 /** Default rules / pool generation when nothing else is chosen. */
 export const implementedGeneration: Generation = 1;

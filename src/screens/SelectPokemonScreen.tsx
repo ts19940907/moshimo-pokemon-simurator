@@ -40,6 +40,7 @@ import {
   calcBattleStats,
   summarizeBattleStats,
 } from "../party/calcBattleStats";
+import { getNature, natureEffectLabel } from "../party/natures";
 import {
   formatDexNo,
   getSelectableSpeciesFromList,
@@ -170,8 +171,9 @@ function createBuildWithMoveFilters(
   species: PokemonSpecies,
   levelCapMode: LevelCapMode,
   moveFilters: Move[],
+  rulesGeneration: number,
 ): PartyMemberBuild {
-  const build = createDefaultBuild(species, levelCapMode);
+  const build = createDefaultBuild(species, levelCapMode, rulesGeneration);
   if (moveFilters.length === 0) {
     return build;
   }
@@ -1293,6 +1295,7 @@ export function SelectPokemonScreen() {
           pokemon,
           levelCapMode,
           moveFilters,
+          rulesGeneration,
         ),
       };
     });
@@ -1313,6 +1316,7 @@ export function SelectPokemonScreen() {
             pokemon,
             levelCapMode,
             moveFilters,
+            rulesGeneration,
           ),
         };
       });
@@ -1323,7 +1327,7 @@ export function SelectPokemonScreen() {
 
     const existing =
       buildsBySpeciesId[pokemon.id] ??
-      createDefaultBuild(pokemon, levelCapMode);
+      createDefaultBuild(pokemon, levelCapMode, rulesGeneration);
     const { build: merged, overflow } = mergeMoveFiltersIntoBuild(
       existing,
       moveFilters,
@@ -1382,6 +1386,7 @@ export function SelectPokemonScreen() {
             pokemon,
             levelCapMode,
             moveFilters,
+            rulesGeneration,
           ),
         };
       });
@@ -1967,6 +1972,7 @@ export function SelectPokemonScreen() {
             </View>
             <Text style={styles.partyHint}>
               「設定」で個体値・努力値・技
+              {rulesGeneration >= 3 ? "・特性・性格" : ""}
               {rulesGeneration >= 2 ? "・持ち物" : ""}
               を編集、「解除」で選択を外せます。図鑑一覧を再タップしても解除されません（技絞り込み中は技を反映します）。
             </Text>
@@ -2000,6 +2006,12 @@ export function SelectPokemonScreen() {
                   const toolLabel = build?.toolId
                     ? (toolsById[build.toolId]?.name_ja ?? "…")
                     : "なし";
+                  const nature = build?.natureId
+                    ? getNature(build.natureId)
+                    : null;
+                  const natureLabel = nature
+                    ? `${nature.nameJa}（${natureEffectLabel(nature)}）`
+                    : "—";
                   return (
                     <View
                       key={pokemon.id}
@@ -2026,6 +2038,11 @@ export function SelectPokemonScreen() {
                       {stats ? (
                         <Text style={styles.partyStats} numberOfLines={2}>
                           {summarizeBattleStats(stats, rulesGeneration)}
+                        </Text>
+                      ) : null}
+                      {rulesGeneration >= 3 ? (
+                        <Text style={styles.partyMoves} numberOfLines={1}>
+                          性格: {natureLabel}
                         </Text>
                       ) : null}
                       <Text style={styles.partyMoves} numberOfLines={2}>

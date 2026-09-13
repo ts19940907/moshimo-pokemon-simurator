@@ -107,7 +107,7 @@ export async function generateCpuParty(input: {
   const members: PartyMemberBuild[] = [];
   await Promise.all(
     chosen.map(async (species) => {
-      const build = createDefaultBuild(species, input.levelCapMode);
+      const build = createDefaultBuild(species, input.levelCapMode, input.rulesGeneration);
       try {
         const moves = await fetchMovesForPokemon(
           species.id,
