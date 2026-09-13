@@ -72,6 +72,7 @@ import {
 import { usesSplitSpecial } from "../../pokemon/baseStatFilters";
 import {
   fetchAbilitiesByIds,
+  fetchAbilitiesForPokemon,
   type Ability,
 } from "../../pokemon/abilityRepository";
 import type { LevelCapMode } from "../../match-setup/types";
@@ -1102,11 +1103,23 @@ export function SetPokemonDialog({
       try {
         setLoadingAbilities(true);
         setAbilitiesError(null);
-        // Gen3 has no hidden abilities in-game.
-        const rows = await fetchAbilitiesByIds([
-          species.ability1_id,
-          species.ability2_id,
-        ]);
+        let rows: Ability[] = [];
+        try {
+          rows = await fetchAbilitiesForPokemon(
+            species.id,
+            rulesGeneration,
+          );
+        } catch {
+          // Fall back when junction is missing / not seeded yet.
+          rows = [];
+        }
+        if (rows.length === 0) {
+          // Gen3 has no hidden abilities in-game.
+          rows = await fetchAbilitiesByIds([
+            species.ability1_id,
+            species.ability2_id,
+          ]);
+        }
         if (!cancelled) setAbilities(rows);
       } catch (error) {
         if (!cancelled) {
@@ -1126,6 +1139,7 @@ export function SetPokemonDialog({
   }, [
     visible,
     rulesGeneration,
+    species.id,
     species.ability1_id,
     species.ability2_id,
   ]);
