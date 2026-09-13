@@ -16,6 +16,7 @@ import { calcBattleStats, battleStatsForDamage } from "../party/calcBattleStats"
 import {
   effortValueHint,
   effortValueSectionLabel,
+  ivSectionLabel,
   ivStatLabel,
 } from "../party/battleStatLabels";
 import {
@@ -737,7 +738,7 @@ export function DamageCalcDialog({
     const build =
       importBuild && existing
         ? { ...existing, moveIds: [...existing.moveIds] as PartyMemberBuild["moveIds"] }
-        : createDefaultBuild(pokemon, levelCapMode);
+        : createDefaultBuild(pokemon, levelCapMode, rulesGeneration);
 
     if (side === "attacker") {
       setAttacker({
@@ -1773,11 +1774,14 @@ export function DamageCalcDialog({
 
                           {isPhysicalMove || isSpecialMove ? (
                             <>
-                              <Text style={styles.section}>個体値（0〜15）</Text>
+                              <Text style={styles.section}>
+                                {ivSectionLabel(rulesGeneration)}
+                              </Text>
                               {isPhysicalMove ? (
                                 <IvStatEditor
                                   label={GEN1_STAT_LABELS.attack}
                                   value={attacker.build.iv.attack}
+                                  rulesGeneration={rulesGeneration}
                                   onChange={(v) =>
                                     setIvValue("attacker", "attack", v)
                                   }
@@ -1792,6 +1796,7 @@ export function DamageCalcDialog({
                                     attacker.build,
                                     splitSpecial ? "sp_attack" : "special",
                                   )}
+                                  rulesGeneration={rulesGeneration}
                                   onChange={(v) =>
                                     setIvValue(
                                       "attacker",
@@ -1816,6 +1821,8 @@ export function DamageCalcDialog({
                                   statKey="attack"
                                   iv={attacker.build.iv.attack}
                                   rulesGeneration={rulesGeneration}
+                                  natureId={attacker.build.natureId}
+                                  level={attacker.build.level}
                                   onChange={(v) =>
                                     setStatExpValue("attacker", "attack", v)
                                   }
@@ -1839,6 +1846,8 @@ export function DamageCalcDialog({
                                     splitSpecial ? "sp_attack" : "special",
                                   )}
                                   rulesGeneration={rulesGeneration}
+                                  natureId={attacker.build.natureId}
+                                  level={attacker.build.level}
                                   onChange={(v) =>
                                     setStatExpValue(
                                       "attacker",
@@ -2140,16 +2149,20 @@ export function DamageCalcDialog({
                         </>
                       ) : null}
 
-                      <Text style={styles.section}>個体値（0〜15）</Text>
+                      <Text style={styles.section}>
+                        {ivSectionLabel(rulesGeneration)}
+                      </Text>
                       <IvStatEditor
                         label={GEN1_STAT_LABELS.hp}
                         value={defender.build!.iv.hp}
+                        rulesGeneration={rulesGeneration}
                         onChange={(v) => setIvValue("defender", "hp", v)}
                       />
                       {isPhysicalMove ? (
                         <IvStatEditor
                           label={GEN1_STAT_LABELS.defense}
                           value={defender.build!.iv.defense}
+                          rulesGeneration={rulesGeneration}
                           onChange={(v) => setIvValue("defender", "defense", v)}
                         />
                       ) : null}
@@ -2163,6 +2176,7 @@ export function DamageCalcDialog({
                             defender.build!,
                             splitSpecial ? "sp_defense" : "special",
                           )}
+                          rulesGeneration={rulesGeneration}
                           onChange={(v) =>
                             setIvValue(
                               "defender",
@@ -2186,6 +2200,8 @@ export function DamageCalcDialog({
                         statKey="hp"
                         iv={defender.build!.iv.hp}
                         rulesGeneration={rulesGeneration}
+                        natureId={defender.build!.natureId}
+                        level={defender.build!.level}
                         onChange={(v) => setStatExpValue("defender", "hp", v)}
                       />
                       {isPhysicalMove ? (
@@ -2196,6 +2212,8 @@ export function DamageCalcDialog({
                           statKey="defense"
                           iv={defender.build!.iv.defense}
                           rulesGeneration={rulesGeneration}
+                          natureId={defender.build!.natureId}
+                          level={defender.build!.level}
                           onChange={(v) =>
                             setStatExpValue("defender", "defense", v)
                           }
@@ -2218,6 +2236,8 @@ export function DamageCalcDialog({
                             splitSpecial ? "sp_defense" : "special",
                           )}
                           rulesGeneration={rulesGeneration}
+                          natureId={defender.build!.natureId}
+                          level={defender.build!.level}
                           onChange={(v) =>
                             setStatExpValue(
                               "defender",

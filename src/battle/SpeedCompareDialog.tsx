@@ -10,7 +10,12 @@ import {
 } from "react-native";
 
 import type { LevelCapMode } from "../match-setup/types";
-import { calcGen1Stats } from "../party/gen1Stats";
+import { calcBattleStats } from "../party/calcBattleStats";
+import {
+  effortValueHint,
+  effortValueSectionLabel,
+  ivSectionLabel,
+} from "../party/battleStatLabels";
 import {
   IvStatEditor,
   StatExpEditor,
@@ -440,7 +445,7 @@ export function SpeedCompareDialog({
             ...existing,
             moveIds: [...existing.moveIds] as PartyMemberBuild["moveIds"],
           }
-        : createDefaultBuild(pokemon, levelCapMode);
+        : createDefaultBuild(pokemon, levelCapMode, rulesGeneration);
 
     const next: SideDraft = {
       species: pokemon,
@@ -625,14 +630,18 @@ export function SpeedCompareDialog({
   };
 
   const selfStats =
-    self.species && self.build ? calcGen1Stats(self.species, self.build) : null;
+    self.species && self.build
+      ? calcBattleStats(self.species, self.build, rulesGeneration)
+      : null;
   const foeStats =
-    foe.species && foe.build ? calcGen1Stats(foe.species, foe.build) : null;
+    foe.species && foe.build
+      ? calcBattleStats(foe.species, foe.build, rulesGeneration)
+      : null;
 
   const renderSideColumn = (
     side: PickSide,
     draft: SideDraft,
-    stats: ReturnType<typeof calcGen1Stats> | null,
+    stats: ReturnType<typeof calcBattleStats> | null,
     setDraft: typeof setSelf,
     patchBuild: typeof patchSelfBuild,
   ) => {
@@ -696,10 +705,13 @@ export function SpeedCompareDialog({
               }
             />
 
-            <Text style={styles.section}>個体値（0〜15）</Text>
+            <Text style={styles.section}>
+              {ivSectionLabel(rulesGeneration)}
+            </Text>
             <IvStatEditor
               label={GEN1_STAT_LABELS.speed}
               value={draft.build.iv.speed}
+              rulesGeneration={rulesGeneration}
               onChange={(v) =>
                 patchBuild((b) => ({
                   ...b,
@@ -708,9 +720,11 @@ export function SpeedCompareDialog({
               }
             />
 
-            <Text style={styles.section}>努力値（0〜65535）</Text>
+            <Text style={styles.section}>
+              {effortValueSectionLabel(rulesGeneration)}
+            </Text>
             <Text style={styles.sectionHint}>
-              Lv50 ±1 は、レベル50での実数値が1変わる基礎ポイントに合わせます。
+              {effortValueHint(rulesGeneration)}
             </Text>
             <StatExpEditor
               label={GEN1_STAT_LABELS.speed}
@@ -718,6 +732,9 @@ export function SpeedCompareDialog({
               species={draft.species}
               statKey="speed"
               iv={draft.build.iv.speed}
+              rulesGeneration={rulesGeneration}
+              natureId={draft.build.natureId}
+              level={draft.build.level}
               onChange={(v) =>
                 patchBuild((b) => ({
                   ...b,
