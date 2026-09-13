@@ -34,12 +34,12 @@ export const poolGenerationOptions: GenerationOption[] = generations.map(
   }),
 );
 
-/** Held-item debut generations (Gen 2–9). Only Gen2 is selectable for now. */
+/** Held-item debut generations (Gen 2–9). Unimplemented gens stay disabled. */
 export const itemPoolGenerationOptions: GenerationOption[] =
   itemPoolGenerations.map((generation) => ({
     value: generation,
     title: `第${generation}世代`,
-    disabled: generation > 2,
+    disabled: !isGenerationImplemented(generation),
   }));
 
 export const restrictionOptions: {
