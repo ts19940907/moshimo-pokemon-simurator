@@ -40,6 +40,7 @@ import {
 } from "../match-setup/params";
 import { SetPokemonDialog } from "./set/SetPokemonDialog";
 import { Gen1TypeChartDialog } from "../battle/Gen1TypeChartDialog";
+import { typeChartButtonLabel } from "../battle/typeEffectiveness";
 import { matchBackgroundForRules } from "../match-setup/backgrounds";
 import { MatchScreenBackground } from "../match-setup/MatchScreenBackground";
 import { readStatBlockValue, statEditorKeys } from "../party/statEditor";
@@ -373,9 +374,7 @@ export function SetPokemonScreen() {
               ]}
             >
               <Text style={styles.typeChartButtonText}>
-                {rulesGeneration >= 2
-                  ? "第2世代タイプ相性表を見る"
-                  : "初代タイプ相性表を見る"}
+                {typeChartButtonLabel(rulesGeneration)}
               </Text>
             </Pressable>
 

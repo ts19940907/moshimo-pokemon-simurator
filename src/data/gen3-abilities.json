@@ -1,0 +1,610 @@
+[
+  {
+    "pokeapi_id": 1,
+    "name_ja": "あくしゅう",
+    "name_en": "Stench",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "くさくて あいてが ひるむ ことがある。"
+  },
+  {
+    "pokeapi_id": 2,
+    "name_ja": "あめふらし",
+    "name_en": "Drizzle",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "せんとうに でると あめを ふらす。"
+  },
+  {
+    "pokeapi_id": 3,
+    "name_ja": "かそく",
+    "name_en": "Speed Boost",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "ちょっとずつ すばやく なっていく。"
+  },
+  {
+    "pokeapi_id": 4,
+    "name_ja": "カブトアーマー",
+    "name_en": "Battle Armor",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "あいての こうげきが きゅうしょに あたらない。"
+  },
+  {
+    "pokeapi_id": 5,
+    "name_ja": "がんじょう",
+    "name_en": "Sturdy",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "いちげきで たおされない。"
+  },
+  {
+    "pokeapi_id": 6,
+    "name_ja": "しめりけ",
+    "name_en": "Damp",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "だれも ばくはつが できなくなる。"
+  },
+  {
+    "pokeapi_id": 7,
+    "name_ja": "じゅうなん",
+    "name_en": "Limber",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "まひ じょうたいに ならない。"
+  },
+  {
+    "pokeapi_id": 8,
+    "name_ja": "すながくれ",
+    "name_en": "Sand Veil",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "すなあらしで かいひりつが あがる。"
+  },
+  {
+    "pokeapi_id": 9,
+    "name_ja": "せいでんき",
+    "name_en": "Static",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "さわった あいてを まひさせる ことがある。"
+  },
+  {
+    "pokeapi_id": 10,
+    "name_ja": "ちくでん",
+    "name_en": "Volt Absorb",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "でんきを うけると かいふくする。"
+  },
+  {
+    "pokeapi_id": 11,
+    "name_ja": "ちょすい",
+    "name_en": "Water Absorb",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "みずを うけると かいふくする。"
+  },
+  {
+    "pokeapi_id": 12,
+    "name_ja": "どんかん",
+    "name_en": "Oblivious",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "メロメロや ちょうはつ じょうたいに ならない。"
+  },
+  {
+    "pokeapi_id": 13,
+    "name_ja": "ノーてんき",
+    "name_en": "Cloud Nine",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "てんきの えいきょうが なくなる。"
+  },
+  {
+    "pokeapi_id": 14,
+    "name_ja": "ふくがん",
+    "name_en": "Compound Eyes",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "わざの めいちゅうりつが あがる。"
+  },
+  {
+    "pokeapi_id": 15,
+    "name_ja": "ふみん",
+    "name_en": "Insomnia",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "ねむり じょうたいに ならない。"
+  },
+  {
+    "pokeapi_id": 16,
+    "name_ja": "へんしょく",
+    "name_en": "Color Change",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "うけた わざの タイプに へんかする。"
+  },
+  {
+    "pokeapi_id": 17,
+    "name_ja": "めんえき",
+    "name_en": "Immunity",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "どく じょうたいに ならない。"
+  },
+  {
+    "pokeapi_id": 18,
+    "name_ja": "もらいび",
+    "name_en": "Flash Fire",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "ほのおを うけると ほのおわざが つよくなる。"
+  },
+  {
+    "pokeapi_id": 19,
+    "name_ja": "りんぷん",
+    "name_en": "Shield Dust",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "わざの ついかこうかを うけない。"
+  },
+  {
+    "pokeapi_id": 20,
+    "name_ja": "マイペース",
+    "name_en": "Own Tempo",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "こんらん じょうたいに ならない。"
+  },
+  {
+    "pokeapi_id": 21,
+    "name_ja": "きゅうばん",
+    "name_en": "Suction Cups",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "いれかえさせる わざや どうぐが きかない。"
+  },
+  {
+    "pokeapi_id": 22,
+    "name_ja": "いかく",
+    "name_en": "Intimidate",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "あいての こうげきを さげる。"
+  },
+  {
+    "pokeapi_id": 23,
+    "name_ja": "かげふみ",
+    "name_en": "Shadow Tag",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "あいての かげをふみ にげられなくする。"
+  },
+  {
+    "pokeapi_id": 24,
+    "name_ja": "さめはだ",
+    "name_en": "Rough Skin",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "ふれた あいてを キズつける。"
+  },
+  {
+    "pokeapi_id": 25,
+    "name_ja": "ふしぎなまもり",
+    "name_en": "Wonder Guard",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "こうかばつぐん しか あたらない。"
+  },
+  {
+    "pokeapi_id": 26,
+    "name_ja": "ふゆう",
+    "name_en": "Levitate",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "じめんタイプの わざを うけない。"
+  },
+  {
+    "pokeapi_id": 27,
+    "name_ja": "ほうし",
+    "name_en": "Effect Spore",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "ふれると どく まひ ねむりに することがある。"
+  },
+  {
+    "pokeapi_id": 28,
+    "name_ja": "シンクロ",
+    "name_en": "Synchronize",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "どく まひ やけどを あいてに うつす。"
+  },
+  {
+    "pokeapi_id": 29,
+    "name_ja": "クリアボディ",
+    "name_en": "Clear Body",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "あいてに のうりょくを さげられない。"
+  },
+  {
+    "pokeapi_id": 30,
+    "name_ja": "しぜんかいふく",
+    "name_en": "Natural Cure",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "じょうたい いじょうが ひっこむと なおる。"
+  },
+  {
+    "pokeapi_id": 31,
+    "name_ja": "ひらいしん",
+    "name_en": "Lightning Rod",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "でんきを よびこんで とくこうを あげる。"
+  },
+  {
+    "pokeapi_id": 32,
+    "name_ja": "てんのめぐみ",
+    "name_en": "Serene Grace",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "わざの ついかこうかが でやすい。"
+  },
+  {
+    "pokeapi_id": 33,
+    "name_ja": "すいすい",
+    "name_en": "Swift Swim",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "あめのとき すばやさが あがる。"
+  },
+  {
+    "pokeapi_id": 34,
+    "name_ja": "ようりょくそ",
+    "name_en": "Chlorophyll",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "はれのとき すばやさが あがる。"
+  },
+  {
+    "pokeapi_id": 35,
+    "name_ja": "はっこう",
+    "name_en": "Illuminate",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "やせいの ポケモンに そうぐう しやすくなる。"
+  },
+  {
+    "pokeapi_id": 36,
+    "name_ja": "トレース",
+    "name_en": "Trace",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "あいてと おなじ とくせいに なる。"
+  },
+  {
+    "pokeapi_id": 37,
+    "name_ja": "ちからもち",
+    "name_en": "Huge Power",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "ぶつり こうげきの いりょくが あがる。"
+  },
+  {
+    "pokeapi_id": 38,
+    "name_ja": "どくのトゲ",
+    "name_en": "Poison Point",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "ふれた あいてに どくを おわせる ことがある。"
+  },
+  {
+    "pokeapi_id": 39,
+    "name_ja": "せいしんりょく",
+    "name_en": "Inner Focus",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "ひるまない。"
+  },
+  {
+    "pokeapi_id": 40,
+    "name_ja": "マグマのよろい",
+    "name_en": "Magma Armor",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "こおり じょうたいに ならない。"
+  },
+  {
+    "pokeapi_id": 41,
+    "name_ja": "みずのベール",
+    "name_en": "Water Veil",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "やけど じょうたいに ならない。"
+  },
+  {
+    "pokeapi_id": 42,
+    "name_ja": "じりょく",
+    "name_en": "Magnet Pull",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "はがねの ポケモンを にげられなくする。"
+  },
+  {
+    "pokeapi_id": 43,
+    "name_ja": "ぼうおん",
+    "name_en": "Soundproof",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "おとの わざを うけない。"
+  },
+  {
+    "pokeapi_id": 44,
+    "name_ja": "あめうけざら",
+    "name_en": "Rain Dish",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "あめのとき すこしずつ ＨＰを かいふくする。"
+  },
+  {
+    "pokeapi_id": 45,
+    "name_ja": "すなおこし",
+    "name_en": "Sand Stream",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "せんとうで すなあらしを おこす。"
+  },
+  {
+    "pokeapi_id": 46,
+    "name_ja": "プレッシャー",
+    "name_en": "Pressure",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "あいての つかう わざの ＰＰを おおく へらす。"
+  },
+  {
+    "pokeapi_id": 47,
+    "name_ja": "あついしぼう",
+    "name_en": "Thick Fat",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "ほのおと こおりタイプの わざに つよい。"
+  },
+  {
+    "pokeapi_id": 48,
+    "name_ja": "はやおき",
+    "name_en": "Early Bird",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "おきるのが はやくなる。"
+  },
+  {
+    "pokeapi_id": 49,
+    "name_ja": "ほのおのからだ",
+    "name_en": "Flame Body",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "ふれた あいてを やけど させることがある。"
+  },
+  {
+    "pokeapi_id": 50,
+    "name_ja": "にげあし",
+    "name_en": "Run Away",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "やせいの ポケモンから かならず にげられる。"
+  },
+  {
+    "pokeapi_id": 51,
+    "name_ja": "するどいめ",
+    "name_en": "Keen Eye",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "めいちゅうりつを さげられない。"
+  },
+  {
+    "pokeapi_id": 52,
+    "name_ja": "かいりきバサミ",
+    "name_en": "Hyper Cutter",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "あいてに こうげきを さげられない。"
+  },
+  {
+    "pokeapi_id": 53,
+    "name_ja": "ものひろい",
+    "name_en": "Pickup",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "どうぐを ひろってくる ことが ある。"
+  },
+  {
+    "pokeapi_id": 54,
+    "name_ja": "なまけ",
+    "name_en": "Truant",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "こうげきが れんぞくで だせない。"
+  },
+  {
+    "pokeapi_id": 55,
+    "name_ja": "はりきり",
+    "name_en": "Hustle",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "こうげきは たかいが はずれやすい。"
+  },
+  {
+    "pokeapi_id": 56,
+    "name_ja": "メロメロボディ",
+    "name_en": "Cute Charm",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "ふれると メロメロに することがある。"
+  },
+  {
+    "pokeapi_id": 57,
+    "name_ja": "プラス",
+    "name_en": "Plus",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "プラスかマイナスがいると とくこうが あがる。"
+  },
+  {
+    "pokeapi_id": 58,
+    "name_ja": "マイナス",
+    "name_en": "Minus",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "プラスかマイナスがいると とくこうが あがる。"
+  },
+  {
+    "pokeapi_id": 59,
+    "name_ja": "てんきや",
+    "name_en": "Forecast",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "てんきで ポワルンが へんかする。"
+  },
+  {
+    "pokeapi_id": 60,
+    "name_ja": "ねんちゃく",
+    "name_en": "Sticky Hold",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "ねんちゃくして どうぐを まもる。"
+  },
+  {
+    "pokeapi_id": 61,
+    "name_ja": "だっぴ",
+    "name_en": "Shed Skin",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "じょうたい いじょうを なおす ことがある。"
+  },
+  {
+    "pokeapi_id": 62,
+    "name_ja": "こんじょう",
+    "name_en": "Guts",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "じょうたい いじょうで こうげきが あがる。"
+  },
+  {
+    "pokeapi_id": 63,
+    "name_ja": "ふしぎなうろこ",
+    "name_en": "Marvel Scale",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "じょうたい いじょうで ぼうぎょが あがる。"
+  },
+  {
+    "pokeapi_id": 64,
+    "name_ja": "ヘドロえき",
+    "name_en": "Liquid Ooze",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "すいとった あいての ＨＰを へらす。"
+  },
+  {
+    "pokeapi_id": 65,
+    "name_ja": "しんりょく",
+    "name_en": "Overgrow",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "ピンチのとき くさの いりょくが あがる。"
+  },
+  {
+    "pokeapi_id": 66,
+    "name_ja": "もうか",
+    "name_en": "Blaze",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "ピンチのとき ほのおの いりょくが あがる。"
+  },
+  {
+    "pokeapi_id": 67,
+    "name_ja": "げきりゅう",
+    "name_en": "Torrent",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "ピンチのとき みずの いりょくが あがる。"
+  },
+  {
+    "pokeapi_id": 68,
+    "name_ja": "むしのしらせ",
+    "name_en": "Swarm",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "ピンチのとき むしの いりょくが あがる。"
+  },
+  {
+    "pokeapi_id": 69,
+    "name_ja": "いしあたま",
+    "name_en": "Rock Head",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "ぶつかっても はんどうを うけない。"
+  },
+  {
+    "pokeapi_id": 70,
+    "name_ja": "ひでり",
+    "name_en": "Drought",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "せんとうに でると ひざしが つよくなる。"
+  },
+  {
+    "pokeapi_id": 71,
+    "name_ja": "ありじごく",
+    "name_en": "Arena Trap",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "せんとうで あいてを にげられなくする。"
+  },
+  {
+    "pokeapi_id": 72,
+    "name_ja": "やるき",
+    "name_en": "Vital Spirit",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "ねむり じょうたいに ならない。"
+  },
+  {
+    "pokeapi_id": 73,
+    "name_ja": "しろいけむり",
+    "name_en": "White Smoke",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "あいてに のうりょくを さげられない。"
+  },
+  {
+    "pokeapi_id": 74,
+    "name_ja": "ヨガパワー",
+    "name_en": "Pure Power",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "ぶつり こうげきの いりょくが あがる。"
+  },
+  {
+    "pokeapi_id": 75,
+    "name_ja": "シェルアーマー",
+    "name_en": "Shell Armor",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "あいての こうげきが きゅうしょに あたらない。"
+  },
+  {
+    "pokeapi_id": 76,
+    "name_ja": "エアロック",
+    "name_en": "Air Lock",
+    "introduced_generation": 3,
+    "available_generations": 508,
+    "description": "てんきの えいきょうが なくなる。"
+  }
+]

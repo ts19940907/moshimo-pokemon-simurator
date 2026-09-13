@@ -1,8 +1,8 @@
 import type { Gen1StatBlock } from "../party/types";
 import type { Move } from "../pokemon/moves";
 import type { PokemonSpecies } from "../pokemon/types";
-import { gen1TypeEffectiveness } from "./gen1TypeChart";
 import { heldItemDamageMultiplier } from "./toolEffects";
+import { typeEffectivenessForRules } from "./typeEffectiveness";
 import { stagedStat } from "./types";
 import {
   weatherSolarBeamMultiplier,
@@ -24,6 +24,8 @@ export type DamageCalcModifiers = {
   attackerItemPokeapiId?: number | null;
   attackerAbilityId?: string | null;
   defenderAbilityId?: string | null;
+  /** Battle rules generation for type chart selection. */
+  rulesGeneration?: number;
 };
 
 export type DamageCalcSides = {
@@ -126,7 +128,8 @@ export function damageBeforeRandom(
     return { damage: 0, typeEffectiveness: 1 };
   }
 
-  const typeEffectiveness = gen1TypeEffectiveness(
+  const typeEffectiveness = typeEffectivenessForRules(
+    modifiers.rulesGeneration ?? 1,
     move.type_id,
     sides.defenderSpecies.type1,
     sides.defenderSpecies.type2,

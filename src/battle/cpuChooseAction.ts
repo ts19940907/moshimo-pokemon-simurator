@@ -8,7 +8,7 @@ import {
   calcDamageRange,
   type DamageCalcModifiers,
 } from "./calcDamage";
-import { gen1TypeEffectiveness } from "./gen1TypeChart";
+import { typeEffectivenessForRules } from "./typeEffectiveness";
 import { hypothesizeThreatMoves, randInt } from "./cpuTeam";
 import { getForcedMove } from "./resolveTurn";
 import { getMoveByPokeapiId } from "./gen1MovePool";
@@ -149,13 +149,22 @@ function bestDamageAmong(
   return best;
 }
 
-function typePressure(attacker: PokemonSpecies, defender: PokemonSpecies): number {
+function typePressure(
+  attacker: PokemonSpecies,
+  defender: PokemonSpecies,
+  rulesGeneration: number,
+): number {
   const types = [attacker.type1, attacker.type2].filter(Boolean);
   let best = 0;
   for (const t of types) {
     best = Math.max(
       best,
-      gen1TypeEffectiveness(t, defender.type1, defender.type2),
+      typeEffectivenessForRules(
+        rulesGeneration,
+        t,
+        defender.type1,
+        defender.type2,
+      ),
     );
   }
   return best;
@@ -176,8 +185,16 @@ export function evaluateMatchup(input: {
   if (selfSpd > foeSpd) score += 1;
   else if (selfSpd < foeSpd) score -= 1;
 
-  const off = typePressure(input.self.species, input.foe.species);
-  const def = typePressure(input.foe.species, input.self.species);
+  const off = typePressure(
+    input.self.species,
+    input.foe.species,
+    rulesGeneration,
+  );
+  const def = typePressure(
+    input.foe.species,
+    input.self.species,
+    rulesGeneration,
+  );
   if (off >= 2 && def <= 1) score += 1;
   else if (def >= 2 && off <= 1) score -= 1;
 
@@ -327,7 +344,8 @@ export function chooseCpuAction(input: {
       score = 8 + avg / Math.max(1, input.foe.maxHp) * 40;
       if (min >= input.foe.currentHp) score += 25;
       else if (avg * 2 >= input.foe.currentHp) score += 12;
-      const eff = gen1TypeEffectiveness(
+      const eff = typeEffectivenessForRules(
+        rulesGeneration,
         move.type_id,
         input.foe.species.type1,
         input.foe.species.type2,
@@ -351,8 +369,8 @@ export function chooseCpuAction(input: {
 
   for (const opt of input.switchOptions) {
     let score = stance === "disadvantage" ? 16 : 4;
-    const off = typePressure(opt.species, input.foe.species);
-    const def = typePressure(input.foe.species, opt.species);
+    const off = typePressure(opt.species, input.foe.species, rulesGeneration);
+    const def = typePressure(input.foe.species, opt.species, rulesGeneration);
     score += off * 8;
     score -= def * 6;
     if (stance === "advantage") score *= 0.35;
@@ -378,13 +396,15 @@ export function chooseCpuAction(input: {
 export function chooseCpuForcedSwitch(input: {
   switchOptions: { index: number; member: PartyMemberBuild; species: PokemonSpecies }[];
   foe: BattleFighter;
+  rulesGeneration?: number;
 }): BattleAction {
   if (input.switchOptions.length === 0) {
     return { type: "run" };
   }
+  const rulesGeneration = input.rulesGeneration ?? 1;
   const scored = input.switchOptions.map((opt) => {
-    const off = typePressure(opt.species, input.foe.species);
-    const def = typePressure(input.foe.species, opt.species);
+    const off = typePressure(opt.species, input.foe.species, rulesGeneration);
+    const def = typePressure(input.foe.species, opt.species, rulesGeneration);
     const stats = calcGen1Stats(opt.species, opt.member);
     return {
       action: { type: "switch" as const, index: opt.index },

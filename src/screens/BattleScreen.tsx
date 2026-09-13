@@ -1327,6 +1327,7 @@ export function BattleScreen() {
     const action = chooseCpuForcedSwitch({
       switchOptions: options,
       foe,
+      rulesGeneration,
     });
     if (action.type !== "switch") return;
     const t = setTimeout(() => {

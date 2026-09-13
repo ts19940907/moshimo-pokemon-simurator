@@ -1,0 +1,2562 @@
+[
+  {
+    "dex_no": 1,
+    "pokeapi_ability_id": 65,
+    "slot": 1
+  },
+  {
+    "dex_no": 2,
+    "pokeapi_ability_id": 65,
+    "slot": 1
+  },
+  {
+    "dex_no": 3,
+    "pokeapi_ability_id": 65,
+    "slot": 1
+  },
+  {
+    "dex_no": 4,
+    "pokeapi_ability_id": 66,
+    "slot": 1
+  },
+  {
+    "dex_no": 5,
+    "pokeapi_ability_id": 66,
+    "slot": 1
+  },
+  {
+    "dex_no": 6,
+    "pokeapi_ability_id": 66,
+    "slot": 1
+  },
+  {
+    "dex_no": 7,
+    "pokeapi_ability_id": 67,
+    "slot": 1
+  },
+  {
+    "dex_no": 8,
+    "pokeapi_ability_id": 67,
+    "slot": 1
+  },
+  {
+    "dex_no": 9,
+    "pokeapi_ability_id": 67,
+    "slot": 1
+  },
+  {
+    "dex_no": 10,
+    "pokeapi_ability_id": 19,
+    "slot": 1
+  },
+  {
+    "dex_no": 11,
+    "pokeapi_ability_id": 61,
+    "slot": 1
+  },
+  {
+    "dex_no": 12,
+    "pokeapi_ability_id": 14,
+    "slot": 1
+  },
+  {
+    "dex_no": 13,
+    "pokeapi_ability_id": 19,
+    "slot": 1
+  },
+  {
+    "dex_no": 14,
+    "pokeapi_ability_id": 61,
+    "slot": 1
+  },
+  {
+    "dex_no": 15,
+    "pokeapi_ability_id": 68,
+    "slot": 1
+  },
+  {
+    "dex_no": 16,
+    "pokeapi_ability_id": 51,
+    "slot": 1
+  },
+  {
+    "dex_no": 17,
+    "pokeapi_ability_id": 51,
+    "slot": 1
+  },
+  {
+    "dex_no": 18,
+    "pokeapi_ability_id": 51,
+    "slot": 1
+  },
+  {
+    "dex_no": 19,
+    "pokeapi_ability_id": 50,
+    "slot": 1
+  },
+  {
+    "dex_no": 19,
+    "pokeapi_ability_id": 62,
+    "slot": 2
+  },
+  {
+    "dex_no": 20,
+    "pokeapi_ability_id": 50,
+    "slot": 1
+  },
+  {
+    "dex_no": 20,
+    "pokeapi_ability_id": 62,
+    "slot": 2
+  },
+  {
+    "dex_no": 21,
+    "pokeapi_ability_id": 51,
+    "slot": 1
+  },
+  {
+    "dex_no": 22,
+    "pokeapi_ability_id": 51,
+    "slot": 1
+  },
+  {
+    "dex_no": 23,
+    "pokeapi_ability_id": 22,
+    "slot": 1
+  },
+  {
+    "dex_no": 23,
+    "pokeapi_ability_id": 61,
+    "slot": 2
+  },
+  {
+    "dex_no": 24,
+    "pokeapi_ability_id": 22,
+    "slot": 1
+  },
+  {
+    "dex_no": 24,
+    "pokeapi_ability_id": 61,
+    "slot": 2
+  },
+  {
+    "dex_no": 25,
+    "pokeapi_ability_id": 9,
+    "slot": 1
+  },
+  {
+    "dex_no": 26,
+    "pokeapi_ability_id": 9,
+    "slot": 1
+  },
+  {
+    "dex_no": 27,
+    "pokeapi_ability_id": 8,
+    "slot": 1
+  },
+  {
+    "dex_no": 28,
+    "pokeapi_ability_id": 8,
+    "slot": 1
+  },
+  {
+    "dex_no": 29,
+    "pokeapi_ability_id": 38,
+    "slot": 1
+  },
+  {
+    "dex_no": 30,
+    "pokeapi_ability_id": 38,
+    "slot": 1
+  },
+  {
+    "dex_no": 31,
+    "pokeapi_ability_id": 38,
+    "slot": 1
+  },
+  {
+    "dex_no": 32,
+    "pokeapi_ability_id": 38,
+    "slot": 1
+  },
+  {
+    "dex_no": 33,
+    "pokeapi_ability_id": 38,
+    "slot": 1
+  },
+  {
+    "dex_no": 34,
+    "pokeapi_ability_id": 38,
+    "slot": 1
+  },
+  {
+    "dex_no": 35,
+    "pokeapi_ability_id": 56,
+    "slot": 1
+  },
+  {
+    "dex_no": 36,
+    "pokeapi_ability_id": 56,
+    "slot": 1
+  },
+  {
+    "dex_no": 37,
+    "pokeapi_ability_id": 18,
+    "slot": 1
+  },
+  {
+    "dex_no": 38,
+    "pokeapi_ability_id": 18,
+    "slot": 1
+  },
+  {
+    "dex_no": 39,
+    "pokeapi_ability_id": 56,
+    "slot": 1
+  },
+  {
+    "dex_no": 40,
+    "pokeapi_ability_id": 56,
+    "slot": 1
+  },
+  {
+    "dex_no": 41,
+    "pokeapi_ability_id": 39,
+    "slot": 1
+  },
+  {
+    "dex_no": 42,
+    "pokeapi_ability_id": 39,
+    "slot": 1
+  },
+  {
+    "dex_no": 43,
+    "pokeapi_ability_id": 34,
+    "slot": 1
+  },
+  {
+    "dex_no": 44,
+    "pokeapi_ability_id": 34,
+    "slot": 1
+  },
+  {
+    "dex_no": 45,
+    "pokeapi_ability_id": 34,
+    "slot": 1
+  },
+  {
+    "dex_no": 46,
+    "pokeapi_ability_id": 27,
+    "slot": 1
+  },
+  {
+    "dex_no": 47,
+    "pokeapi_ability_id": 27,
+    "slot": 1
+  },
+  {
+    "dex_no": 48,
+    "pokeapi_ability_id": 14,
+    "slot": 1
+  },
+  {
+    "dex_no": 49,
+    "pokeapi_ability_id": 19,
+    "slot": 1
+  },
+  {
+    "dex_no": 50,
+    "pokeapi_ability_id": 8,
+    "slot": 1
+  },
+  {
+    "dex_no": 50,
+    "pokeapi_ability_id": 71,
+    "slot": 2
+  },
+  {
+    "dex_no": 51,
+    "pokeapi_ability_id": 8,
+    "slot": 1
+  },
+  {
+    "dex_no": 51,
+    "pokeapi_ability_id": 71,
+    "slot": 2
+  },
+  {
+    "dex_no": 52,
+    "pokeapi_ability_id": 53,
+    "slot": 1
+  },
+  {
+    "dex_no": 53,
+    "pokeapi_ability_id": 7,
+    "slot": 1
+  },
+  {
+    "dex_no": 54,
+    "pokeapi_ability_id": 6,
+    "slot": 1
+  },
+  {
+    "dex_no": 54,
+    "pokeapi_ability_id": 13,
+    "slot": 2
+  },
+  {
+    "dex_no": 55,
+    "pokeapi_ability_id": 6,
+    "slot": 1
+  },
+  {
+    "dex_no": 55,
+    "pokeapi_ability_id": 13,
+    "slot": 2
+  },
+  {
+    "dex_no": 56,
+    "pokeapi_ability_id": 72,
+    "slot": 1
+  },
+  {
+    "dex_no": 57,
+    "pokeapi_ability_id": 72,
+    "slot": 1
+  },
+  {
+    "dex_no": 58,
+    "pokeapi_ability_id": 22,
+    "slot": 1
+  },
+  {
+    "dex_no": 58,
+    "pokeapi_ability_id": 18,
+    "slot": 2
+  },
+  {
+    "dex_no": 59,
+    "pokeapi_ability_id": 22,
+    "slot": 1
+  },
+  {
+    "dex_no": 59,
+    "pokeapi_ability_id": 18,
+    "slot": 2
+  },
+  {
+    "dex_no": 60,
+    "pokeapi_ability_id": 11,
+    "slot": 1
+  },
+  {
+    "dex_no": 60,
+    "pokeapi_ability_id": 6,
+    "slot": 2
+  },
+  {
+    "dex_no": 61,
+    "pokeapi_ability_id": 11,
+    "slot": 1
+  },
+  {
+    "dex_no": 61,
+    "pokeapi_ability_id": 6,
+    "slot": 2
+  },
+  {
+    "dex_no": 62,
+    "pokeapi_ability_id": 11,
+    "slot": 1
+  },
+  {
+    "dex_no": 62,
+    "pokeapi_ability_id": 6,
+    "slot": 2
+  },
+  {
+    "dex_no": 63,
+    "pokeapi_ability_id": 28,
+    "slot": 1
+  },
+  {
+    "dex_no": 63,
+    "pokeapi_ability_id": 39,
+    "slot": 2
+  },
+  {
+    "dex_no": 64,
+    "pokeapi_ability_id": 28,
+    "slot": 1
+  },
+  {
+    "dex_no": 64,
+    "pokeapi_ability_id": 39,
+    "slot": 2
+  },
+  {
+    "dex_no": 65,
+    "pokeapi_ability_id": 28,
+    "slot": 1
+  },
+  {
+    "dex_no": 65,
+    "pokeapi_ability_id": 39,
+    "slot": 2
+  },
+  {
+    "dex_no": 66,
+    "pokeapi_ability_id": 62,
+    "slot": 1
+  },
+  {
+    "dex_no": 67,
+    "pokeapi_ability_id": 62,
+    "slot": 1
+  },
+  {
+    "dex_no": 68,
+    "pokeapi_ability_id": 62,
+    "slot": 1
+  },
+  {
+    "dex_no": 69,
+    "pokeapi_ability_id": 34,
+    "slot": 1
+  },
+  {
+    "dex_no": 70,
+    "pokeapi_ability_id": 34,
+    "slot": 1
+  },
+  {
+    "dex_no": 71,
+    "pokeapi_ability_id": 34,
+    "slot": 1
+  },
+  {
+    "dex_no": 72,
+    "pokeapi_ability_id": 29,
+    "slot": 1
+  },
+  {
+    "dex_no": 72,
+    "pokeapi_ability_id": 64,
+    "slot": 2
+  },
+  {
+    "dex_no": 73,
+    "pokeapi_ability_id": 29,
+    "slot": 1
+  },
+  {
+    "dex_no": 73,
+    "pokeapi_ability_id": 64,
+    "slot": 2
+  },
+  {
+    "dex_no": 74,
+    "pokeapi_ability_id": 69,
+    "slot": 1
+  },
+  {
+    "dex_no": 74,
+    "pokeapi_ability_id": 5,
+    "slot": 2
+  },
+  {
+    "dex_no": 75,
+    "pokeapi_ability_id": 69,
+    "slot": 1
+  },
+  {
+    "dex_no": 75,
+    "pokeapi_ability_id": 5,
+    "slot": 2
+  },
+  {
+    "dex_no": 76,
+    "pokeapi_ability_id": 69,
+    "slot": 1
+  },
+  {
+    "dex_no": 76,
+    "pokeapi_ability_id": 5,
+    "slot": 2
+  },
+  {
+    "dex_no": 77,
+    "pokeapi_ability_id": 50,
+    "slot": 1
+  },
+  {
+    "dex_no": 77,
+    "pokeapi_ability_id": 18,
+    "slot": 2
+  },
+  {
+    "dex_no": 78,
+    "pokeapi_ability_id": 50,
+    "slot": 1
+  },
+  {
+    "dex_no": 78,
+    "pokeapi_ability_id": 18,
+    "slot": 2
+  },
+  {
+    "dex_no": 79,
+    "pokeapi_ability_id": 12,
+    "slot": 1
+  },
+  {
+    "dex_no": 79,
+    "pokeapi_ability_id": 20,
+    "slot": 2
+  },
+  {
+    "dex_no": 80,
+    "pokeapi_ability_id": 12,
+    "slot": 1
+  },
+  {
+    "dex_no": 80,
+    "pokeapi_ability_id": 20,
+    "slot": 2
+  },
+  {
+    "dex_no": 81,
+    "pokeapi_ability_id": 42,
+    "slot": 1
+  },
+  {
+    "dex_no": 81,
+    "pokeapi_ability_id": 5,
+    "slot": 2
+  },
+  {
+    "dex_no": 82,
+    "pokeapi_ability_id": 42,
+    "slot": 1
+  },
+  {
+    "dex_no": 82,
+    "pokeapi_ability_id": 5,
+    "slot": 2
+  },
+  {
+    "dex_no": 83,
+    "pokeapi_ability_id": 51,
+    "slot": 1
+  },
+  {
+    "dex_no": 83,
+    "pokeapi_ability_id": 39,
+    "slot": 2
+  },
+  {
+    "dex_no": 84,
+    "pokeapi_ability_id": 50,
+    "slot": 1
+  },
+  {
+    "dex_no": 84,
+    "pokeapi_ability_id": 48,
+    "slot": 2
+  },
+  {
+    "dex_no": 85,
+    "pokeapi_ability_id": 50,
+    "slot": 1
+  },
+  {
+    "dex_no": 85,
+    "pokeapi_ability_id": 48,
+    "slot": 2
+  },
+  {
+    "dex_no": 86,
+    "pokeapi_ability_id": 47,
+    "slot": 1
+  },
+  {
+    "dex_no": 87,
+    "pokeapi_ability_id": 47,
+    "slot": 1
+  },
+  {
+    "dex_no": 88,
+    "pokeapi_ability_id": 1,
+    "slot": 1
+  },
+  {
+    "dex_no": 88,
+    "pokeapi_ability_id": 60,
+    "slot": 2
+  },
+  {
+    "dex_no": 89,
+    "pokeapi_ability_id": 1,
+    "slot": 1
+  },
+  {
+    "dex_no": 89,
+    "pokeapi_ability_id": 60,
+    "slot": 2
+  },
+  {
+    "dex_no": 90,
+    "pokeapi_ability_id": 75,
+    "slot": 1
+  },
+  {
+    "dex_no": 91,
+    "pokeapi_ability_id": 75,
+    "slot": 1
+  },
+  {
+    "dex_no": 92,
+    "pokeapi_ability_id": 26,
+    "slot": 1
+  },
+  {
+    "dex_no": 93,
+    "pokeapi_ability_id": 26,
+    "slot": 1
+  },
+  {
+    "dex_no": 95,
+    "pokeapi_ability_id": 69,
+    "slot": 1
+  },
+  {
+    "dex_no": 95,
+    "pokeapi_ability_id": 5,
+    "slot": 2
+  },
+  {
+    "dex_no": 96,
+    "pokeapi_ability_id": 15,
+    "slot": 1
+  },
+  {
+    "dex_no": 97,
+    "pokeapi_ability_id": 15,
+    "slot": 1
+  },
+  {
+    "dex_no": 98,
+    "pokeapi_ability_id": 52,
+    "slot": 1
+  },
+  {
+    "dex_no": 98,
+    "pokeapi_ability_id": 75,
+    "slot": 2
+  },
+  {
+    "dex_no": 99,
+    "pokeapi_ability_id": 52,
+    "slot": 1
+  },
+  {
+    "dex_no": 99,
+    "pokeapi_ability_id": 75,
+    "slot": 2
+  },
+  {
+    "dex_no": 100,
+    "pokeapi_ability_id": 43,
+    "slot": 1
+  },
+  {
+    "dex_no": 100,
+    "pokeapi_ability_id": 9,
+    "slot": 2
+  },
+  {
+    "dex_no": 101,
+    "pokeapi_ability_id": 43,
+    "slot": 1
+  },
+  {
+    "dex_no": 101,
+    "pokeapi_ability_id": 9,
+    "slot": 2
+  },
+  {
+    "dex_no": 102,
+    "pokeapi_ability_id": 34,
+    "slot": 1
+  },
+  {
+    "dex_no": 103,
+    "pokeapi_ability_id": 34,
+    "slot": 1
+  },
+  {
+    "dex_no": 104,
+    "pokeapi_ability_id": 69,
+    "slot": 1
+  },
+  {
+    "dex_no": 104,
+    "pokeapi_ability_id": 31,
+    "slot": 2
+  },
+  {
+    "dex_no": 105,
+    "pokeapi_ability_id": 69,
+    "slot": 1
+  },
+  {
+    "dex_no": 105,
+    "pokeapi_ability_id": 31,
+    "slot": 2
+  },
+  {
+    "dex_no": 106,
+    "pokeapi_ability_id": 7,
+    "slot": 1
+  },
+  {
+    "dex_no": 107,
+    "pokeapi_ability_id": 51,
+    "slot": 1
+  },
+  {
+    "dex_no": 108,
+    "pokeapi_ability_id": 20,
+    "slot": 1
+  },
+  {
+    "dex_no": 108,
+    "pokeapi_ability_id": 12,
+    "slot": 2
+  },
+  {
+    "dex_no": 109,
+    "pokeapi_ability_id": 26,
+    "slot": 1
+  },
+  {
+    "dex_no": 110,
+    "pokeapi_ability_id": 26,
+    "slot": 1
+  },
+  {
+    "dex_no": 111,
+    "pokeapi_ability_id": 31,
+    "slot": 1
+  },
+  {
+    "dex_no": 111,
+    "pokeapi_ability_id": 69,
+    "slot": 2
+  },
+  {
+    "dex_no": 112,
+    "pokeapi_ability_id": 31,
+    "slot": 1
+  },
+  {
+    "dex_no": 112,
+    "pokeapi_ability_id": 69,
+    "slot": 2
+  },
+  {
+    "dex_no": 113,
+    "pokeapi_ability_id": 30,
+    "slot": 1
+  },
+  {
+    "dex_no": 113,
+    "pokeapi_ability_id": 32,
+    "slot": 2
+  },
+  {
+    "dex_no": 114,
+    "pokeapi_ability_id": 34,
+    "slot": 1
+  },
+  {
+    "dex_no": 115,
+    "pokeapi_ability_id": 48,
+    "slot": 1
+  },
+  {
+    "dex_no": 116,
+    "pokeapi_ability_id": 33,
+    "slot": 1
+  },
+  {
+    "dex_no": 117,
+    "pokeapi_ability_id": 38,
+    "slot": 1
+  },
+  {
+    "dex_no": 118,
+    "pokeapi_ability_id": 33,
+    "slot": 1
+  },
+  {
+    "dex_no": 118,
+    "pokeapi_ability_id": 41,
+    "slot": 2
+  },
+  {
+    "dex_no": 119,
+    "pokeapi_ability_id": 33,
+    "slot": 1
+  },
+  {
+    "dex_no": 119,
+    "pokeapi_ability_id": 41,
+    "slot": 2
+  },
+  {
+    "dex_no": 120,
+    "pokeapi_ability_id": 35,
+    "slot": 1
+  },
+  {
+    "dex_no": 120,
+    "pokeapi_ability_id": 30,
+    "slot": 2
+  },
+  {
+    "dex_no": 121,
+    "pokeapi_ability_id": 35,
+    "slot": 1
+  },
+  {
+    "dex_no": 121,
+    "pokeapi_ability_id": 30,
+    "slot": 2
+  },
+  {
+    "dex_no": 122,
+    "pokeapi_ability_id": 43,
+    "slot": 1
+  },
+  {
+    "dex_no": 123,
+    "pokeapi_ability_id": 68,
+    "slot": 1
+  },
+  {
+    "dex_no": 124,
+    "pokeapi_ability_id": 12,
+    "slot": 1
+  },
+  {
+    "dex_no": 125,
+    "pokeapi_ability_id": 9,
+    "slot": 1
+  },
+  {
+    "dex_no": 126,
+    "pokeapi_ability_id": 49,
+    "slot": 1
+  },
+  {
+    "dex_no": 127,
+    "pokeapi_ability_id": 52,
+    "slot": 1
+  },
+  {
+    "dex_no": 128,
+    "pokeapi_ability_id": 22,
+    "slot": 1
+  },
+  {
+    "dex_no": 129,
+    "pokeapi_ability_id": 33,
+    "slot": 1
+  },
+  {
+    "dex_no": 130,
+    "pokeapi_ability_id": 22,
+    "slot": 1
+  },
+  {
+    "dex_no": 131,
+    "pokeapi_ability_id": 11,
+    "slot": 1
+  },
+  {
+    "dex_no": 131,
+    "pokeapi_ability_id": 75,
+    "slot": 2
+  },
+  {
+    "dex_no": 132,
+    "pokeapi_ability_id": 7,
+    "slot": 1
+  },
+  {
+    "dex_no": 133,
+    "pokeapi_ability_id": 50,
+    "slot": 1
+  },
+  {
+    "dex_no": 134,
+    "pokeapi_ability_id": 11,
+    "slot": 1
+  },
+  {
+    "dex_no": 135,
+    "pokeapi_ability_id": 10,
+    "slot": 1
+  },
+  {
+    "dex_no": 136,
+    "pokeapi_ability_id": 18,
+    "slot": 1
+  },
+  {
+    "dex_no": 137,
+    "pokeapi_ability_id": 36,
+    "slot": 1
+  },
+  {
+    "dex_no": 138,
+    "pokeapi_ability_id": 33,
+    "slot": 1
+  },
+  {
+    "dex_no": 138,
+    "pokeapi_ability_id": 75,
+    "slot": 2
+  },
+  {
+    "dex_no": 139,
+    "pokeapi_ability_id": 33,
+    "slot": 1
+  },
+  {
+    "dex_no": 139,
+    "pokeapi_ability_id": 75,
+    "slot": 2
+  },
+  {
+    "dex_no": 140,
+    "pokeapi_ability_id": 33,
+    "slot": 1
+  },
+  {
+    "dex_no": 140,
+    "pokeapi_ability_id": 4,
+    "slot": 2
+  },
+  {
+    "dex_no": 141,
+    "pokeapi_ability_id": 33,
+    "slot": 1
+  },
+  {
+    "dex_no": 141,
+    "pokeapi_ability_id": 4,
+    "slot": 2
+  },
+  {
+    "dex_no": 142,
+    "pokeapi_ability_id": 69,
+    "slot": 1
+  },
+  {
+    "dex_no": 142,
+    "pokeapi_ability_id": 46,
+    "slot": 2
+  },
+  {
+    "dex_no": 143,
+    "pokeapi_ability_id": 17,
+    "slot": 1
+  },
+  {
+    "dex_no": 143,
+    "pokeapi_ability_id": 47,
+    "slot": 2
+  },
+  {
+    "dex_no": 144,
+    "pokeapi_ability_id": 46,
+    "slot": 1
+  },
+  {
+    "dex_no": 145,
+    "pokeapi_ability_id": 46,
+    "slot": 1
+  },
+  {
+    "dex_no": 146,
+    "pokeapi_ability_id": 46,
+    "slot": 1
+  },
+  {
+    "dex_no": 147,
+    "pokeapi_ability_id": 61,
+    "slot": 1
+  },
+  {
+    "dex_no": 148,
+    "pokeapi_ability_id": 61,
+    "slot": 1
+  },
+  {
+    "dex_no": 149,
+    "pokeapi_ability_id": 39,
+    "slot": 1
+  },
+  {
+    "dex_no": 150,
+    "pokeapi_ability_id": 46,
+    "slot": 1
+  },
+  {
+    "dex_no": 151,
+    "pokeapi_ability_id": 28,
+    "slot": 1
+  },
+  {
+    "dex_no": 152,
+    "pokeapi_ability_id": 65,
+    "slot": 1
+  },
+  {
+    "dex_no": 153,
+    "pokeapi_ability_id": 65,
+    "slot": 1
+  },
+  {
+    "dex_no": 154,
+    "pokeapi_ability_id": 65,
+    "slot": 1
+  },
+  {
+    "dex_no": 155,
+    "pokeapi_ability_id": 66,
+    "slot": 1
+  },
+  {
+    "dex_no": 156,
+    "pokeapi_ability_id": 66,
+    "slot": 1
+  },
+  {
+    "dex_no": 157,
+    "pokeapi_ability_id": 66,
+    "slot": 1
+  },
+  {
+    "dex_no": 158,
+    "pokeapi_ability_id": 67,
+    "slot": 1
+  },
+  {
+    "dex_no": 159,
+    "pokeapi_ability_id": 67,
+    "slot": 1
+  },
+  {
+    "dex_no": 160,
+    "pokeapi_ability_id": 67,
+    "slot": 1
+  },
+  {
+    "dex_no": 161,
+    "pokeapi_ability_id": 50,
+    "slot": 1
+  },
+  {
+    "dex_no": 161,
+    "pokeapi_ability_id": 51,
+    "slot": 2
+  },
+  {
+    "dex_no": 162,
+    "pokeapi_ability_id": 50,
+    "slot": 1
+  },
+  {
+    "dex_no": 162,
+    "pokeapi_ability_id": 51,
+    "slot": 2
+  },
+  {
+    "dex_no": 163,
+    "pokeapi_ability_id": 15,
+    "slot": 1
+  },
+  {
+    "dex_no": 163,
+    "pokeapi_ability_id": 51,
+    "slot": 2
+  },
+  {
+    "dex_no": 164,
+    "pokeapi_ability_id": 15,
+    "slot": 1
+  },
+  {
+    "dex_no": 164,
+    "pokeapi_ability_id": 51,
+    "slot": 2
+  },
+  {
+    "dex_no": 165,
+    "pokeapi_ability_id": 68,
+    "slot": 1
+  },
+  {
+    "dex_no": 165,
+    "pokeapi_ability_id": 48,
+    "slot": 2
+  },
+  {
+    "dex_no": 166,
+    "pokeapi_ability_id": 68,
+    "slot": 1
+  },
+  {
+    "dex_no": 166,
+    "pokeapi_ability_id": 48,
+    "slot": 2
+  },
+  {
+    "dex_no": 167,
+    "pokeapi_ability_id": 68,
+    "slot": 1
+  },
+  {
+    "dex_no": 167,
+    "pokeapi_ability_id": 15,
+    "slot": 2
+  },
+  {
+    "dex_no": 168,
+    "pokeapi_ability_id": 68,
+    "slot": 1
+  },
+  {
+    "dex_no": 168,
+    "pokeapi_ability_id": 15,
+    "slot": 2
+  },
+  {
+    "dex_no": 169,
+    "pokeapi_ability_id": 39,
+    "slot": 1
+  },
+  {
+    "dex_no": 170,
+    "pokeapi_ability_id": 10,
+    "slot": 1
+  },
+  {
+    "dex_no": 170,
+    "pokeapi_ability_id": 35,
+    "slot": 2
+  },
+  {
+    "dex_no": 171,
+    "pokeapi_ability_id": 10,
+    "slot": 1
+  },
+  {
+    "dex_no": 171,
+    "pokeapi_ability_id": 35,
+    "slot": 2
+  },
+  {
+    "dex_no": 172,
+    "pokeapi_ability_id": 9,
+    "slot": 1
+  },
+  {
+    "dex_no": 173,
+    "pokeapi_ability_id": 56,
+    "slot": 1
+  },
+  {
+    "dex_no": 174,
+    "pokeapi_ability_id": 56,
+    "slot": 1
+  },
+  {
+    "dex_no": 175,
+    "pokeapi_ability_id": 55,
+    "slot": 1
+  },
+  {
+    "dex_no": 175,
+    "pokeapi_ability_id": 32,
+    "slot": 2
+  },
+  {
+    "dex_no": 176,
+    "pokeapi_ability_id": 55,
+    "slot": 1
+  },
+  {
+    "dex_no": 176,
+    "pokeapi_ability_id": 32,
+    "slot": 2
+  },
+  {
+    "dex_no": 177,
+    "pokeapi_ability_id": 28,
+    "slot": 1
+  },
+  {
+    "dex_no": 177,
+    "pokeapi_ability_id": 48,
+    "slot": 2
+  },
+  {
+    "dex_no": 178,
+    "pokeapi_ability_id": 28,
+    "slot": 1
+  },
+  {
+    "dex_no": 178,
+    "pokeapi_ability_id": 48,
+    "slot": 2
+  },
+  {
+    "dex_no": 179,
+    "pokeapi_ability_id": 9,
+    "slot": 1
+  },
+  {
+    "dex_no": 180,
+    "pokeapi_ability_id": 9,
+    "slot": 1
+  },
+  {
+    "dex_no": 181,
+    "pokeapi_ability_id": 9,
+    "slot": 1
+  },
+  {
+    "dex_no": 182,
+    "pokeapi_ability_id": 34,
+    "slot": 1
+  },
+  {
+    "dex_no": 183,
+    "pokeapi_ability_id": 47,
+    "slot": 1
+  },
+  {
+    "dex_no": 183,
+    "pokeapi_ability_id": 37,
+    "slot": 2
+  },
+  {
+    "dex_no": 184,
+    "pokeapi_ability_id": 47,
+    "slot": 1
+  },
+  {
+    "dex_no": 184,
+    "pokeapi_ability_id": 37,
+    "slot": 2
+  },
+  {
+    "dex_no": 185,
+    "pokeapi_ability_id": 5,
+    "slot": 1
+  },
+  {
+    "dex_no": 185,
+    "pokeapi_ability_id": 69,
+    "slot": 2
+  },
+  {
+    "dex_no": 186,
+    "pokeapi_ability_id": 11,
+    "slot": 1
+  },
+  {
+    "dex_no": 186,
+    "pokeapi_ability_id": 6,
+    "slot": 2
+  },
+  {
+    "dex_no": 187,
+    "pokeapi_ability_id": 34,
+    "slot": 1
+  },
+  {
+    "dex_no": 188,
+    "pokeapi_ability_id": 34,
+    "slot": 1
+  },
+  {
+    "dex_no": 189,
+    "pokeapi_ability_id": 34,
+    "slot": 1
+  },
+  {
+    "dex_no": 190,
+    "pokeapi_ability_id": 50,
+    "slot": 1
+  },
+  {
+    "dex_no": 190,
+    "pokeapi_ability_id": 53,
+    "slot": 2
+  },
+  {
+    "dex_no": 191,
+    "pokeapi_ability_id": 34,
+    "slot": 1
+  },
+  {
+    "dex_no": 192,
+    "pokeapi_ability_id": 34,
+    "slot": 1
+  },
+  {
+    "dex_no": 193,
+    "pokeapi_ability_id": 3,
+    "slot": 1
+  },
+  {
+    "dex_no": 193,
+    "pokeapi_ability_id": 14,
+    "slot": 2
+  },
+  {
+    "dex_no": 194,
+    "pokeapi_ability_id": 6,
+    "slot": 1
+  },
+  {
+    "dex_no": 194,
+    "pokeapi_ability_id": 11,
+    "slot": 2
+  },
+  {
+    "dex_no": 195,
+    "pokeapi_ability_id": 6,
+    "slot": 1
+  },
+  {
+    "dex_no": 195,
+    "pokeapi_ability_id": 11,
+    "slot": 2
+  },
+  {
+    "dex_no": 196,
+    "pokeapi_ability_id": 28,
+    "slot": 1
+  },
+  {
+    "dex_no": 197,
+    "pokeapi_ability_id": 28,
+    "slot": 1
+  },
+  {
+    "dex_no": 198,
+    "pokeapi_ability_id": 15,
+    "slot": 1
+  },
+  {
+    "dex_no": 199,
+    "pokeapi_ability_id": 12,
+    "slot": 1
+  },
+  {
+    "dex_no": 199,
+    "pokeapi_ability_id": 20,
+    "slot": 2
+  },
+  {
+    "dex_no": 200,
+    "pokeapi_ability_id": 26,
+    "slot": 1
+  },
+  {
+    "dex_no": 201,
+    "pokeapi_ability_id": 26,
+    "slot": 1
+  },
+  {
+    "dex_no": 202,
+    "pokeapi_ability_id": 23,
+    "slot": 1
+  },
+  {
+    "dex_no": 203,
+    "pokeapi_ability_id": 39,
+    "slot": 1
+  },
+  {
+    "dex_no": 203,
+    "pokeapi_ability_id": 48,
+    "slot": 2
+  },
+  {
+    "dex_no": 204,
+    "pokeapi_ability_id": 5,
+    "slot": 1
+  },
+  {
+    "dex_no": 205,
+    "pokeapi_ability_id": 5,
+    "slot": 1
+  },
+  {
+    "dex_no": 206,
+    "pokeapi_ability_id": 32,
+    "slot": 1
+  },
+  {
+    "dex_no": 206,
+    "pokeapi_ability_id": 50,
+    "slot": 2
+  },
+  {
+    "dex_no": 207,
+    "pokeapi_ability_id": 52,
+    "slot": 1
+  },
+  {
+    "dex_no": 207,
+    "pokeapi_ability_id": 8,
+    "slot": 2
+  },
+  {
+    "dex_no": 208,
+    "pokeapi_ability_id": 69,
+    "slot": 1
+  },
+  {
+    "dex_no": 208,
+    "pokeapi_ability_id": 5,
+    "slot": 2
+  },
+  {
+    "dex_no": 209,
+    "pokeapi_ability_id": 22,
+    "slot": 1
+  },
+  {
+    "dex_no": 209,
+    "pokeapi_ability_id": 50,
+    "slot": 2
+  },
+  {
+    "dex_no": 210,
+    "pokeapi_ability_id": 22,
+    "slot": 1
+  },
+  {
+    "dex_no": 211,
+    "pokeapi_ability_id": 38,
+    "slot": 1
+  },
+  {
+    "dex_no": 211,
+    "pokeapi_ability_id": 33,
+    "slot": 2
+  },
+  {
+    "dex_no": 212,
+    "pokeapi_ability_id": 68,
+    "slot": 1
+  },
+  {
+    "dex_no": 213,
+    "pokeapi_ability_id": 5,
+    "slot": 1
+  },
+  {
+    "dex_no": 214,
+    "pokeapi_ability_id": 68,
+    "slot": 1
+  },
+  {
+    "dex_no": 214,
+    "pokeapi_ability_id": 62,
+    "slot": 2
+  },
+  {
+    "dex_no": 215,
+    "pokeapi_ability_id": 39,
+    "slot": 1
+  },
+  {
+    "dex_no": 215,
+    "pokeapi_ability_id": 51,
+    "slot": 2
+  },
+  {
+    "dex_no": 216,
+    "pokeapi_ability_id": 53,
+    "slot": 1
+  },
+  {
+    "dex_no": 217,
+    "pokeapi_ability_id": 62,
+    "slot": 1
+  },
+  {
+    "dex_no": 218,
+    "pokeapi_ability_id": 40,
+    "slot": 1
+  },
+  {
+    "dex_no": 218,
+    "pokeapi_ability_id": 49,
+    "slot": 2
+  },
+  {
+    "dex_no": 219,
+    "pokeapi_ability_id": 40,
+    "slot": 1
+  },
+  {
+    "dex_no": 219,
+    "pokeapi_ability_id": 49,
+    "slot": 2
+  },
+  {
+    "dex_no": 220,
+    "pokeapi_ability_id": 12,
+    "slot": 1
+  },
+  {
+    "dex_no": 221,
+    "pokeapi_ability_id": 12,
+    "slot": 1
+  },
+  {
+    "dex_no": 222,
+    "pokeapi_ability_id": 55,
+    "slot": 1
+  },
+  {
+    "dex_no": 222,
+    "pokeapi_ability_id": 30,
+    "slot": 2
+  },
+  {
+    "dex_no": 223,
+    "pokeapi_ability_id": 55,
+    "slot": 1
+  },
+  {
+    "dex_no": 224,
+    "pokeapi_ability_id": 21,
+    "slot": 1
+  },
+  {
+    "dex_no": 225,
+    "pokeapi_ability_id": 72,
+    "slot": 1
+  },
+  {
+    "dex_no": 225,
+    "pokeapi_ability_id": 55,
+    "slot": 2
+  },
+  {
+    "dex_no": 226,
+    "pokeapi_ability_id": 33,
+    "slot": 1
+  },
+  {
+    "dex_no": 226,
+    "pokeapi_ability_id": 11,
+    "slot": 2
+  },
+  {
+    "dex_no": 227,
+    "pokeapi_ability_id": 51,
+    "slot": 1
+  },
+  {
+    "dex_no": 227,
+    "pokeapi_ability_id": 5,
+    "slot": 2
+  },
+  {
+    "dex_no": 228,
+    "pokeapi_ability_id": 48,
+    "slot": 1
+  },
+  {
+    "dex_no": 228,
+    "pokeapi_ability_id": 18,
+    "slot": 2
+  },
+  {
+    "dex_no": 229,
+    "pokeapi_ability_id": 48,
+    "slot": 1
+  },
+  {
+    "dex_no": 229,
+    "pokeapi_ability_id": 18,
+    "slot": 2
+  },
+  {
+    "dex_no": 230,
+    "pokeapi_ability_id": 33,
+    "slot": 1
+  },
+  {
+    "dex_no": 231,
+    "pokeapi_ability_id": 53,
+    "slot": 1
+  },
+  {
+    "dex_no": 232,
+    "pokeapi_ability_id": 5,
+    "slot": 1
+  },
+  {
+    "dex_no": 233,
+    "pokeapi_ability_id": 36,
+    "slot": 1
+  },
+  {
+    "dex_no": 234,
+    "pokeapi_ability_id": 22,
+    "slot": 1
+  },
+  {
+    "dex_no": 235,
+    "pokeapi_ability_id": 20,
+    "slot": 1
+  },
+  {
+    "dex_no": 236,
+    "pokeapi_ability_id": 62,
+    "slot": 1
+  },
+  {
+    "dex_no": 237,
+    "pokeapi_ability_id": 22,
+    "slot": 1
+  },
+  {
+    "dex_no": 238,
+    "pokeapi_ability_id": 12,
+    "slot": 1
+  },
+  {
+    "dex_no": 239,
+    "pokeapi_ability_id": 9,
+    "slot": 1
+  },
+  {
+    "dex_no": 240,
+    "pokeapi_ability_id": 49,
+    "slot": 1
+  },
+  {
+    "dex_no": 241,
+    "pokeapi_ability_id": 47,
+    "slot": 1
+  },
+  {
+    "dex_no": 242,
+    "pokeapi_ability_id": 30,
+    "slot": 1
+  },
+  {
+    "dex_no": 242,
+    "pokeapi_ability_id": 32,
+    "slot": 2
+  },
+  {
+    "dex_no": 243,
+    "pokeapi_ability_id": 46,
+    "slot": 1
+  },
+  {
+    "dex_no": 244,
+    "pokeapi_ability_id": 46,
+    "slot": 1
+  },
+  {
+    "dex_no": 245,
+    "pokeapi_ability_id": 46,
+    "slot": 1
+  },
+  {
+    "dex_no": 246,
+    "pokeapi_ability_id": 62,
+    "slot": 1
+  },
+  {
+    "dex_no": 247,
+    "pokeapi_ability_id": 61,
+    "slot": 1
+  },
+  {
+    "dex_no": 248,
+    "pokeapi_ability_id": 45,
+    "slot": 1
+  },
+  {
+    "dex_no": 249,
+    "pokeapi_ability_id": 46,
+    "slot": 1
+  },
+  {
+    "dex_no": 250,
+    "pokeapi_ability_id": 46,
+    "slot": 1
+  },
+  {
+    "dex_no": 251,
+    "pokeapi_ability_id": 30,
+    "slot": 1
+  },
+  {
+    "dex_no": 252,
+    "pokeapi_ability_id": 65,
+    "slot": 1
+  },
+  {
+    "dex_no": 253,
+    "pokeapi_ability_id": 65,
+    "slot": 1
+  },
+  {
+    "dex_no": 254,
+    "pokeapi_ability_id": 65,
+    "slot": 1
+  },
+  {
+    "dex_no": 255,
+    "pokeapi_ability_id": 66,
+    "slot": 1
+  },
+  {
+    "dex_no": 256,
+    "pokeapi_ability_id": 66,
+    "slot": 1
+  },
+  {
+    "dex_no": 257,
+    "pokeapi_ability_id": 66,
+    "slot": 1
+  },
+  {
+    "dex_no": 258,
+    "pokeapi_ability_id": 67,
+    "slot": 1
+  },
+  {
+    "dex_no": 259,
+    "pokeapi_ability_id": 67,
+    "slot": 1
+  },
+  {
+    "dex_no": 260,
+    "pokeapi_ability_id": 67,
+    "slot": 1
+  },
+  {
+    "dex_no": 261,
+    "pokeapi_ability_id": 50,
+    "slot": 1
+  },
+  {
+    "dex_no": 262,
+    "pokeapi_ability_id": 22,
+    "slot": 1
+  },
+  {
+    "dex_no": 263,
+    "pokeapi_ability_id": 53,
+    "slot": 1
+  },
+  {
+    "dex_no": 264,
+    "pokeapi_ability_id": 53,
+    "slot": 1
+  },
+  {
+    "dex_no": 265,
+    "pokeapi_ability_id": 19,
+    "slot": 1
+  },
+  {
+    "dex_no": 266,
+    "pokeapi_ability_id": 61,
+    "slot": 1
+  },
+  {
+    "dex_no": 267,
+    "pokeapi_ability_id": 68,
+    "slot": 1
+  },
+  {
+    "dex_no": 268,
+    "pokeapi_ability_id": 61,
+    "slot": 1
+  },
+  {
+    "dex_no": 269,
+    "pokeapi_ability_id": 19,
+    "slot": 1
+  },
+  {
+    "dex_no": 270,
+    "pokeapi_ability_id": 33,
+    "slot": 1
+  },
+  {
+    "dex_no": 270,
+    "pokeapi_ability_id": 44,
+    "slot": 2
+  },
+  {
+    "dex_no": 271,
+    "pokeapi_ability_id": 33,
+    "slot": 1
+  },
+  {
+    "dex_no": 271,
+    "pokeapi_ability_id": 44,
+    "slot": 2
+  },
+  {
+    "dex_no": 272,
+    "pokeapi_ability_id": 33,
+    "slot": 1
+  },
+  {
+    "dex_no": 272,
+    "pokeapi_ability_id": 44,
+    "slot": 2
+  },
+  {
+    "dex_no": 273,
+    "pokeapi_ability_id": 34,
+    "slot": 1
+  },
+  {
+    "dex_no": 273,
+    "pokeapi_ability_id": 48,
+    "slot": 2
+  },
+  {
+    "dex_no": 274,
+    "pokeapi_ability_id": 34,
+    "slot": 1
+  },
+  {
+    "dex_no": 274,
+    "pokeapi_ability_id": 48,
+    "slot": 2
+  },
+  {
+    "dex_no": 275,
+    "pokeapi_ability_id": 34,
+    "slot": 1
+  },
+  {
+    "dex_no": 276,
+    "pokeapi_ability_id": 62,
+    "slot": 1
+  },
+  {
+    "dex_no": 277,
+    "pokeapi_ability_id": 62,
+    "slot": 1
+  },
+  {
+    "dex_no": 278,
+    "pokeapi_ability_id": 51,
+    "slot": 1
+  },
+  {
+    "dex_no": 279,
+    "pokeapi_ability_id": 51,
+    "slot": 1
+  },
+  {
+    "dex_no": 279,
+    "pokeapi_ability_id": 2,
+    "slot": 2
+  },
+  {
+    "dex_no": 280,
+    "pokeapi_ability_id": 28,
+    "slot": 1
+  },
+  {
+    "dex_no": 280,
+    "pokeapi_ability_id": 36,
+    "slot": 2
+  },
+  {
+    "dex_no": 281,
+    "pokeapi_ability_id": 28,
+    "slot": 1
+  },
+  {
+    "dex_no": 281,
+    "pokeapi_ability_id": 36,
+    "slot": 2
+  },
+  {
+    "dex_no": 282,
+    "pokeapi_ability_id": 28,
+    "slot": 1
+  },
+  {
+    "dex_no": 282,
+    "pokeapi_ability_id": 36,
+    "slot": 2
+  },
+  {
+    "dex_no": 283,
+    "pokeapi_ability_id": 33,
+    "slot": 1
+  },
+  {
+    "dex_no": 284,
+    "pokeapi_ability_id": 22,
+    "slot": 1
+  },
+  {
+    "dex_no": 285,
+    "pokeapi_ability_id": 27,
+    "slot": 1
+  },
+  {
+    "dex_no": 286,
+    "pokeapi_ability_id": 27,
+    "slot": 1
+  },
+  {
+    "dex_no": 287,
+    "pokeapi_ability_id": 54,
+    "slot": 1
+  },
+  {
+    "dex_no": 288,
+    "pokeapi_ability_id": 72,
+    "slot": 1
+  },
+  {
+    "dex_no": 289,
+    "pokeapi_ability_id": 54,
+    "slot": 1
+  },
+  {
+    "dex_no": 290,
+    "pokeapi_ability_id": 14,
+    "slot": 1
+  },
+  {
+    "dex_no": 291,
+    "pokeapi_ability_id": 3,
+    "slot": 1
+  },
+  {
+    "dex_no": 292,
+    "pokeapi_ability_id": 25,
+    "slot": 1
+  },
+  {
+    "dex_no": 293,
+    "pokeapi_ability_id": 43,
+    "slot": 1
+  },
+  {
+    "dex_no": 294,
+    "pokeapi_ability_id": 43,
+    "slot": 1
+  },
+  {
+    "dex_no": 295,
+    "pokeapi_ability_id": 43,
+    "slot": 1
+  },
+  {
+    "dex_no": 296,
+    "pokeapi_ability_id": 47,
+    "slot": 1
+  },
+  {
+    "dex_no": 296,
+    "pokeapi_ability_id": 62,
+    "slot": 2
+  },
+  {
+    "dex_no": 297,
+    "pokeapi_ability_id": 47,
+    "slot": 1
+  },
+  {
+    "dex_no": 297,
+    "pokeapi_ability_id": 62,
+    "slot": 2
+  },
+  {
+    "dex_no": 298,
+    "pokeapi_ability_id": 47,
+    "slot": 1
+  },
+  {
+    "dex_no": 298,
+    "pokeapi_ability_id": 37,
+    "slot": 2
+  },
+  {
+    "dex_no": 299,
+    "pokeapi_ability_id": 5,
+    "slot": 1
+  },
+  {
+    "dex_no": 299,
+    "pokeapi_ability_id": 42,
+    "slot": 2
+  },
+  {
+    "dex_no": 300,
+    "pokeapi_ability_id": 56,
+    "slot": 1
+  },
+  {
+    "dex_no": 301,
+    "pokeapi_ability_id": 56,
+    "slot": 1
+  },
+  {
+    "dex_no": 302,
+    "pokeapi_ability_id": 51,
+    "slot": 1
+  },
+  {
+    "dex_no": 303,
+    "pokeapi_ability_id": 52,
+    "slot": 1
+  },
+  {
+    "dex_no": 303,
+    "pokeapi_ability_id": 22,
+    "slot": 2
+  },
+  {
+    "dex_no": 304,
+    "pokeapi_ability_id": 5,
+    "slot": 1
+  },
+  {
+    "dex_no": 304,
+    "pokeapi_ability_id": 69,
+    "slot": 2
+  },
+  {
+    "dex_no": 305,
+    "pokeapi_ability_id": 5,
+    "slot": 1
+  },
+  {
+    "dex_no": 305,
+    "pokeapi_ability_id": 69,
+    "slot": 2
+  },
+  {
+    "dex_no": 306,
+    "pokeapi_ability_id": 5,
+    "slot": 1
+  },
+  {
+    "dex_no": 306,
+    "pokeapi_ability_id": 69,
+    "slot": 2
+  },
+  {
+    "dex_no": 307,
+    "pokeapi_ability_id": 74,
+    "slot": 1
+  },
+  {
+    "dex_no": 308,
+    "pokeapi_ability_id": 74,
+    "slot": 1
+  },
+  {
+    "dex_no": 309,
+    "pokeapi_ability_id": 9,
+    "slot": 1
+  },
+  {
+    "dex_no": 309,
+    "pokeapi_ability_id": 31,
+    "slot": 2
+  },
+  {
+    "dex_no": 310,
+    "pokeapi_ability_id": 9,
+    "slot": 1
+  },
+  {
+    "dex_no": 310,
+    "pokeapi_ability_id": 31,
+    "slot": 2
+  },
+  {
+    "dex_no": 311,
+    "pokeapi_ability_id": 57,
+    "slot": 1
+  },
+  {
+    "dex_no": 312,
+    "pokeapi_ability_id": 58,
+    "slot": 1
+  },
+  {
+    "dex_no": 313,
+    "pokeapi_ability_id": 35,
+    "slot": 1
+  },
+  {
+    "dex_no": 313,
+    "pokeapi_ability_id": 68,
+    "slot": 2
+  },
+  {
+    "dex_no": 314,
+    "pokeapi_ability_id": 12,
+    "slot": 1
+  },
+  {
+    "dex_no": 315,
+    "pokeapi_ability_id": 30,
+    "slot": 1
+  },
+  {
+    "dex_no": 315,
+    "pokeapi_ability_id": 38,
+    "slot": 2
+  },
+  {
+    "dex_no": 316,
+    "pokeapi_ability_id": 64,
+    "slot": 1
+  },
+  {
+    "dex_no": 316,
+    "pokeapi_ability_id": 60,
+    "slot": 2
+  },
+  {
+    "dex_no": 317,
+    "pokeapi_ability_id": 64,
+    "slot": 1
+  },
+  {
+    "dex_no": 317,
+    "pokeapi_ability_id": 60,
+    "slot": 2
+  },
+  {
+    "dex_no": 318,
+    "pokeapi_ability_id": 24,
+    "slot": 1
+  },
+  {
+    "dex_no": 319,
+    "pokeapi_ability_id": 24,
+    "slot": 1
+  },
+  {
+    "dex_no": 320,
+    "pokeapi_ability_id": 41,
+    "slot": 1
+  },
+  {
+    "dex_no": 320,
+    "pokeapi_ability_id": 12,
+    "slot": 2
+  },
+  {
+    "dex_no": 321,
+    "pokeapi_ability_id": 41,
+    "slot": 1
+  },
+  {
+    "dex_no": 321,
+    "pokeapi_ability_id": 12,
+    "slot": 2
+  },
+  {
+    "dex_no": 322,
+    "pokeapi_ability_id": 12,
+    "slot": 1
+  },
+  {
+    "dex_no": 323,
+    "pokeapi_ability_id": 40,
+    "slot": 1
+  },
+  {
+    "dex_no": 324,
+    "pokeapi_ability_id": 73,
+    "slot": 1
+  },
+  {
+    "dex_no": 324,
+    "pokeapi_ability_id": 70,
+    "slot": 2
+  },
+  {
+    "dex_no": 325,
+    "pokeapi_ability_id": 47,
+    "slot": 1
+  },
+  {
+    "dex_no": 325,
+    "pokeapi_ability_id": 20,
+    "slot": 2
+  },
+  {
+    "dex_no": 326,
+    "pokeapi_ability_id": 47,
+    "slot": 1
+  },
+  {
+    "dex_no": 326,
+    "pokeapi_ability_id": 20,
+    "slot": 2
+  },
+  {
+    "dex_no": 327,
+    "pokeapi_ability_id": 20,
+    "slot": 1
+  },
+  {
+    "dex_no": 328,
+    "pokeapi_ability_id": 52,
+    "slot": 1
+  },
+  {
+    "dex_no": 328,
+    "pokeapi_ability_id": 71,
+    "slot": 2
+  },
+  {
+    "dex_no": 329,
+    "pokeapi_ability_id": 26,
+    "slot": 1
+  },
+  {
+    "dex_no": 330,
+    "pokeapi_ability_id": 26,
+    "slot": 1
+  },
+  {
+    "dex_no": 331,
+    "pokeapi_ability_id": 8,
+    "slot": 1
+  },
+  {
+    "dex_no": 332,
+    "pokeapi_ability_id": 8,
+    "slot": 1
+  },
+  {
+    "dex_no": 333,
+    "pokeapi_ability_id": 30,
+    "slot": 1
+  },
+  {
+    "dex_no": 334,
+    "pokeapi_ability_id": 30,
+    "slot": 1
+  },
+  {
+    "dex_no": 335,
+    "pokeapi_ability_id": 17,
+    "slot": 1
+  },
+  {
+    "dex_no": 336,
+    "pokeapi_ability_id": 61,
+    "slot": 1
+  },
+  {
+    "dex_no": 337,
+    "pokeapi_ability_id": 26,
+    "slot": 1
+  },
+  {
+    "dex_no": 338,
+    "pokeapi_ability_id": 26,
+    "slot": 1
+  },
+  {
+    "dex_no": 339,
+    "pokeapi_ability_id": 12,
+    "slot": 1
+  },
+  {
+    "dex_no": 340,
+    "pokeapi_ability_id": 12,
+    "slot": 1
+  },
+  {
+    "dex_no": 341,
+    "pokeapi_ability_id": 52,
+    "slot": 1
+  },
+  {
+    "dex_no": 341,
+    "pokeapi_ability_id": 75,
+    "slot": 2
+  },
+  {
+    "dex_no": 342,
+    "pokeapi_ability_id": 52,
+    "slot": 1
+  },
+  {
+    "dex_no": 342,
+    "pokeapi_ability_id": 75,
+    "slot": 2
+  },
+  {
+    "dex_no": 343,
+    "pokeapi_ability_id": 26,
+    "slot": 1
+  },
+  {
+    "dex_no": 344,
+    "pokeapi_ability_id": 26,
+    "slot": 1
+  },
+  {
+    "dex_no": 345,
+    "pokeapi_ability_id": 21,
+    "slot": 1
+  },
+  {
+    "dex_no": 346,
+    "pokeapi_ability_id": 21,
+    "slot": 1
+  },
+  {
+    "dex_no": 347,
+    "pokeapi_ability_id": 4,
+    "slot": 1
+  },
+  {
+    "dex_no": 348,
+    "pokeapi_ability_id": 4,
+    "slot": 1
+  },
+  {
+    "dex_no": 349,
+    "pokeapi_ability_id": 33,
+    "slot": 1
+  },
+  {
+    "dex_no": 349,
+    "pokeapi_ability_id": 12,
+    "slot": 2
+  },
+  {
+    "dex_no": 350,
+    "pokeapi_ability_id": 63,
+    "slot": 1
+  },
+  {
+    "dex_no": 351,
+    "pokeapi_ability_id": 59,
+    "slot": 1
+  },
+  {
+    "dex_no": 352,
+    "pokeapi_ability_id": 16,
+    "slot": 1
+  },
+  {
+    "dex_no": 353,
+    "pokeapi_ability_id": 15,
+    "slot": 1
+  },
+  {
+    "dex_no": 354,
+    "pokeapi_ability_id": 15,
+    "slot": 1
+  },
+  {
+    "dex_no": 355,
+    "pokeapi_ability_id": 26,
+    "slot": 1
+  },
+  {
+    "dex_no": 356,
+    "pokeapi_ability_id": 46,
+    "slot": 1
+  },
+  {
+    "dex_no": 357,
+    "pokeapi_ability_id": 34,
+    "slot": 1
+  },
+  {
+    "dex_no": 358,
+    "pokeapi_ability_id": 26,
+    "slot": 1
+  },
+  {
+    "dex_no": 359,
+    "pokeapi_ability_id": 46,
+    "slot": 1
+  },
+  {
+    "dex_no": 360,
+    "pokeapi_ability_id": 23,
+    "slot": 1
+  },
+  {
+    "dex_no": 361,
+    "pokeapi_ability_id": 39,
+    "slot": 1
+  },
+  {
+    "dex_no": 362,
+    "pokeapi_ability_id": 39,
+    "slot": 1
+  },
+  {
+    "dex_no": 363,
+    "pokeapi_ability_id": 47,
+    "slot": 1
+  },
+  {
+    "dex_no": 364,
+    "pokeapi_ability_id": 47,
+    "slot": 1
+  },
+  {
+    "dex_no": 365,
+    "pokeapi_ability_id": 47,
+    "slot": 1
+  },
+  {
+    "dex_no": 366,
+    "pokeapi_ability_id": 75,
+    "slot": 1
+  },
+  {
+    "dex_no": 367,
+    "pokeapi_ability_id": 33,
+    "slot": 1
+  },
+  {
+    "dex_no": 368,
+    "pokeapi_ability_id": 33,
+    "slot": 1
+  },
+  {
+    "dex_no": 369,
+    "pokeapi_ability_id": 33,
+    "slot": 1
+  },
+  {
+    "dex_no": 369,
+    "pokeapi_ability_id": 69,
+    "slot": 2
+  },
+  {
+    "dex_no": 370,
+    "pokeapi_ability_id": 33,
+    "slot": 1
+  },
+  {
+    "dex_no": 371,
+    "pokeapi_ability_id": 69,
+    "slot": 1
+  },
+  {
+    "dex_no": 372,
+    "pokeapi_ability_id": 69,
+    "slot": 1
+  },
+  {
+    "dex_no": 373,
+    "pokeapi_ability_id": 22,
+    "slot": 1
+  },
+  {
+    "dex_no": 374,
+    "pokeapi_ability_id": 29,
+    "slot": 1
+  },
+  {
+    "dex_no": 375,
+    "pokeapi_ability_id": 29,
+    "slot": 1
+  },
+  {
+    "dex_no": 376,
+    "pokeapi_ability_id": 29,
+    "slot": 1
+  },
+  {
+    "dex_no": 377,
+    "pokeapi_ability_id": 29,
+    "slot": 1
+  },
+  {
+    "dex_no": 378,
+    "pokeapi_ability_id": 29,
+    "slot": 1
+  },
+  {
+    "dex_no": 379,
+    "pokeapi_ability_id": 29,
+    "slot": 1
+  },
+  {
+    "dex_no": 380,
+    "pokeapi_ability_id": 26,
+    "slot": 1
+  },
+  {
+    "dex_no": 381,
+    "pokeapi_ability_id": 26,
+    "slot": 1
+  },
+  {
+    "dex_no": 382,
+    "pokeapi_ability_id": 2,
+    "slot": 1
+  },
+  {
+    "dex_no": 383,
+    "pokeapi_ability_id": 70,
+    "slot": 1
+  },
+  {
+    "dex_no": 384,
+    "pokeapi_ability_id": 76,
+    "slot": 1
+  },
+  {
+    "dex_no": 385,
+    "pokeapi_ability_id": 32,
+    "slot": 1
+  },
+  {
+    "dex_no": 386,
+    "pokeapi_ability_id": 46,
+    "slot": 1
+  }
+]

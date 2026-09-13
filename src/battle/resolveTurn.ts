@@ -8,7 +8,7 @@ import {
   fixedDamageRange,
 } from "./calcDamage";
 import { GEN1_MOVE_POOL, pickMetronomeMove } from "./gen1MovePool";
-import { gen1TypeEffectiveness } from "./gen1TypeChart";
+import { typeEffectivenessForRules } from "./typeEffectiveness";
 import {
   heldItemAccuracyFactor,
   heldItemCritDenomModifier,
@@ -68,9 +68,16 @@ import {
   weatherSkipsSolarBeamCharge,
 } from "./weather";
 
-function typeThatResists(moveTypeId: number): number {
+function typeThatResists(
+  moveTypeId: number,
+  rulesGeneration: number,
+): number {
   for (let t = 1; t <= 17; t += 1) {
-    if (gen1TypeEffectiveness(moveTypeId, t, 0) < 1) return t;
+    if (
+      typeEffectivenessForRules(rulesGeneration, moveTypeId, t, 0) < 1
+    ) {
+      return t;
+    }
   }
   return 1;
 }
@@ -78,8 +85,10 @@ function typeThatResists(moveTypeId: number): number {
 function foresightTypeEffectiveness(
   move: Move,
   defender: BattleFighter,
+  rulesGeneration: number,
 ): number {
-  let typeEff = gen1TypeEffectiveness(
+  let typeEff = typeEffectivenessForRules(
+    rulesGeneration,
     move.type_id,
     defender.species.type1,
     defender.species.type2,
@@ -301,6 +310,7 @@ function calcDamage(
         attacker.heldTool && !attacker.heldTool.consumed
           ? attacker.heldTool.pokeapiId
           : null,
+      rulesGeneration,
     },
   );
   if (before <= 0) return 0;
@@ -1026,7 +1036,7 @@ function executeMove(
     if (!last) {
       logs.push("しかし　うまく　決まらなかった！");
     } else {
-      const resistType = typeThatResists(last.type_id);
+      const resistType = typeThatResists(last.type_id, rulesGeneration);
       attacker.species = {
         ...attacker.species,
         type1: resistType,
@@ -1559,7 +1569,7 @@ function executeMove(
 
   let totalDealt = 0;
   let brokeSub = false;
-  let typeEff = foresightTypeEffectiveness(move, defender);
+  let typeEff = foresightTypeEffectiveness(move, defender, rulesGeneration);
   // Whirlpool uses partial-trap residual like Wrap.
   const effectiveCode =
     move.pokeapi_id === 250 ? "unique-partial-trap" : code;

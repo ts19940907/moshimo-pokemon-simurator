@@ -955,6 +955,7 @@ export function DamageCalcDialog({
         defenderLightScreen: lightScreen,
         weatherId: rulesGeneration >= 2 ? weatherId : null,
         attackerItemPokeapiId: atkToolPokeapiId,
+        rulesGeneration,
       },
     );
   }, [
