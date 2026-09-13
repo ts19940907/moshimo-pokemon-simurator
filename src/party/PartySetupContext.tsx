@@ -15,6 +15,7 @@ import {
   type PartySetupState,
   type PartySide,
 } from "./types";
+import { DEFAULT_NATURE_ID } from "./natures";
 
 type PartySetupContextValue = {
   sideA: PartySetupState | null;
@@ -47,6 +48,7 @@ function buildMembersFromSpecies(
   speciesList: PokemonSpecies[],
   levelCapMode: LevelCapMode,
   previous: PartySetupState | null,
+  rulesGeneration: number,
 ): PartyMemberBuild[] {
   return speciesList.map((species) => {
     const existing = previous?.members.find(
@@ -64,9 +66,15 @@ function buildMembersFromSpecies(
         specialSource:
           existing.specialSource ??
           (species.introduced_generation >= 2 ? "sp_attack" : undefined),
+        abilityId:
+          existing.abilityId ??
+          (rulesGeneration >= 3 ? species.ability1_id : null),
+        natureId:
+          existing.natureId ??
+          (rulesGeneration >= 3 ? DEFAULT_NATURE_ID : null),
       };
     }
-    return createDefaultBuild(species, levelCapMode);
+    return createDefaultBuild(species, levelCapMode, rulesGeneration);
   });
 }
 
@@ -94,6 +102,7 @@ export function PartySetupProvider({ children }: { children: ReactNode }) {
         speciesList,
         levelCapMode,
         previous,
+        rulesGeneration,
       );
       const next: PartySetupState = {
         members,
