@@ -15,12 +15,20 @@ App tables live in the **`moshimo`** schema (not `public`), to keep them separat
 - Migration (drop junction generation): `supabase/migrations/20260813180000_drop_pokemon_moves_available_generations.sql`
 - Migration (move effects): `supabase/migrations/20260814110000_moves_effect_columns.sql`
 - Migration (tools / held items): `supabase/migrations/20260825000100_create_tools.sql`
+- Migration (abilities enrich + pokemon_abilities): `supabase/migrations/20260913000100_create_pokemon_abilities.sql`
 - Ability seed: `supabase/seed/abilities.sql`
+- Gen3 abilities (UPSERT): `supabase/seed/gen3_abilities.sql`（`node scripts/generate-gen3-abilities-seed.mjs` で再生成）
+- Gen3 pokemon↔ability 紐づけ:
+  1. `gen3_pokemon_abilities_00_setup.sql`
+  2. `gen3_pokemon_abilities_01_values.sql`
+  3. `gen3_pokemon_abilities_99_finalize.sql`
+  - 一括: `supabase/seed/gen3_abilities_all.sql`
 - Gen1 pokemon seed: `supabase/seed/gen1_pokemon.sql`
 - Combined pokemon reseed: `supabase/seed/gen1_all.sql`（abilities → pokemon の順）
 - Gen1 moves + junction: `supabase/seed/gen1_moves_all.sql`（moves → pokemon_moves の順。**TRUNCATE あり**・空DB向け）
 - Gen1 moves UPSERT（既存DB向け）: `supabase/seed/gen1_moves_upsert.sql`（初代技仕様の修正を反映。TRUNCATE なし）
 - Gen2 Johto pokemon (additive): `supabase/seed/gen2_all.sql`（abilities upsert → Johto pokemon）
+- Gen3 Hoenn pokemon (additive): `supabase/seed/gen3_pokemon_all.sql`（`node scripts/generate-gen3-pokemon-seed.mjs` で再生成。`gen3_pokemon.sql` 単体もあり）
 - Gen2 moves (additive UPSERT): `supabase/seed/gen2_moves.sql`
 - Gen2 tools / held items (additive): `supabase/seed/gen2_tools.sql`（`node scripts/generate-gen2-tools-seed.mjs` で再生成）
 - Gen1→Gen2 Kanto splits (additive): `supabase/seed/gen2_kanto_splits.sql`（`node scripts/generate-gen2-kanto-splits-seed.mjs` で再生成。差分がある種族のみ行分割）
@@ -90,6 +98,7 @@ where available_generations & (1 << (N - 1)) <> 0;
 - `base_special`: 第1世代の「特殊」（Gen2+ 専用レコードでは NULL）
 - `base_sp_attack` / `base_sp_defense`: 第2世代以降の特攻・特防
 - `ability*_id`: 特性マスタ（`moshimo.abilities`）への FK。UUID は PokeAPI ability id から決定的に生成
+- `pokemon_abilities`: ポケモン行 × 特性行の中間テーブル（`slot` 1/2/3、`available_generations`）。第3世代シードは Gen3–9（`508`）で非隠し特性を紐づける
 
 ## Type ids (`moshimo.types`)
 
