@@ -231,6 +231,7 @@ insert into moshimo._seed_gen3_pokemon_abilities (dex_no, pokeapi_ability_id, sl
 (91, 75, 1),
 (92, 26, 1),
 (93, 26, 1),
+(94, 26, 1),
 (95, 69, 1),
 (95, 5, 2),
 (96, 15, 1),
@@ -479,11 +480,11 @@ insert into moshimo._seed_gen3_pokemon_abilities (dex_no, pokeapi_ability_id, sl
 (274, 34, 1),
 (274, 48, 2),
 (275, 34, 1),
+(275, 48, 2),
 (276, 62, 1),
 (277, 62, 1),
 (278, 51, 1),
 (279, 51, 1),
-(279, 2, 2),
 (280, 28, 1),
 (280, 36, 2),
 (281, 28, 1),
@@ -548,7 +549,6 @@ insert into moshimo._seed_gen3_pokemon_abilities (dex_no, pokeapi_ability_id, sl
 (322, 12, 1),
 (323, 40, 1),
 (324, 73, 1),
-(324, 70, 2),
 (325, 47, 1),
 (325, 20, 2),
 (326, 47, 1),
@@ -579,7 +579,6 @@ insert into moshimo._seed_gen3_pokemon_abilities (dex_no, pokeapi_ability_id, sl
 (347, 4, 1),
 (348, 4, 1),
 (349, 33, 1),
-(349, 12, 2),
 (350, 63, 1),
 (351, 59, 1),
 (352, 16, 1),
@@ -620,6 +619,13 @@ insert into moshimo._seed_gen3_pokemon_abilities (dex_no, pokeapi_ability_id, sl
 (386, 46, 1);
 
 -- 3/3 finalize: link Gen3-usable pokemon ↔ abilities, sync ability*_id, drop staging
+-- Drop prior Gen3-bit links so redistributed abilities (e.g. Pelipper Drizzle) do not linger.
+delete from moshimo.pokemon_abilities pa
+using moshimo.pokemon p
+where pa.pokemon_id = p.id
+  and (p.available_generations & 4) <> 0
+  and (pa.available_generations & 4) <> 0;
+
 insert into moshimo.pokemon_abilities (
   pokemon_id,
   ability_id,

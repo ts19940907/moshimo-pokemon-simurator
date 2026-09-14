@@ -73,6 +73,11 @@ import {
   fetchPokemonIdsForMoves,
   searchMoves,
 } from "../pokemon/moveRepository";
+import {
+  type Ability,
+  fetchPokemonIdsForAbility,
+  searchAbilities,
+} from "../pokemon/abilityRepository";
 import { applyMoveTypesForGeneration } from "../pokemon/moveTypeByGeneration";
 import type { Tool } from "../pokemon/tools";
 import { fetchToolsByIds } from "../pokemon/toolRepository";
@@ -168,22 +173,26 @@ function setTypeFilterAt(
   return [first, typeId];
 }
 
-function createBuildWithMoveFilters(
+function createBuildWithFilters(
   species: PokemonSpecies,
   levelCapMode: LevelCapMode,
   moveFilters: Move[],
+  abilityFilter: Ability | null,
   rulesGeneration: number,
 ): PartyMemberBuild {
   const build = createDefaultBuild(species, levelCapMode, rulesGeneration);
-  if (moveFilters.length === 0) {
-    return build;
+  let next = build;
+  if (moveFilters.length > 0) {
+    const moveIds: PartyMemberBuild["moveIds"] = [null, null, null, null];
+    moveFilters.slice(0, MAX_MOVE_FILTERS).forEach((move, index) => {
+      moveIds[index] = move.id;
+    });
+    next = { ...next, moveIds };
   }
-
-  const moveIds: PartyMemberBuild["moveIds"] = [null, null, null, null];
-  moveFilters.slice(0, MAX_MOVE_FILTERS).forEach((move, index) => {
-    moveIds[index] = move.id;
-  });
-  return { ...build, moveIds };
+  if (rulesGeneration >= 3 && abilityFilter) {
+    next = { ...next, abilityId: abilityFilter.id };
+  }
+  return next;
 }
 
 /** Merge filter moves into an existing build. Returns overflow moves that need a slot. */
@@ -592,6 +601,15 @@ function SpeciesFilters({
   onPickMoveSuggestion,
   onRemoveMoveFilter,
   moveFilterLoading,
+  abilityFilter,
+  abilityQuery,
+  onAbilityQueryChange,
+  abilitySuggestions,
+  abilitySearchLoading,
+  onPickAbilitySuggestion,
+  onClearAbilityFilter,
+  abilityFilterLoading,
+  showAbilityFilter,
   resultCount,
   onClear,
   rulesGeneration,
@@ -618,6 +636,15 @@ function SpeciesFilters({
   onPickMoveSuggestion: (move: Move) => void;
   onRemoveMoveFilter: (moveId: string) => void;
   moveFilterLoading: boolean;
+  abilityFilter: Ability | null;
+  abilityQuery: string;
+  onAbilityQueryChange: (value: string) => void;
+  abilitySuggestions: Ability[];
+  abilitySearchLoading: boolean;
+  onPickAbilitySuggestion: (ability: Ability) => void;
+  onClearAbilityFilter: () => void;
+  abilityFilterLoading: boolean;
+  showAbilityFilter: boolean;
   resultCount: number;
   onClear: () => void;
   rulesGeneration: number;
@@ -626,6 +653,7 @@ function SpeciesFilters({
   const hasFilters =
     typeFilters.length > 0 ||
     moveFilters.length > 0 ||
+    abilityFilter != null ||
     singleTypeOnly ||
     !finalEvolutionOnly ||
     hasActiveStatFilters(statFilters, rulesGeneration);
@@ -860,10 +888,75 @@ function SpeciesFilters({
         </View>
       ) : null}
 
+      {showAbilityFilter ? (
+        <>
+          <Text style={styles.filterLabel}>特性（その特性を持つポケモンに絞り込み）</Text>
+          <View style={styles.searchWrap}>
+            <TextInput
+              value={abilityQuery}
+              onChangeText={onAbilityQueryChange}
+              placeholder="特性名で検索"
+              placeholderTextColor="#9a9286"
+              autoCorrect={false}
+              autoCapitalize="none"
+              style={styles.searchInput}
+            />
+            {abilitySearchLoading ? (
+              <View style={styles.moveSearchLoading}>
+                <ActivityIndicator size="small" color="#1f6b4a" />
+              </View>
+            ) : null}
+            {abilitySuggestions.length > 0 ? (
+              <View style={styles.suggestList}>
+                {abilitySuggestions.map((ability) => {
+                  const selected = abilityFilter?.id === ability.id;
+                  return (
+                    <Pressable
+                      key={ability.id}
+                      disabled={selected}
+                      onPress={() => onPickAbilitySuggestion(ability)}
+                      style={({ pressed }) => [
+                        styles.suggestItem,
+                        (pressed || selected) && styles.suggestItemPressed,
+                        selected && styles.suggestItemDisabled,
+                      ]}
+                    >
+                      <Text style={styles.suggestName}>{ability.name_ja}</Text>
+                      {selected ? (
+                        <Text style={styles.suggestMoveMeta}>選択済み</Text>
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : null}
+          </View>
+          {abilityFilter ? (
+            <View style={styles.moveFilterChipRow}>
+              <Pressable
+                onPress={onClearAbilityFilter}
+                style={styles.moveFilterChip}
+              >
+                <Text style={styles.moveFilterChipText}>
+                  {abilityFilter.name_ja}
+                </Text>
+                <Text style={styles.moveFilterChipRemove}>×</Text>
+              </Pressable>
+            </View>
+          ) : null}
+        </>
+      ) : null}
+
       <Text style={styles.filterResult}>
         {resultCount}体表示中
-        {moveFilterLoading ? "（技絞り込み中…）" : ""}
-        {!moveFilterLoading && hasFilters ? "（絞り込み適用中）" : ""}
+        {moveFilterLoading || abilityFilterLoading
+          ? "（絞り込み取得中…）"
+          : ""}
+        {!moveFilterLoading &&
+        !abilityFilterLoading &&
+        hasFilters
+          ? "（絞り込み適用中）"
+          : ""}
       </Text>
     </View>
   );
@@ -1024,6 +1117,14 @@ export function SelectPokemonScreen() {
     nameJa: string;
     incoming: Move[];
   } | null>(null);
+  const [abilityFilter, setAbilityFilter] = useState<Ability | null>(null);
+  const [abilityQuery, setAbilityQuery] = useState("");
+  const [abilitySuggestOpen, setAbilitySuggestOpen] = useState(false);
+  const [abilitySuggestions, setAbilitySuggestions] = useState<Ability[]>([]);
+  const [abilitySearchLoading, setAbilitySearchLoading] = useState(false);
+  const [abilityFilterPokemonIds, setAbilityFilterPokemonIds] =
+    useState<Set<string> | null>(null);
+  const [abilityFilterLoading, setAbilityFilterLoading] = useState(false);
 
   useEffect(() => {
     const existing = getSide(side);
@@ -1049,11 +1150,25 @@ export function SelectPokemonScreen() {
     setMoveSuggestions([]);
     setMoveFilterPokemonIds(null);
     setMoveFilterLoading(false);
+    setAbilityFilter(null);
+    setAbilityQuery("");
+    setAbilitySuggestOpen(false);
+    setAbilitySuggestions([]);
+    setAbilityFilterPokemonIds(null);
+    setAbilityFilterLoading(false);
   }, [side, getSide]);
 
   useEffect(() => {
     setStatFilters(emptyStatFilters());
     setSortKey((current) => normalizeSortKey(current, rulesGeneration));
+    if (rulesGeneration < 3) {
+      setAbilityFilter(null);
+      setAbilityQuery("");
+      setAbilitySuggestOpen(false);
+      setAbilitySuggestions([]);
+      setAbilityFilterPokemonIds(null);
+      setAbilityFilterLoading(false);
+    }
   }, [rulesGeneration]);
 
   useEffect(() => {
@@ -1120,6 +1235,75 @@ export function SelectPokemonScreen() {
   }, [moveFilters]);
 
   useEffect(() => {
+    if (rulesGeneration < 3) {
+      setAbilitySuggestions([]);
+      setAbilitySearchLoading(false);
+      return;
+    }
+    const trimmed = abilityQuery.trim();
+    if (!abilitySuggestOpen || trimmed.length < 1) {
+      setAbilitySuggestions([]);
+      setAbilitySearchLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      setAbilitySearchLoading(true);
+      try {
+        const abilities = await searchAbilities(trimmed, rulesGeneration);
+        if (!cancelled) {
+          setAbilitySuggestions(abilities);
+        }
+      } catch {
+        if (!cancelled) {
+          setAbilitySuggestions([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setAbilitySearchLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [abilityQuery, abilitySuggestOpen, rulesGeneration]);
+
+  useEffect(() => {
+    if (!abilityFilter || rulesGeneration < 3) {
+      setAbilityFilterPokemonIds(null);
+      setAbilityFilterLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      setAbilityFilterLoading(true);
+      try {
+        const ids = await fetchPokemonIdsForAbility(
+          abilityFilter.id,
+          rulesGeneration,
+        );
+        if (!cancelled) {
+          setAbilityFilterPokemonIds(ids);
+        }
+      } catch {
+        if (!cancelled) {
+          setAbilityFilterPokemonIds(new Set());
+        }
+      } finally {
+        if (!cancelled) {
+          setAbilityFilterLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [abilityFilter, rulesGeneration]);
+
+  useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
@@ -1184,6 +1368,14 @@ export function SelectPokemonScreen() {
       ) {
         return false;
       }
+      if (
+        abilityFilter != null &&
+        abilityFilterPokemonIds != null &&
+        !abilityFilterLoading &&
+        !abilityFilterPokemonIds.has(pokemon.id)
+      ) {
+        return false;
+      }
       return true;
     });
   }, [
@@ -1196,6 +1388,9 @@ export function SelectPokemonScreen() {
     moveFilters,
     moveFilterPokemonIds,
     moveFilterLoading,
+    abilityFilter,
+    abilityFilterPokemonIds,
+    abilityFilterLoading,
     rulesGeneration,
   ]);
 
@@ -1233,6 +1428,7 @@ export function SelectPokemonScreen() {
     finalEvolutionOnly,
     statFilters,
     moveFilters,
+    abilityFilter,
     sortKey,
     sortOrder,
   ]);
@@ -1252,6 +1448,10 @@ export function SelectPokemonScreen() {
     setMoveSuggestOpen(false);
     setMoveSuggestions([]);
     setMoveReplacePrompt(null);
+    setAbilityFilter(null);
+    setAbilityQuery("");
+    setAbilitySuggestOpen(false);
+    setAbilitySuggestions([]);
   };
 
   const handleSetTypeFilter = (slot: 0 | 1, typeId: TypeId | null) => {
@@ -1292,17 +1492,18 @@ export function SelectPokemonScreen() {
       if (current[pokemon.id]) return current;
       return {
         ...current,
-        [pokemon.id]: createBuildWithMoveFilters(
+        [pokemon.id]: createBuildWithFilters(
           pokemon,
           levelCapMode,
           moveFilters,
+          abilityFilter,
           rulesGeneration,
         ),
       };
     });
   };
 
-  /** List tap: add if new; if already selected, apply move filters (never deselect). */
+  /** List tap: add if new; if already selected, apply move/ability filters (never deselect). */
   const handleListPokemonPress = (pokemon: PokemonSpecies) => {
     const isSelected = selectedDexNos.includes(pokemon.dex_no);
 
@@ -1313,10 +1514,11 @@ export function SelectPokemonScreen() {
         if (current[pokemon.id]) return current;
         return {
           ...current,
-          [pokemon.id]: createBuildWithMoveFilters(
+          [pokemon.id]: createBuildWithFilters(
             pokemon,
             levelCapMode,
             moveFilters,
+            abilityFilter,
             rulesGeneration,
           ),
         };
@@ -1324,15 +1526,19 @@ export function SelectPokemonScreen() {
       return;
     }
 
-    if (moveFilters.length === 0) return;
+    if (moveFilters.length === 0 && !abilityFilter) return;
 
     const existing =
       buildsBySpeciesId[pokemon.id] ??
       createDefaultBuild(pokemon, levelCapMode, rulesGeneration);
-    const { build: merged, overflow } = mergeMoveFiltersIntoBuild(
+    const { build: mergedMoves, overflow } = mergeMoveFiltersIntoBuild(
       existing,
       moveFilters,
     );
+    const merged =
+      rulesGeneration >= 3 && abilityFilter
+        ? { ...mergedMoves, abilityId: abilityFilter.id }
+        : mergedMoves;
     setBuildsBySpeciesId((current) => ({
       ...current,
       [pokemon.id]: merged,
@@ -1383,10 +1589,11 @@ export function SelectPokemonScreen() {
         if (current[pokemon.id]) return current;
         return {
           ...current,
-          [pokemon.id]: createBuildWithMoveFilters(
+          [pokemon.id]: createBuildWithFilters(
             pokemon,
             levelCapMode,
             moveFilters,
+            abilityFilter,
             rulesGeneration,
           ),
         };
@@ -1864,6 +2071,28 @@ export function SelectPokemonScreen() {
                 );
               }}
               moveFilterLoading={moveFilterLoading}
+              abilityFilter={abilityFilter}
+              abilityQuery={abilityQuery}
+              onAbilityQueryChange={(value) => {
+                setAbilityQuery(value);
+                setAbilitySuggestOpen(true);
+              }}
+              abilitySuggestions={abilitySuggestions}
+              abilitySearchLoading={abilitySearchLoading}
+              onPickAbilitySuggestion={(ability) => {
+                setAbilityFilter(ability);
+                setAbilityQuery("");
+                setAbilitySuggestOpen(false);
+                setAbilitySuggestions([]);
+              }}
+              onClearAbilityFilter={() => {
+                setAbilityFilter(null);
+                setAbilityQuery("");
+                setAbilitySuggestOpen(false);
+                setAbilitySuggestions([]);
+              }}
+              abilityFilterLoading={abilityFilterLoading}
+              showAbilityFilter={rulesGeneration >= 3}
               resultCount={sortedSpecies.length}
               onClear={clearFilters}
               rulesGeneration={rulesGeneration}
