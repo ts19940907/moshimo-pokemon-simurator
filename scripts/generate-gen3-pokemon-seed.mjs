@@ -7,11 +7,15 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { abilitiesForGeneration } from "./lib/pokeapiAbilities.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /** Gen3–9 bits (abilities era; no Gen1/2-only). */
 const GEN3_9 = 508;
+
+/** Resolve species ability columns as of Gen3 ADV. */
+const ABILITY_RULES_GENERATION = 3;
 
 const TYPE_NAME_TO_ID = {
   normal: 1,
@@ -117,7 +121,7 @@ async function main() {
     }
 
     const slots = { 1: null, 2: null, 3: null };
-    for (const a of pokemon.abilities) {
+    for (const a of abilitiesForGeneration(pokemon, ABILITY_RULES_GENERATION)) {
       const id = Number(a.ability.url.match(/\/ability\/(\d+)\//)[1]);
       if (!abilityMap.has(id)) {
         const ad = await fetchJson(a.ability.url);
@@ -134,8 +138,9 @@ async function main() {
           name_en: aEn,
         });
       }
-      if (a.is_hidden) slots[3] = abilityUuid(id);
-      else if (a.slot === 1) slots[1] = abilityUuid(id);
+      // Hidden abilities debut Gen5 — leave slot 3 empty for Gen3-era rows.
+      if (a.is_hidden || a.slot === 3) continue;
+      if (a.slot === 1) slots[1] = abilityUuid(id);
       else if (a.slot === 2) slots[2] = abilityUuid(id);
     }
 
