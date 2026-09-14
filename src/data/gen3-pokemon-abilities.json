@@ -625,6 +625,11 @@
     "slot": 1
   },
   {
+    "dex_no": 94,
+    "pokeapi_ability_id": 26,
+    "slot": 1
+  },
+  {
     "dex_no": 95,
     "pokeapi_ability_id": 69,
     "slot": 1
@@ -1865,6 +1870,11 @@
     "slot": 1
   },
   {
+    "dex_no": 275,
+    "pokeapi_ability_id": 48,
+    "slot": 2
+  },
+  {
     "dex_no": 276,
     "pokeapi_ability_id": 62,
     "slot": 1
@@ -1883,11 +1893,6 @@
     "dex_no": 279,
     "pokeapi_ability_id": 51,
     "slot": 1
-  },
-  {
-    "dex_no": 279,
-    "pokeapi_ability_id": 2,
-    "slot": 2
   },
   {
     "dex_no": 280,
@@ -2210,11 +2215,6 @@
     "slot": 1
   },
   {
-    "dex_no": 324,
-    "pokeapi_ability_id": 70,
-    "slot": 2
-  },
-  {
     "dex_no": 325,
     "pokeapi_ability_id": 47,
     "slot": 1
@@ -2363,11 +2363,6 @@
     "dex_no": 349,
     "pokeapi_ability_id": 33,
     "slot": 1
-  },
-  {
-    "dex_no": 349,
-    "pokeapi_ability_id": 12,
-    "slot": 2
   },
   {
     "dex_no": 350,

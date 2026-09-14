@@ -10,6 +10,10 @@ export type Ability = {
   slot?: number;
 };
 
+function escapeIlikePattern(value: string): string {
+  return value.replace(/[%_\\]/g, "\\$&");
+}
+
 export async function fetchAbilitiesByIds(
   ids: readonly (string | null | undefined)[],
 ): Promise<Ability[]> {
@@ -110,4 +114,115 @@ export async function fetchAbilitiesForPokemon(
   }
 
   return result;
+}
+
+/**
+ * Search abilities by Japanese or English name for the rules generation (Gen3+).
+ */
+export async function searchAbilities(
+  query: string,
+  rulesGeneration: number,
+  limit = 8,
+): Promise<Ability[]> {
+  if (rulesGeneration < 3) return [];
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+
+  const bit = generationBit(rulesGeneration);
+  const pattern = `%${escapeIlikePattern(trimmed)}%`;
+  const { data, error } = await supabase
+    .from("abilities")
+    .select("id, name_ja, name_en, pokeapi_id, description, available_generations")
+    .or(`name_ja.ilike.${pattern},name_en.ilike.${pattern}`)
+    .order("name_ja", { ascending: true })
+    .limit(50);
+
+  if (error) {
+    throw new Error(`特性の検索に失敗しました: ${error.message}`);
+  }
+
+  const rows =
+    (data as
+      | (Ability & { available_generations?: number | null })[]
+      | null) ?? [];
+  const seen = new Set<string>();
+  const result: Ability[] = [];
+
+  for (const row of rows) {
+    if (
+      row.available_generations != null &&
+      (row.available_generations & bit) === 0
+    ) {
+      continue;
+    }
+    const key =
+      row.pokeapi_id != null ? `p:${row.pokeapi_id}` : `id:${row.id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push({
+      id: row.id,
+      name_ja: row.name_ja,
+      name_en: row.name_en,
+      pokeapi_id: row.pokeapi_id,
+      description: row.description,
+    });
+    if (result.length >= limit) break;
+  }
+
+  return result;
+}
+
+/**
+ * Pokemon row ids that can have the given ability under the rules generation.
+ * Uses pokemon_abilities when present, and ability1/2(/hidden) columns as fallback.
+ */
+export async function fetchPokemonIdsForAbility(
+  abilityId: string,
+  rulesGeneration: number,
+): Promise<Set<string>> {
+  if (!abilityId || rulesGeneration < 3) {
+    return new Set();
+  }
+
+  const bit = generationBit(rulesGeneration);
+  const ids = new Set<string>();
+
+  const { data: junction, error: junctionError } = await supabase
+    .from("pokemon_abilities")
+    .select("pokemon_id, slot, available_generations")
+    .eq("ability_id", abilityId);
+
+  if (!junctionError && junction) {
+    for (const row of junction) {
+      const available = row.available_generations as number;
+      if ((available & bit) === 0) continue;
+      if (rulesGeneration < 5 && (row.slot as number) === 3) continue;
+      ids.add(row.pokemon_id as string);
+    }
+  }
+
+  let columnQuery = supabase
+    .from("pokemon")
+    .select("id")
+    .or(`ability1_id.eq.${abilityId},ability2_id.eq.${abilityId}`);
+  if (rulesGeneration >= 5) {
+    columnQuery = supabase
+      .from("pokemon")
+      .select("id")
+      .or(
+        `ability1_id.eq.${abilityId},ability2_id.eq.${abilityId},hidden_ability_id.eq.${abilityId}`,
+      );
+  }
+
+  const { data: columnRows, error: columnError } = await columnQuery;
+  if (columnError) {
+    throw new Error(
+      `特性を持つポケモンの取得に失敗しました: ${columnError.message}`,
+    );
+  }
+  for (const row of columnRows ?? []) {
+    ids.add(row.id as string);
+  }
+
+  return ids;
 }

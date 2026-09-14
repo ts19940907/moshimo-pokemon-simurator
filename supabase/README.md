@@ -17,7 +17,7 @@ App tables live in the **`moshimo`** schema (not `public`), to keep them separat
 - Migration (tools / held items): `supabase/migrations/20260825000100_create_tools.sql`
 - Migration (abilities enrich + pokemon_abilities): `supabase/migrations/20260913000100_create_pokemon_abilities.sql`
 - Ability seed: `supabase/seed/abilities.sql`
-- Gen3 abilities (UPSERT): `supabase/seed/gen3_abilities.sql`（`node scripts/generate-gen3-abilities-seed.mjs` で再生成）
+- Gen3 abilities (UPSERT): `supabase/seed/gen3_abilities.sql`（`node scripts/generate-gen3-abilities-seed.mjs` で再生成。紐づけは **第3世代当時の特性**＝PokeAPI `past_abilities` 反映）
 - Gen3 pokemon↔ability 紐づけ:
   1. `gen3_pokemon_abilities_00_setup.sql`
   2. `gen3_pokemon_abilities_01_values.sql`
@@ -30,6 +30,7 @@ App tables live in the **`moshimo`** schema (not `public`), to keep them separat
 - Gen2 Johto pokemon (additive): `supabase/seed/gen2_all.sql`（abilities upsert → Johto pokemon）
 - Gen3 Hoenn pokemon (additive): `supabase/seed/gen3_pokemon_all.sql`（`node scripts/generate-gen3-pokemon-seed.mjs` で再生成。`gen3_pokemon.sql` 単体もあり）
 - Gen2 moves (additive UPSERT): `supabase/seed/gen2_moves.sql`
+- Gen3 moves (additive UPSERT): `supabase/seed/gen3_moves.sql`（`node scripts/generate-gen3-moves-seed.mjs` で再生成）
 - Gen2 tools / held items (additive): `supabase/seed/gen2_tools.sql`（`node scripts/generate-gen2-tools-seed.mjs` で再生成）
 - Gen1→Gen2 Kanto splits (additive): `supabase/seed/gen2_kanto_splits.sql`（`node scripts/generate-gen2-kanto-splits-seed.mjs` で再生成。差分がある種族のみ行分割）
 - 既存DBへの技適用順（コメントガイド）: `supabase/seed/apply_moves_gen1_and_gen2.sql`
@@ -38,6 +39,11 @@ App tables live in the **`moshimo`** schema (not `public`), to keep them separat
   2. `gen2_pokemon_moves_01_values.sql` … `08_values.sql`（番号順）
   3. `gen2_pokemon_moves_99_finalize.sql`
 - Gen2 moves + learnsets 一括（`psql` 用）: `supabase/seed/gen2_moves_all.sql`
+- Gen3 learnsets（SQL Editor 向け分割）:
+  1. `gen3_pokemon_moves_00_setup.sql`
+  2. `gen3_pokemon_moves_01_values.sql` … `15_values.sql`（番号順）
+  3. `gen3_pokemon_moves_99_finalize.sql`
+- Gen3 moves + learnsets 一括（`psql` 用）: `supabase/seed/gen3_moves_all.sql`
 
 ### 既存DBで Gen2 の技を出す手順
 
@@ -47,6 +53,14 @@ App tables live in the **`moshimo`** schema (not `public`), to keep them separat
 
 技マスタだけでは不足で、**`pokemon_moves` の紐づけ**まで入れるとダメージ計算／パーティ設定で技が表示される。
 
+### 既存DBで Gen3 の技を出す手順
+
+前提: Gen1/Gen2 技マスタと Gen3 ポケモン行が入っていること。
+
+1. `gen3_moves.sql` — 第3世代登場技を UPSERT（`available_generations=508`）
+2. learnset: `gen3_pokemon_moves_00_setup.sql` → `01`…`15_values.sql` → `99_finalize.sql`
+
+一括なら `gen3_moves_all.sql`（`psql` 向け。SQL Editor は分割ファイル推奨）。
 ## Client
 
 `src/lib/supabase.ts` uses:

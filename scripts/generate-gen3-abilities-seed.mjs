@@ -2,7 +2,7 @@
  * Generate Gen3 ability master + pokemon↔ability junction seeds from PokeAPI.
  *
  * - Abilities: all introduced in generation-iii (skips unused Cacophony)
- * - Links: dex 1–386, non-hidden abilities whose ability debuted by Gen3
+ * - Links: dex 1–386, non-hidden abilities as of Gen3 (via past_abilities),
  *   available_generations = Gen3–9 (508)
  *
  * Usage: node scripts/generate-gen3-abilities-seed.mjs
@@ -10,6 +10,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { abilitiesForGeneration } from "./lib/pokeapiAbilities.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -18,6 +19,8 @@ const GEN3_9 = 508;
 
 const HOENN_DEX_MAX = 386;
 const SKIP_ABILITY_NAMES = new Set(["cacophony"]);
+/** Resolve links as of Gen3 ADV (not modern ability redistributions). */
+const ABILITY_RULES_GENERATION = 3;
 
 function abilityUuid(pokeapiId) {
   return `00000000-0000-4000-8000-${String(pokeapiId).padStart(12, "0")}`;
@@ -137,7 +140,7 @@ async function main() {
 
   await mapPool(dexNos, 6, async (dexNo) => {
     const pokemon = await fetchJson(`https://pokeapi.co/api/v2/pokemon/${dexNo}/`);
-    const entries = (pokemon.abilities ?? [])
+    const entries = abilitiesForGeneration(pokemon, ABILITY_RULES_GENERATION)
       .filter((row) => !row.is_hidden)
       .map((row) => {
         const abilityId = Number(row.ability.url.match(/\/ability\/(\d+)\//)[1]);
@@ -216,6 +219,13 @@ ${stagingValues};
 `;
 
   const finalizeSql = `-- 3/3 finalize: link Gen3-usable pokemon ↔ abilities, sync ability*_id, drop staging
+-- Drop prior Gen3-bit links so redistributed abilities (e.g. Pelipper Drizzle) do not linger.
+delete from moshimo.pokemon_abilities pa
+using moshimo.pokemon p
+where pa.pokemon_id = p.id
+  and (p.available_generations & 4) <> 0
+  and (pa.available_generations & 4) <> 0;
+
 insert into moshimo.pokemon_abilities (
   pokemon_id,
   ability_id,
