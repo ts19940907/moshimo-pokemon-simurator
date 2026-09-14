@@ -1,4 +1,11 @@
 -- 3/3 finalize: link Gen3-usable pokemon ↔ abilities, sync ability*_id, drop staging
+-- Drop prior Gen3-bit links so redistributed abilities (e.g. Pelipper Drizzle) do not linger.
+delete from moshimo.pokemon_abilities pa
+using moshimo.pokemon p
+where pa.pokemon_id = p.id
+  and (p.available_generations & 4) <> 0
+  and (pa.available_generations & 4) <> 0;
+
 insert into moshimo.pokemon_abilities (
   pokemon_id,
   ability_id,
