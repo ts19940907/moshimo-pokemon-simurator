@@ -973,11 +973,11 @@
     "name_en": "Knock Off",
     "type_id": 16,
     "damage_class": "special",
-    "power": 65,
+    "power": 20,
     "accuracy": 100,
     "pp": 20,
     "priority": 0,
-    "description": "威力65の攻撃。",
+    "description": "威力20の攻撃。",
     "effect_category": "damage",
     "effect_meta": {
       "ailment": null,
