@@ -14,7 +14,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import type { OpponentType } from "../match-setup/types";
 import { useBattleSession } from "../battle/BattleSessionContext";
 import { pickCpuBattleThree } from "../battle/cpuTeam";
-import { calcGen1Stats } from "../party/gen1Stats";
+import { computeMemberBattleStats } from "../battle/toolEffects";
+import {
+  memberAbilityLabel,
+  memberNatureLabel,
+  memberToolLabel,
+} from "../party/memberLabels";
 import { usePartySetup } from "../party/PartySetupContext";
 import {
   GEN1_STAT_KEYS,
@@ -419,7 +424,12 @@ export function SelectBattlePokemonScreen() {
     : null;
   const inspectStats =
     inspectMember && inspectSpecies
-      ? calcGen1Stats(inspectSpecies, inspectMember)
+      ? computeMemberBattleStats(
+          inspectSpecies,
+          inspectMember,
+          rulesGeneration,
+          {},
+        ).stats
       : null;
 
   const actionPicks =
@@ -818,6 +828,27 @@ export function SelectBattlePokemonScreen() {
               ) : (
                 <Text style={styles.modalBody}>実数値が計算できません。</Text>
               )}
+
+              {inspectMember && rulesGeneration >= 2 ? (
+                <>
+                  <Text style={styles.inspectSection}>
+                    {rulesGeneration >= 3 ? "特性・性格・持ち物" : "持ち物"}
+                  </Text>
+                  {rulesGeneration >= 3 ? (
+                    <>
+                      <Text style={styles.modalBody}>
+                        特性：{memberAbilityLabel(inspectMember, rulesGeneration)}
+                      </Text>
+                      <Text style={styles.modalBody}>
+                        性格：{memberNatureLabel(inspectMember)}
+                      </Text>
+                    </>
+                  ) : null}
+                  <Text style={styles.modalBody}>
+                    持ち物：{memberToolLabel(inspectMember, rulesGeneration)}
+                  </Text>
+                </>
+              ) : null}
 
               <Pressable onPress={closeInspect} style={styles.primaryButton}>
                 <Text style={styles.primaryButtonText}>閉じる</Text>

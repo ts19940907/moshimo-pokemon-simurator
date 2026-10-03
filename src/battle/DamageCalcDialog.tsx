@@ -72,6 +72,7 @@ import {
   WEATHER_LABEL_JA,
   type WeatherId,
 } from "./weather";
+import { moveForUse } from "./moveVariants";
 
 type PickSide = "attacker" | "defender";
 
@@ -859,7 +860,19 @@ export function DamageCalcDialog({
     }));
   };
 
-  const selectedMove = moves.find((m) => m.id === moveId) ?? null;
+  const pickedMove = moves.find((m) => m.id === moveId) ?? null;
+  const selectedMove = useMemo(
+    () =>
+      pickedMove
+        ? moveForUse(
+            pickedMove,
+            attackerBurn ? "burn" : null,
+            rulesGeneration >= 2 ? weatherId : null,
+            rulesGeneration,
+          )
+        : null,
+    [pickedMove, attackerBurn, weatherId, rulesGeneration],
+  );
   const isPhysicalMove = selectedMove?.damage_class === "physical";
   const isSpecialMove = selectedMove?.damage_class === "special";
   const showAttackerStats = Boolean(
@@ -2359,10 +2372,13 @@ export function DamageCalcDialog({
                       {(
                         [
                           { value: null, label: "なし" },
-                          { value: "rain" as const, label: WEATHER_LABEL_JA.rain },
-                          { value: "sun" as const, label: WEATHER_LABEL_JA.sun },
-                          { value: "sand" as const, label: WEATHER_LABEL_JA.sand },
-                        ] as const
+                          { value: "rain", label: WEATHER_LABEL_JA.rain },
+                          { value: "sun", label: WEATHER_LABEL_JA.sun },
+                          { value: "sand", label: WEATHER_LABEL_JA.sand },
+                          ...(rulesGeneration >= 3
+                            ? [{ value: "hail", label: WEATHER_LABEL_JA.hail }]
+                            : []),
+                        ] as { value: WeatherId | null; label: string }[]
                       ).map((option) => {
                         const selected = weatherId === option.value;
                         return (

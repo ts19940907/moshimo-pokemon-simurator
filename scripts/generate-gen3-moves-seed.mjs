@@ -47,6 +47,11 @@ const GEN3_PHYSICAL_TYPES = new Set([1, 7, 10, 8, 9, 13, 12, 14, 17]);
 /** Competitive mask Gen3–9 (no Gen1/2 bits). */
 const GEN3_9 = 508;
 
+/** PokeAPI returns current power; these differ in Gen3. */
+const GEN3_POWER_OVERRIDES = {
+  282: 20, // Knock Off
+};
+
 /** ~1200 value rows per chunk (matches Gen2 SQL Editor split). */
 const VALUES_CHUNK_SIZE = 1200;
 
@@ -257,9 +262,10 @@ async function main() {
           ? "physical"
           : "special";
 
+    const power = GEN3_POWER_OVERRIDES[pokeapiId] ?? m.power;
     const description =
       pickJapaneseDescription(m) ||
-      (m.power != null ? `威力${m.power}の攻撃。` : "技効果。");
+      (power != null ? `威力${power}の攻撃。` : "技効果。");
 
     const apiGen = m.generation?.url
       ? Number(m.generation.url.match(/\/generation\/(\d+)\//)?.[1] ?? 3)
@@ -272,7 +278,7 @@ async function main() {
       name_en: nameEn,
       type_id: typeId,
       damage_class: damageClass,
-      power: m.power,
+      power,
       accuracy: m.accuracy,
       pp: m.pp,
       priority: m.priority ?? 0,
