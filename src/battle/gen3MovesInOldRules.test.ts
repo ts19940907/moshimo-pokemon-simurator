@@ -43,6 +43,26 @@ describe("2世代以前で除外する3世代の技・道具", () => {
     }
     expect(isToolUsableInRules(135, 2)).toBe(true); // オボンのみ
   });
+
+  it("トリック・リサイクルは初代ルールでのみ使えない", () => {
+    for (const id of [271, 278]) {
+      expect(isMoveUsableInRules(id, 1)).toBe(false);
+      expect(isMoveUsableInRules(id, 2)).toBe(true);
+      expect(isMoveUsableInRules(id, 3)).toBe(true);
+    }
+    expect(isMoveUsableInRules(282, 1)).toBe(true); // はたきおとす
+    expect(isMoveUsableInRules(343, 1)).toBe(true); // ほしがる
+    expect(isMoveUsableInRules(168, 1)).toBe(true); // どろぼう
+  });
+});
+
+describe("初代ルールのウェザーボール", () => {
+  it("天気に関係なく威力50のノーマル技のまま", () => {
+    const ball = applyMoveTypeForGeneration(gen3Move(311), 1);
+    for (const weather of ["rain", "sun", "sand", null]) {
+      expect(moveForUse(ball, null, weather, 1)).toMatchObject({ type_id: 1, power: 50 });
+    }
+  });
 });
 
 describe("2世代ルールのウェザーボール", () => {
