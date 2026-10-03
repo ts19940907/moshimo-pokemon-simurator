@@ -12,6 +12,7 @@ import {
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useAppAuth } from "../auth/AppAuthContext";
 import { FireBreath, PetalTornado, WaterCannons } from "./title/TitleEffects";
 import { defaultMatchBackground } from "../match-setup/backgrounds";
 import { MatchScreenBackground } from "../match-setup/MatchScreenBackground";
@@ -52,6 +53,7 @@ function useIdleBob(offset: number) {
 
 export function TitleScreen() {
   const router = useRouter();
+  const { email, logout } = useAppAuth();
   const { width, height } = useWindowDimensions();
   const stagePadding = Math.max(8, width * 0.012);
   const gap = Math.max(4, width * 0.008);
@@ -83,6 +85,22 @@ export function TitleScreen() {
           >
             <Text style={styles.startButtonText}>スタート</Text>
           </Pressable>
+          <View style={styles.account}>
+            {email ? (
+              <Text style={styles.accountEmail} numberOfLines={1}>
+                {email}
+              </Text>
+            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                void logout();
+              }}
+              style={({ pressed }) => pressed && styles.logoutPressed}
+            >
+              <Text style={styles.logoutText}>ログアウト</Text>
+            </Pressable>
+          </View>
         </View>
 
         <View
@@ -186,6 +204,31 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "800",
     letterSpacing: 2,
+  },
+  account: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 4,
+    maxWidth: "100%",
+  },
+  accountEmail: {
+    flexShrink: 1,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#3d4d1f",
+    textShadowColor: "rgba(255,255,255,0.7)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  logoutText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#1f6b4a",
+    textDecorationLine: "underline",
+  },
+  logoutPressed: {
+    opacity: 0.7,
   },
   stage: {
     width: "100%",

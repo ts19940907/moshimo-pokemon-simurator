@@ -6,99 +6,90 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { AuthError, Session } from "@supabase/supabase-js";
 
-import {
-  getConfiguredAppPassword,
-  isAppAuthRequired,
-  readStoredAuthSession,
-  verifyAppPassword,
-  writeStoredAuthSession,
-} from "./appAuth";
-import {
-  authenticateWithBiometrics,
-  getBiometricCapability,
-  isBiometricGateEnabled,
-  isNativeBiometricGate,
-} from "./biometrics";
+import { supabase } from "../lib/supabase";
 
 type LoginResult = { ok: true } | { ok: false; message: string };
 
 type AppAuthContextValue = {
-  /** False until session storage has been read. */
+  /** False until the stored Supabase session has been read. */
   isReady: boolean;
-  /** True when gate is off, or user has unlocked this browser tab session. */
   isAuthenticated: boolean;
-  /** True when EXPO_PUBLIC_APP_PASSWORD is set. */
-  authRequired: boolean;
-  /** Native / web require face or fingerprint in addition to the password. */
-  biometricRequired: boolean;
-  login: (password: string) => Promise<LoginResult>;
-  logout: () => void;
+  email: string | null;
+  login: (email: string, password: string) => Promise<LoginResult>;
+  logout: () => Promise<void>;
 };
 
 const AppAuthContext = createContext<AppAuthContextValue | null>(null);
 
+function loginErrorMessage(error: AuthError): string {
+  switch (error.code) {
+    case "invalid_credentials":
+      return "メールアドレスまたはパスワードが正しくありません。";
+    case "email_not_confirmed":
+      return "メールアドレスの確認が完了していません。届いたメールのリンクから確認してください。";
+    case "user_banned":
+      return "このアカウントは利用停止されています。";
+    case "over_request_rate_limit":
+    case "over_email_send_rate_limit":
+      return "試行回数が多すぎます。しばらくしてから再度お試しください。";
+    default:
+      return `ログインに失敗しました: ${error.message}`;
+  }
+}
+
 export function AppAuthProvider({ children }: { children: ReactNode }) {
-  const authRequired = isAppAuthRequired();
-  const biometricRequired = isBiometricGateEnabled();
-  const [isReady, setIsReady] = useState(!authRequired);
-  const [isAuthenticated, setIsAuthenticated] = useState(!authRequired);
+  const [isReady, setIsReady] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
-    if (!authRequired) {
-      setIsAuthenticated(true);
+    let active = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      setSession(data.session);
       setIsReady(true);
-      return;
-    }
-    // Native never restores — biometrics every launch.
-    // Web may restore within the same browser tab after password + WebAuthn.
-    const stored = isNativeBiometricGate() ? false : readStoredAuthSession();
-    setIsAuthenticated(stored);
-    setIsReady(true);
-  }, [authRequired]);
+    });
+
+    const { data } = supabase.auth.onAuthStateChange((_event, next) => {
+      setSession(next);
+      setIsReady(true);
+    });
+
+    return () => {
+      active = false;
+      data.subscription.unsubscribe();
+    };
+  }, []);
 
   const value = useMemo<AppAuthContextValue>(
     () => ({
       isReady,
-      isAuthenticated,
-      authRequired,
-      biometricRequired,
-      login: async (password: string): Promise<LoginResult> => {
-        if (!authRequired) {
-          setIsAuthenticated(true);
-          return { ok: true };
-        }
-        if (!getConfiguredAppPassword()) {
+      isAuthenticated: session != null,
+      email: session?.user.email ?? null,
+      login: async (email: string, password: string): Promise<LoginResult> => {
+        const trimmedEmail = email.trim();
+        if (!trimmedEmail || !password) {
           return {
             ok: false,
-            message: "アプリパスワードが設定されていません。",
+            message: "メールアドレスとパスワードを入力してください。",
           };
         }
-        if (!verifyAppPassword(password)) {
-          return { ok: false, message: "パスワードが正しくありません。" };
+        const { error } = await supabase.auth.signInWithPassword({
+          email: trimmedEmail,
+          password,
+        });
+        if (error) {
+          return { ok: false, message: loginErrorMessage(error) };
         }
-
-        if (biometricRequired) {
-          const capability = await getBiometricCapability();
-          if (!capability.ok) {
-            return capability;
-          }
-          const biometric = await authenticateWithBiometrics(capability.label);
-          if (!biometric.ok) {
-            return biometric;
-          }
-        }
-
-        writeStoredAuthSession(true);
-        setIsAuthenticated(true);
         return { ok: true };
       },
-      logout: () => {
-        writeStoredAuthSession(false);
-        setIsAuthenticated(!authRequired);
+      logout: async () => {
+        await supabase.auth.signOut();
       },
     }),
-    [authRequired, biometricRequired, isAuthenticated, isReady],
+    [isReady, session],
   );
 
   return (
