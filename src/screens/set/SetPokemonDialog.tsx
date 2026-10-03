@@ -63,12 +63,7 @@ import {
   totalEffortValues,
   usesModernIvEv,
 } from "../../party/gen3Stats";
-import {
-  getNature,
-  natureEffectLabel,
-  NATURES,
-  type NatureId,
-} from "../../party/natures";
+import { NatureComboBox } from "../../party/AbilityNatureFields";
 import { usesSplitSpecial } from "../../pokemon/baseStatFilters";
 import {
   fetchAbilitiesByIds,
@@ -632,115 +627,6 @@ function MoveComboBox({
                         <Text style={styles.moveComboItemMeta}>
                           {moveTypeJa} ／ {DAMAGE_CLASS_JA[move.damage_class]} ／
                           威力 {formatMoveStat(move.power)}
-                        </Text>
-                      </View>
-                    </Pressable>
-                  );
-                })
-              )}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-    </View>
-  );
-}
-
-function NatureComboBox({
-  value,
-  onChange,
-}: {
-  value: NatureId | null | undefined;
-  onChange: (natureId: NatureId) => void;
-}) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const selected = getNature(value);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return NATURES;
-    return NATURES.filter((nature) => {
-      const effect = natureEffectLabel(nature);
-      return (
-        nature.nameJa.toLowerCase().includes(q) ||
-        nature.id.toLowerCase().includes(q) ||
-        effect.toLowerCase().includes(q)
-      );
-    });
-  }, [query]);
-
-  const closeMenu = () => {
-    setMenuOpen(false);
-    setQuery("");
-  };
-
-  return (
-    <View style={styles.moveComboWrap}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="性格を選択"
-        onPress={() => setMenuOpen(true)}
-        style={[styles.moveComboSelect, styles.moveComboSelectFilled]}
-      >
-        <Text style={styles.moveComboSelectText} numberOfLines={1}>
-          {selected.nameJa}（{natureEffectLabel(selected)}）
-        </Text>
-        <Text style={styles.moveComboCaret}>▾</Text>
-      </Pressable>
-
-      <Modal
-        visible={menuOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={closeMenu}
-      >
-        <View style={styles.moveComboBackdrop}>
-          <Pressable style={styles.moveComboDismiss} onPress={closeMenu} />
-          <View style={styles.moveComboSheet}>
-            <Text style={styles.moveComboTitle}>性格</Text>
-            <TextInput
-              style={styles.moveComboSearch}
-              value={query}
-              onChangeText={setQuery}
-              placeholder="性格名・補正で絞り込み"
-              placeholderTextColor="#9a9286"
-              autoCorrect={false}
-              autoCapitalize="none"
-            />
-            <ScrollView
-              style={styles.moveComboList}
-              keyboardShouldPersistTaps="handled"
-            >
-              {filtered.length === 0 ? (
-                <Text style={styles.moveEmpty}>該当する性格がありません。</Text>
-              ) : (
-                filtered.map((nature) => {
-                  const isSelected = nature.id === selected.id;
-                  return (
-                    <Pressable
-                      key={nature.id}
-                      accessibilityRole="button"
-                      onPress={() => {
-                        onChange(nature.id);
-                        closeMenu();
-                      }}
-                      style={[
-                        styles.moveComboItem,
-                        isSelected && styles.moveComboItemSelected,
-                      ]}
-                    >
-                      <View style={styles.moveComboItemBody}>
-                        <Text
-                          style={[
-                            styles.moveComboItemText,
-                            isSelected && styles.moveComboItemTextSelected,
-                          ]}
-                        >
-                          {nature.nameJa}
-                        </Text>
-                        <Text style={styles.moveComboItemMeta}>
-                          {natureEffectLabel(nature)}
                         </Text>
                       </View>
                     </Pressable>

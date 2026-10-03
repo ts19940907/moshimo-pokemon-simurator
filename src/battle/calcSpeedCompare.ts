@@ -1,4 +1,7 @@
-import { calcGen1OtherStat, calcGen1Stats } from "../party/gen1Stats";
+import { calcBattleStats } from "../party/calcBattleStats";
+import { abilitySpeedMultiplierFor } from "./abilityEffects";
+import { calcGen1OtherStat } from "../party/gen1Stats";
+import { ivMaxForRules, maxEvForKey, usesModernIvEv } from "../party/gen3Stats";
 import type { PartyMemberBuild } from "../party/types";
 import type { PokemonSpecies } from "../pokemon/types";
 import { stagedStat } from "./types";
@@ -8,6 +11,12 @@ export type SpeedSideInput = {
   build: PartyMemberBuild;
   speedStage: number;
   paralyzed: boolean;
+  /** Stat formula / IV-EV caps follow the rules generation (default Gen1). */
+  rulesGeneration?: number;
+  /** PokeAPI ability id (Swift Swim / Chlorophyll). */
+  abilityId?: number | null;
+  /** Weather after Cloud Nine / Air Lock suppression. */
+  weatherId?: string | null;
 };
 
 export type SpeedVerdict = "outspeed" | "tie" | "underspeed";
@@ -31,10 +40,21 @@ export function canBeParalyzed(species: PokemonSpecies): boolean {
 }
 
 export function calcEffectiveSpeed(side: SpeedSideInput): number {
-  const stats = calcGen1Stats(side.species, side.build);
+  const stats = calcBattleStats(
+    side.species,
+    side.build,
+    side.rulesGeneration ?? 1,
+  );
   let spd = stagedStat(stats.speed, side.speedStage);
   if (side.paralyzed) {
     spd = Math.max(1, Math.floor(spd / 4));
+  }
+  const abilityMult = abilitySpeedMultiplierFor(
+    side.abilityId ?? null,
+    side.weatherId ?? null,
+  );
+  if (abilityMult !== 1) {
+    spd = Math.max(1, Math.floor(spd * abilityMult));
   }
   return spd;
 }
@@ -76,23 +96,28 @@ function minSpeedIvToOutspeed(
   foe: SpeedSideInput,
 ): number | null {
   const current = self.build.iv.speed;
-  for (let iv = current + 1; iv <= 15; iv += 1) {
+  const ivMax = ivMaxForRules(self.rulesGeneration ?? 1);
+  for (let iv = current + 1; iv <= ivMax; iv += 1) {
     if (beats(withSpeedIv(self, iv), foe)) return iv;
   }
   return null;
 }
 
-/** Smallest Stat Exp (0–65535) that outspeeds; null if impossible. */
+/** Smallest Stat Exp (0–65535) / Gen3 EV that outspeeds; null if impossible. */
 function minSpeedStatExpToOutspeed(
   self: SpeedSideInput,
   foe: SpeedSideInput,
 ): number | null {
   const current = self.build.statExp.speed;
-  if (beats(withSpeedStatExp(self, 65535), foe) === false) return null;
+  const max = usesModernIvEv(self.rulesGeneration ?? 1)
+    ? maxEvForKey(self.build.statExp, "speed")
+    : 65535;
+  if (current >= max) return null;
+  if (beats(withSpeedStatExp(self, max), foe) === false) return null;
 
-  // Stat Exp only changes the floor(sqrt(x)/4) term — search minimal x > current.
+  // Search the minimal value above current (the stat term is monotonic).
   let lo = current + 1;
-  let hi = 65535;
+  let hi = max;
   let found: number | null = null;
   while (lo <= hi) {
     const mid = Math.floor((lo + hi) / 2);

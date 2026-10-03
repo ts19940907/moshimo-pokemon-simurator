@@ -31,6 +31,11 @@ import {
   type Gen1StatBlock,
   type PartyMemberBuild,
 } from "../party/types";
+import {
+  AbilityChips,
+  NatureComboBox,
+  useSpeciesAbilities,
+} from "../party/AbilityNatureFields";
 import { resolveGen1SpecialSource } from "../party/gen1Stats";
 import { usesSplitSpecial } from "../pokemon/baseStatFilters";
 import {
@@ -73,6 +78,17 @@ import {
   type WeatherId,
 } from "./weather";
 import { moveForUse } from "./moveVariants";
+import {
+  ABILITY,
+  ABILITY_NAME_JA,
+  abilityBlockingDamage,
+  abilityDamageMultipliersFor,
+  abilityPreventsCrit,
+  abilitySuppressesWeather,
+  pinchAbilityType,
+  resolveAbilityPokeapiId,
+} from "./abilityEffects";
+import { typeEffectivenessForRules } from "./typeEffectiveness";
 
 type PickSide = "attacker" | "defender";
 
@@ -146,6 +162,8 @@ function partyBuildsEqual(a: PartyMemberBuild, b: PartyMemberBuild): boolean {
     "attack",
     "defense",
     "special",
+    "sp_attack",
+    "sp_defense",
     "speed",
   ] as const) {
     if (a.iv[key] !== b.iv[key] || a.statExp[key] !== b.statExp[key]) {
@@ -156,6 +174,8 @@ function partyBuildsEqual(a: PartyMemberBuild, b: PartyMemberBuild): boolean {
     if (a.moveIds[i] !== b.moveIds[i]) return false;
   }
   if ((a.toolId ?? null) !== (b.toolId ?? null)) return false;
+  if ((a.abilityId ?? null) !== (b.abilityId ?? null)) return false;
+  if ((a.natureId ?? null) !== (b.natureId ?? null)) return false;
   if ((a.specialSource ?? "sp_attack") !== (b.specialSource ?? "sp_attack")) {
     return false;
   }
@@ -476,6 +496,8 @@ export function DamageCalcDialog({
   const [pickingMove, setPickingMove] = useState(false);
   const [crit, setCrit] = useState(false);
   const [attackerBurn, setAttackerBurn] = useState(false);
+  const [attackerAbilityActive, setAttackerAbilityActive] = useState(false);
+  const [defenderAbilityActive, setDefenderAbilityActive] = useState(false);
   const [reflect, setReflect] = useState(false);
   const [lightScreen, setLightScreen] = useState(false);
   const [weatherId, setWeatherId] = useState<WeatherId | null>(null);
@@ -578,6 +600,8 @@ export function DamageCalcDialog({
     moveId != null ||
     crit ||
     attackerBurn ||
+    attackerAbilityActive ||
+    defenderAbilityActive ||
     reflect ||
     lightScreen ||
     weatherId != null ||
@@ -597,6 +621,8 @@ export function DamageCalcDialog({
     setPickingMove(false);
     setCrit(false);
     setAttackerBurn(false);
+    setAttackerAbilityActive(false);
+    setDefenderAbilityActive(false);
     setReflect(false);
     setLightScreen(false);
     setWeatherId(null);
@@ -860,6 +886,20 @@ export function DamageCalcDialog({
     }));
   };
 
+  const attackerAbility = attacker.build
+    ? resolveAbilityPokeapiId(attacker.build, rulesGeneration)
+    : null;
+  const defenderAbility = defender.build
+    ? resolveAbilityPokeapiId(defender.build, rulesGeneration)
+    : null;
+  const weatherSuppressed =
+    abilitySuppressesWeather(attackerAbility) ||
+    abilitySuppressesWeather(defenderAbility);
+  const effectiveWeatherId =
+    rulesGeneration >= 2 && !weatherSuppressed ? weatherId : null;
+  const critBlocked = abilityPreventsCrit(defenderAbility);
+  const effectiveCrit = crit && !critBlocked;
+
   const pickedMove = moves.find((m) => m.id === moveId) ?? null;
   const selectedMove = useMemo(
     () =>
@@ -867,12 +907,77 @@ export function DamageCalcDialog({
         ? moveForUse(
             pickedMove,
             attackerBurn ? "burn" : null,
-            rulesGeneration >= 2 ? weatherId : null,
+            effectiveWeatherId,
             rulesGeneration,
           )
         : null,
-    [pickedMove, attackerBurn, weatherId, rulesGeneration],
+    [pickedMove, attackerBurn, effectiveWeatherId, rulesGeneration],
   );
+
+  const attackerConditionLabel = (() => {
+    if (!selectedMove || attackerAbility == null) return null;
+    const name = ABILITY_NAME_JA[attackerAbility];
+    if (pinchAbilityType(attackerAbility) === selectedMove.type_id) {
+      return `HP1/3以下（${name}）`;
+    }
+    if (attackerAbility === ABILITY.FLASH_FIRE && selectedMove.type_id === 2) {
+      return `${name}発動中`;
+    }
+    if (
+      attackerAbility === ABILITY.GUTS &&
+      selectedMove.damage_class === "physical"
+    ) {
+      return `状態異常（${name}）`;
+    }
+    return null;
+  })();
+  const defenderConditionLabel =
+    selectedMove?.damage_class === "physical" &&
+    defenderAbility === ABILITY.MARVEL_SCALE
+      ? `状態異常（${ABILITY_NAME_JA[defenderAbility]}）`
+      : null;
+
+  const abilityDamage = useMemo(() => {
+    if (!selectedMove || !defender.species) return null;
+    const typeEffectiveness = typeEffectivenessForRules(
+      rulesGeneration,
+      selectedMove.type_id,
+      defender.species.type1,
+      defender.species.type2,
+    );
+    const blockedBy =
+      typeEffectiveness === 0
+        ? null
+        : abilityBlockingDamage(
+            attackerAbility,
+            defenderAbility,
+            selectedMove,
+            typeEffectiveness,
+          );
+    const mult = abilityDamageMultipliersFor(
+      {
+        attackerAbility,
+        defenderAbility,
+        attackerStatused:
+          attackerBurn ||
+          (attackerAbility === ABILITY.GUTS && attackerAbilityActive),
+        defenderStatused: defenderAbilityActive,
+        attackerPinch: attackerAbilityActive,
+        flashFireActive: attackerAbilityActive,
+      },
+      selectedMove,
+    );
+    return { blockedBy, ...mult };
+  }, [
+    selectedMove,
+    defender.species,
+    rulesGeneration,
+    attackerAbility,
+    defenderAbility,
+    attackerBurn,
+    attackerAbilityActive,
+    defenderAbilityActive,
+  ]);
   const isPhysicalMove = selectedMove?.damage_class === "physical";
   const isSpecialMove = selectedMove?.damage_class === "special";
   const showAttackerStats = Boolean(
@@ -897,6 +1002,44 @@ export function DamageCalcDialog({
       toolPokeapiId: tool ? Number(tool.pokeapi_id) : null,
     }));
     setPickingToolSide(null);
+  };
+
+  const showAbilityNature = rulesGeneration >= 3;
+  const attackerAbilities = useSpeciesAbilities(
+    attacker.species,
+    rulesGeneration,
+  );
+  const defenderAbilities = useSpeciesAbilities(
+    defender.species,
+    rulesGeneration,
+  );
+
+  const renderAbilityNature = (side: PickSide) => {
+    const build = side === "attacker" ? attacker.build : defender.build;
+    if (!build || !showAbilityNature) return null;
+    const abilityState =
+      side === "attacker" ? attackerAbilities : defenderAbilities;
+    return (
+      <>
+        <Text style={styles.section}>特性</Text>
+        <AbilityChips
+          abilities={abilityState.abilities}
+          loading={abilityState.loading}
+          error={abilityState.error}
+          value={build.abilityId}
+          onChange={(abilityId) =>
+            patchBuild(side, (current) => ({ ...current, abilityId }))
+          }
+        />
+        <Text style={styles.section}>性格</Text>
+        <NatureComboBox
+          value={build.natureId}
+          onChange={(natureId) =>
+            patchBuild(side, (current) => ({ ...current, natureId }))
+          }
+        />
+      </>
+    );
   };
 
   const renderToolPicker = (side: PickSide) => {
@@ -982,6 +1125,19 @@ export function DamageCalcDialog({
       return null;
     }
     if (!selectedMove) return null;
+    if (abilityDamage?.blockedBy != null) {
+      return {
+        min: 0,
+        max: 0,
+        typeEffectiveness: 1,
+        immune: true,
+        isFixed: false,
+        minPercent: 0,
+        maxPercent: 0,
+        power: selectedMove.power ?? 0,
+        koLabel: null,
+      };
+    }
     const atkRaw = calcBattleStats(
       attacker.species,
       attacker.build,
@@ -1041,24 +1197,27 @@ export function DamageCalcDialog({
       },
       selectedMove,
       {
-        crit,
-        attackerBurn,
+        crit: effectiveCrit,
+        attackerBurn: attackerBurn && attackerAbility !== ABILITY.GUTS,
         defenderReflect: reflect,
         defenderLightScreen: lightScreen,
-        weatherId: rulesGeneration >= 2 ? weatherId : null,
+        weatherId: effectiveWeatherId,
         attackerItemPokeapiId: atkToolPokeapiId,
         rulesGeneration,
+        abilityDamageMult: abilityDamage?.total ?? 1,
       },
     );
   }, [
     attacker,
     defender,
     selectedMove,
-    crit,
+    effectiveCrit,
     attackerBurn,
+    attackerAbility,
+    abilityDamage,
     reflect,
     lightScreen,
-    weatherId,
+    effectiveWeatherId,
     rulesGeneration,
     splitSpecial,
     isPhysicalMove,
@@ -1767,9 +1926,12 @@ export function DamageCalcDialog({
 
                   {attacker.build && attacker.species ? (
                     <>
-                      {showHeldItems && !showAttackerStats && !pickingMove
-                        ? renderToolPicker("attacker")
-                        : null}
+                      {!showAttackerStats && !pickingMove ? (
+                        <>
+                          {renderAbilityNature("attacker")}
+                          {showHeldItems ? renderToolPicker("attacker") : null}
+                        </>
+                      ) : null}
                       {showAttackerStats && !pickingMove ? (
                         <>
                           <Text style={styles.section}>
@@ -1791,6 +1953,7 @@ export function DamageCalcDialog({
                             }
                           />
 
+                          {renderAbilityNature("attacker")}
                           {showHeldItems ? renderToolPicker("attacker") : null}
 
                           {isPhysicalMove || isSpecialMove ? (
@@ -1965,6 +2128,15 @@ export function DamageCalcDialog({
                               onToggle={() => setAttackerBurn((v) => !v)}
                             />
                           ) : null}
+                          {attackerConditionLabel ? (
+                            <CheckRow
+                              label={attackerConditionLabel}
+                              checked={attackerAbilityActive}
+                              onToggle={() =>
+                                setAttackerAbilityActive((v) => !v)
+                              }
+                            />
+                          ) : null}
                         </>
                       ) : null}
 
@@ -2073,9 +2245,12 @@ export function DamageCalcDialog({
                       攻撃側の技を選ぶと、耐久の設定が表示されます。
                     </Text>
                   ) : null}
-                  {defender.build && defender.species && showHeldItems && !showDefenderStats
-                    ? renderToolPicker("defender")
-                    : null}
+                  {defender.build && defender.species && !showDefenderStats ? (
+                    <>
+                      {renderAbilityNature("defender")}
+                      {showHeldItems ? renderToolPicker("defender") : null}
+                    </>
+                  ) : null}
 
                   {showDefenderStats ? (
                     <>
@@ -2098,6 +2273,7 @@ export function DamageCalcDialog({
                         }
                       />
 
+                      {renderAbilityNature("defender")}
                       {showHeldItems ? renderToolPicker("defender") : null}
 
                       <Text style={styles.section}>
@@ -2277,6 +2453,14 @@ export function DamageCalcDialog({
                         </>
                       ) : null}
 
+                      {defenderConditionLabel ? (
+                        <CheckRow
+                          label={defenderConditionLabel}
+                          checked={defenderAbilityActive}
+                          onToggle={() => setDefenderAbilityActive((v) => !v)}
+                        />
+                      ) : null}
+
                       <Text style={styles.section}>場の効果</Text>
                       {isPhysicalMove ? (
                         <CheckRow
@@ -2414,7 +2598,13 @@ export function DamageCalcDialog({
                     攻撃側・防御側・技をすべて選ぶと結果が表示されます。
                   </Text>
                 ) : damageResult?.immune ? (
-                  <Text style={styles.resultImmune}>こうかがなかった…</Text>
+                  <Text style={styles.resultImmune}>
+                    {abilityDamage?.blockedBy === ABILITY.DAMP
+                      ? "しめりけで　技が　出せない！"
+                      : abilityDamage?.blockedBy != null
+                        ? `${ABILITY_NAME_JA[abilityDamage.blockedBy]}で　こうかがなかった…`
+                        : "こうかがなかった…"}
+                  </Text>
                 ) : damageResult && damageResult.max <= 0 ? (
                   <Text style={styles.muted}>ダメージはありません。</Text>
                 ) : damageResult ? (
@@ -2432,11 +2622,32 @@ export function DamageCalcDialog({
                     <Text style={styles.resultMeta}>
                       {typeEffLabel(damageResult.typeEffectiveness)}
                       {damageResult.isFixed ? " ／ 固定ダメージ" : ""}
-                      {crit ? " ／ 急所" : ""}
-                      {weatherId
-                        ? ` ／ ${WEATHER_LABEL_JA[weatherId]}`
+                      {effectiveCrit ? " ／ 急所" : ""}
+                      {effectiveWeatherId
+                        ? ` ／ ${WEATHER_LABEL_JA[effectiveWeatherId]}`
+                        : ""}
+                      {attackerAbility != null && abilityDamage?.attacker !== 1
+                        ? ` ／ ${ABILITY_NAME_JA[attackerAbility]}`
+                        : ""}
+                      {defenderAbility != null && abilityDamage?.defender !== 1
+                        ? ` ／ ${ABILITY_NAME_JA[defenderAbility]}`
                         : ""}
                     </Text>
+                    {critBlocked && crit ? (
+                      <Text style={styles.muted}>
+                        {ABILITY_NAME_JA[defenderAbility ?? 0]}のため急所に当たりません。
+                      </Text>
+                    ) : null}
+                    {weatherSuppressed && weatherId ? (
+                      <Text style={styles.muted}>
+                        {ABILITY_NAME_JA[
+                          abilitySuppressesWeather(attackerAbility)
+                            ? (attackerAbility ?? 0)
+                            : (defenderAbility ?? 0)
+                        ]}
+                        のため天候の影響はありません。
+                      </Text>
+                    ) : null}
                   </>
                 ) : null}
               </View>
