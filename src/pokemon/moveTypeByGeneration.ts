@@ -1,4 +1,4 @@
-import type { Move } from "./moves";
+import { EMPTY_EFFECT_META, type Move } from "./moves";
 
 /**
  * Fairy (18) did not exist before Gen6.
@@ -76,11 +76,44 @@ function applyPreGen8RapidSpin(move: Move): Move {
   };
 }
 
+const NATURE_POWER_POKEAPI = 267;
+const SECRET_POWER_POKEAPI = 290;
+
+/**
+ * Gen1–2 rules have no battle terrain: Nature Power becomes a plain Normal attack
+ * (60, never misses — the indoor Swift) and Secret Power loses its secondary effect.
+ */
+function applyPreGen3TerrainMoves(move: Move): Move {
+  if (move.pokeapi_id === NATURE_POWER_POKEAPI) {
+    return {
+      ...move,
+      type_id: 1,
+      damage_class: "physical",
+      power: 60,
+      accuracy: null,
+      description: "威力60の攻撃。必ず命中する。",
+      effect_category: "damage",
+      effect_code: null,
+      effect_meta: { ...EMPTY_EFFECT_META, stat_changes: [] },
+    };
+  }
+  if (move.pokeapi_id === SECRET_POWER_POKEAPI) {
+    return {
+      ...move,
+      effect_meta: move.effect_meta
+        ? { ...move.effect_meta, ailment: null, ailment_chance: 0, stat_chance: 0, stat_changes: [] }
+        : move.effect_meta,
+    };
+  }
+  return move;
+}
+
 export function applyMoveTypeForGeneration(
   move: Move,
   rulesGeneration: number,
 ): Move {
   let adjusted = rulesGeneration >= 2 ? applyGen2MoveChanges(move) : move;
+  if (rulesGeneration <= 2) adjusted = applyPreGen3TerrainMoves(adjusted);
   if (rulesGeneration < 8) adjusted = applyPreGen8RapidSpin(adjusted);
   const typeId = moveTypeIdForGeneration(adjusted.type_id, rulesGeneration);
   return typeId === adjusted.type_id ? adjusted : { ...adjusted, type_id: typeId };
