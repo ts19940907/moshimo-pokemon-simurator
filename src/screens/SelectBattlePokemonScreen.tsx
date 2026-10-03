@@ -24,6 +24,7 @@ import {
 import { BATTLE_PARTY_SIZE, formatDexNo, TYPE_COLORS, getTypes, typeNameJa } from "../pokemon/catalog";
 import type { Move } from "../pokemon/moves";
 import { fetchMovesByIds } from "../pokemon/moveRepository";
+import { applyMoveTypesForGeneration } from "../pokemon/moveTypeByGeneration";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
 import { fetchPokemonSpecies } from "../pokemon/repository";
 import type { PokemonSpecies } from "../pokemon/types";
@@ -334,7 +335,10 @@ export function SelectBattlePokemonScreen() {
       try {
         setInspectMovesLoading(true);
         const ids = moveIds.filter((id): id is string => Boolean(id));
-        const moves = ids.length > 0 ? await fetchMovesByIds(ids) : [];
+        const moves =
+          ids.length > 0
+            ? applyMoveTypesForGeneration(await fetchMovesByIds(ids), rulesGeneration)
+            : [];
         if (cancelled) return;
         const byId = new Map(moves.map((m) => [m.id, m]));
         setInspectMoves(moveIds.map((id) => (id ? byId.get(id) ?? null : null)));
@@ -347,7 +351,7 @@ export function SelectBattlePokemonScreen() {
     return () => {
       cancelled = true;
     };
-  }, [inspectMember]);
+  }, [inspectMember, rulesGeneration]);
 
   const togglePick = (side: "a" | "b", speciesId: string) => {
     const setter = side === "a" ? setPicksA : setPicksB;

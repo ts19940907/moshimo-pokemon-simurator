@@ -19,7 +19,16 @@ export type VolatileFlags = {
   substituteHp: number;
   trapTurns: number;
   trapDamage: number;
+  /**
+   * Gen2 Wrap / Bind / Fire Spin / Clamp / Whirlpool: the target can still act but
+   * cannot switch, taking 1/16 at end of each turn until `turnsLeft` runs out.
+   */
+  partialTrap: { moveNameJa: string; turnsLeft: number } | null;
   leechSeed: boolean;
+  /** Badly poisoned (Toxic). Reverts to regular poison on switch-out (volatiles reset). */
+  toxic: boolean;
+  /** Toxic residual multiplier (N/16); increases each residual tick. */
+  toxicCounter: number;
   /** Whose side planted the seed (heals that side's active). */
   leechSeedFrom: PartySide | null;
   disableMoveId: string | null;
@@ -179,7 +188,10 @@ export function createVolatiles(): VolatileFlags {
     substituteHp: 0,
     trapTurns: 0,
     trapDamage: 0,
+    partialTrap: null,
     leechSeed: false,
+    toxic: false,
+    toxicCounter: 0,
     leechSeedFrom: null,
     disableMoveId: null,
     disableTurns: 0,
@@ -213,6 +225,12 @@ export function createVolatiles(): VolatileFlags {
     knownMoves: [],
     batonPass: false,
   };
+}
+
+/** Mean Look / Spider Web, or Gen2 binding moves. */
+export function cannotSwitchOut(fighter: BattleFighter | null | undefined): boolean {
+  if (!fighter) return false;
+  return fighter.volatiles.cannotEscape || fighter.volatiles.partialTrap != null;
 }
 
 export function createSideField(): SideFieldEffects {

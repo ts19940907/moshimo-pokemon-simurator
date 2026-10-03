@@ -76,6 +76,7 @@ describe("Gen2 assertable moves work correctly", () => {
     moves
       .filter(
         (m) =>
+          m.pokeapi_id !== 173 && // Snore: only while asleep (dedicated test)
           ((m.power ?? 0) > 0 ||
             [175, 179, 216, 218, 222, 251].includes(m.pokeapi_id)) &&
           (m.effect_category === "damage" ||
