@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Move } from "../pokemon/moves";
 import { ABILITY } from "./abilityEffects";
 import { getMoveByPokeapiId } from "./gen1MovePool";
+import { buildFighter } from "./resolveTurn";
 import { forceHits, idleMove, makeFighter, runTurn } from "./test/harness";
 
 const idleMoveA = idleMove();
@@ -252,5 +253,46 @@ describe("シンクロ", () => {
     expect(a.status).toBe("burn");
     expect(logs).not.toContain("マトの　シンクロ！");
     expect(logs).not.toContain("しかし　うまく　決まらなかった！");
+  });
+});
+
+describe("もうどくと交代", () => {
+  /** Badly poisoned, switched out and back in; returns HP lost on the next two turns. */
+  function residualAfterSwitchIn(rulesGeneration: number) {
+    const before = makeFighter({ side: "b", nameJa: "マト", hp: 160 });
+    const b = buildFighter({
+      side: "b",
+      member: before.member,
+      species: before.species,
+      stats: before.stats,
+      currentHp: 160,
+      maxHp: 160,
+      status: "poison",
+      badlyPoisoned: true,
+      rulesGeneration,
+    });
+    const a = makeFighter({ side: "a", nameJa: "アタック", hp: 999 });
+    const lost: number[] = [];
+    for (let turn = 0; turn < 2; turn++) {
+      const hp = b.currentHp;
+      runTurn({
+        fighterA: a,
+        fighterB: b,
+        actionA: { type: "move", move: idleMoveA },
+        actionB: { type: "move", move: idleMove("マト待機") },
+        rulesGeneration,
+      });
+      lost.push(hp - b.currentHp);
+    }
+    return { lost, toxic: b.volatiles.toxic };
+  }
+
+  it("3世代は交代してももうどくのままで、1/16から数え直す", () => {
+    expect(residualAfterSwitchIn(3)).toEqual({ lost: [10, 20], toxic: true });
+  });
+
+  it("1・2世代は交代するとふつうのどくに戻る", () => {
+    expect(residualAfterSwitchIn(2)).toEqual({ lost: [20, 20], toxic: false });
+    expect(residualAfterSwitchIn(1)).toEqual({ lost: [10, 10], toxic: false });
   });
 });

@@ -2609,6 +2609,8 @@ export function buildFighter(input: {
   /** Gen1: major status persists on the bench. */
   status?: BattleStatus;
   sleepTurns?: number;
+  /** Was badly poisoned when it switched out. */
+  badlyPoisoned?: boolean;
   toolPokeapiId?: number | null;
   toolConsumed?: boolean;
   toolNameJa?: string | null;
@@ -2623,6 +2625,13 @@ export function buildFighter(input: {
     input.species.type2 ?? 0,
     rulesGeneration,
   );
+  const volatiles = createVolatiles();
+  // Gen1–2: Toxic reverts to regular poison on switch-out.
+  // Gen3: stays badly poisoned, but the counter restarts from 1/16.
+  if (rulesGeneration >= 3 && input.status === "poison" && input.badlyPoisoned) {
+    volatiles.toxic = true;
+    volatiles.toxicCounter = 0;
+  }
   return {
     side: input.side,
     speciesId: input.member.speciesId,
@@ -2634,7 +2643,7 @@ export function buildFighter(input: {
     maxHp: input.maxHp,
     status: input.status ?? null,
     sleepTurns: input.sleepTurns ?? 0,
-    volatiles: createVolatiles(),
+    volatiles,
     heldTool:
       input.heldTool !== undefined
         ? input.heldTool && { ...input.heldTool }
