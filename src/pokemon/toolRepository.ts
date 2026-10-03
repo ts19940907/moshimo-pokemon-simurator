@@ -4,6 +4,7 @@ import {
   filterByGenerationAvailability,
   type GenerationFilterOptions,
 } from "../match-setup/generationFilter";
+import { isToolUsableInRules } from "./rulesExclusions";
 
 const TOOL_SELECT_COLUMNS = [
   "id",
@@ -55,6 +56,8 @@ export async function fetchTools(
     ((data as unknown as Tool[]) ?? []).map(normalizeTool),
     generationOptions,
     (tool) => String(tool.pokeapi_id),
+  ).filter((tool) =>
+    isToolUsableInRules(tool.pokeapi_id, generationOptions.rulesGeneration),
   );
 }
 
