@@ -1560,6 +1560,12 @@ export function SelectPokemonScreen() {
         ? "CPU編成のあと3体選出へ"
         : "3体選出へ進む";
 
+  const continueButtonText = cpuGenerating
+    ? "CPU編成を準備中…"
+    : selectedDexNos.length >= MIN_PARTY_SIZE
+      ? continueLabel
+      : `あと${MIN_PARTY_SIZE - selectedDexNos.length}体以上選んでください`;
+
   const leaveBack = () => {
     if (isOpponentSide) {
       router.replace({
@@ -1933,13 +1939,7 @@ export function SelectPokemonScreen() {
                 (pressed || cpuGenerating) && styles.primaryButtonPressed,
               ]}
             >
-              <Text style={styles.primaryButtonText}>
-                {cpuGenerating
-                  ? "CPU編成を準備中…"
-                  : selectedDexNos.length >= MIN_PARTY_SIZE
-                    ? continueLabel
-                    : `あと${MIN_PARTY_SIZE - selectedDexNos.length}体以上選んでください`}
-              </Text>
+              <Text style={styles.primaryButtonText}>{continueButtonText}</Text>
             </Pressable>
           </View>
         ) : null}
@@ -2087,6 +2087,22 @@ export function SelectPokemonScreen() {
                 ) : null}
               </View>
             </ScrollView>
+            <View style={styles.partyReviewFooter}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={cpuGenerating}
+                onPress={() => {
+                  setPartyReviewOpen(false);
+                  void continueAfterSelect();
+                }}
+                style={({ pressed }) => [
+                  styles.primaryButton,
+                  (pressed || cpuGenerating) && styles.primaryButtonPressed,
+                ]}
+              >
+                <Text style={styles.primaryButtonText}>{continueButtonText}</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -2530,6 +2546,12 @@ const styles = StyleSheet.create({
   },
   partyReviewScroll: {
     flexGrow: 0,
+    flexShrink: 1,
+  },
+  partyReviewFooter: {
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(31, 107, 74, 0.18)",
   },
   partyReviewScrollContent: {
     paddingBottom: 8,

@@ -885,6 +885,84 @@ export function DamageCalcDialog({
     setPickingToolSide(null);
   };
 
+  const renderToolPicker = (side: PickSide) => {
+    const build = side === "attacker" ? attacker.build : defender.build;
+    if (!build) return null;
+    const takenToolIds = new Set<string>();
+    const takenToolPokeapiIds = new Set<number>();
+    for (const member of Object.values(partyBuildsBySpeciesId)) {
+      if (member.dexNo === build.dexNo || !partyDexNos.includes(member.dexNo)) {
+        continue;
+      }
+      if (member.toolId) takenToolIds.add(member.toolId);
+      if (member.toolPokeapiId != null) {
+        takenToolPokeapiIds.add(Number(member.toolPokeapiId));
+      }
+    }
+    const pickableTools = tools.filter(
+      (tool) =>
+        tool.id === build.toolId ||
+        !(
+          takenToolIds.has(tool.id) ||
+          takenToolPokeapiIds.has(Number(tool.pokeapi_id))
+        ),
+    );
+    return (
+      <>
+        <Text style={styles.section}>持ち物</Text>
+        <Pressable
+          disabled={loadingTools}
+          onPress={() => {
+            setPickingToolSide((current) => (current === side ? null : side));
+            setPickingMove(false);
+            setAttackerAcOpen(false);
+            setDefenderAcOpen(false);
+          }}
+          style={[styles.comboBox, loadingTools && styles.comboBoxDisabled]}
+        >
+          <Text
+            style={[styles.comboPlaceholder, build.toolId && styles.moveName]}
+          >
+            {build.toolId
+              ? (toolsById[build.toolId]?.name_ja ?? "持ち物")
+              : loadingTools
+                ? "読み込み中…"
+                : "なし"}
+          </Text>
+        </Pressable>
+        {pickingToolSide === side ? (
+          <ScrollView
+            style={styles.moveList}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+          >
+            <Pressable
+              onPress={() => setHeldTool(side, null)}
+              style={[styles.moveItem, !build.toolId && styles.moveItemSelected]}
+            >
+              <Text style={styles.moveName}>なし</Text>
+            </Pressable>
+            {pickableTools.map((tool) => (
+              <Pressable
+                key={tool.id}
+                onPress={() => setHeldTool(side, tool.id)}
+                style={[
+                  styles.moveItem,
+                  build.toolId === tool.id && styles.moveItemSelected,
+                ]}
+              >
+                <Text style={styles.moveName}>{tool.name_ja}</Text>
+                {tool.description ? (
+                  <Text style={styles.moveMeta}>{tool.description}</Text>
+                ) : null}
+              </Pressable>
+            ))}
+          </ScrollView>
+        ) : null}
+      </>
+    );
+  };
+
   const damageResult: DamageRangeResult | null = useMemo(() => {
     if (!attacker.species || !attacker.build || !defender.species || !defender.build) {
       return null;
@@ -1675,6 +1753,9 @@ export function DamageCalcDialog({
 
                   {attacker.build && attacker.species ? (
                     <>
+                      {showHeldItems && !showAttackerStats && !pickingMove
+                        ? renderToolPicker("attacker")
+                        : null}
                       {showAttackerStats && !pickingMove ? (
                         <>
                           <Text style={styles.section}>
@@ -1696,80 +1777,7 @@ export function DamageCalcDialog({
                             }
                           />
 
-                          {showHeldItems ? (
-                            <>
-                              <Text style={styles.section}>持ち物</Text>
-                              <Pressable
-                                disabled={loadingTools}
-                                onPress={() => {
-                                  setPickingToolSide((current) =>
-                                    current === "attacker" ? null : "attacker",
-                                  );
-                                  setPickingMove(false);
-                                  setAttackerAcOpen(false);
-                                  setDefenderAcOpen(false);
-                                }}
-                                style={[
-                                  styles.comboBox,
-                                  loadingTools && styles.comboBoxDisabled,
-                                ]}
-                              >
-                                <Text
-                                  style={[
-                                    styles.comboPlaceholder,
-                                    attacker.build.toolId && styles.moveName,
-                                  ]}
-                                >
-                                  {attacker.build.toolId
-                                    ? (toolsById[attacker.build.toolId]
-                                        ?.name_ja ?? "持ち物")
-                                    : loadingTools
-                                      ? "読み込み中…"
-                                      : "なし"}
-                                </Text>
-                              </Pressable>
-                              {pickingToolSide === "attacker" ? (
-                                <ScrollView
-                                  style={styles.moveList}
-                                  nestedScrollEnabled
-                                  keyboardShouldPersistTaps="handled"
-                                >
-                                  <Pressable
-                                    onPress={() => setHeldTool("attacker", null)}
-                                    style={[
-                                      styles.moveItem,
-                                      !attacker.build.toolId &&
-                                        styles.moveItemSelected,
-                                    ]}
-                                  >
-                                    <Text style={styles.moveName}>なし</Text>
-                                  </Pressable>
-                                  {tools.map((tool) => (
-                                    <Pressable
-                                      key={tool.id}
-                                      onPress={() =>
-                                        setHeldTool("attacker", tool.id)
-                                      }
-                                      style={[
-                                        styles.moveItem,
-                                        attacker.build?.toolId === tool.id &&
-                                          styles.moveItemSelected,
-                                      ]}
-                                    >
-                                      <Text style={styles.moveName}>
-                                        {tool.name_ja}
-                                      </Text>
-                                      {tool.description ? (
-                                        <Text style={styles.moveMeta}>
-                                          {tool.description}
-                                        </Text>
-                                      ) : null}
-                                    </Pressable>
-                                  ))}
-                                </ScrollView>
-                              ) : null}
-                            </>
-                          ) : null}
+                          {showHeldItems ? renderToolPicker("attacker") : null}
 
                           {isPhysicalMove || isSpecialMove ? (
                             <>
@@ -2043,6 +2051,9 @@ export function DamageCalcDialog({
                       攻撃側の技を選ぶと、耐久の設定が表示されます。
                     </Text>
                   ) : null}
+                  {defender.build && defender.species && showHeldItems && !showDefenderStats
+                    ? renderToolPicker("defender")
+                    : null}
 
                   {showDefenderStats ? (
                     <>
@@ -2065,80 +2076,7 @@ export function DamageCalcDialog({
                         }
                       />
 
-                      {showHeldItems ? (
-                        <>
-                          <Text style={styles.section}>持ち物</Text>
-                          <Pressable
-                            disabled={loadingTools}
-                            onPress={() => {
-                              setPickingToolSide((current) =>
-                                current === "defender" ? null : "defender",
-                              );
-                              setPickingMove(false);
-                              setAttackerAcOpen(false);
-                              setDefenderAcOpen(false);
-                            }}
-                            style={[
-                              styles.comboBox,
-                              loadingTools && styles.comboBoxDisabled,
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.comboPlaceholder,
-                                defender.build!.toolId && styles.moveName,
-                              ]}
-                            >
-                              {defender.build!.toolId
-                                ? (toolsById[defender.build!.toolId]
-                                    ?.name_ja ?? "持ち物")
-                                : loadingTools
-                                  ? "読み込み中…"
-                                  : "なし"}
-                            </Text>
-                          </Pressable>
-                          {pickingToolSide === "defender" ? (
-                            <ScrollView
-                              style={styles.moveList}
-                              nestedScrollEnabled
-                              keyboardShouldPersistTaps="handled"
-                            >
-                              <Pressable
-                                onPress={() => setHeldTool("defender", null)}
-                                style={[
-                                  styles.moveItem,
-                                  !defender.build!.toolId &&
-                                    styles.moveItemSelected,
-                                ]}
-                              >
-                                <Text style={styles.moveName}>なし</Text>
-                              </Pressable>
-                              {tools.map((tool) => (
-                                <Pressable
-                                  key={tool.id}
-                                  onPress={() =>
-                                    setHeldTool("defender", tool.id)
-                                  }
-                                  style={[
-                                    styles.moveItem,
-                                    defender.build?.toolId === tool.id &&
-                                      styles.moveItemSelected,
-                                  ]}
-                                >
-                                  <Text style={styles.moveName}>
-                                    {tool.name_ja}
-                                  </Text>
-                                  {tool.description ? (
-                                    <Text style={styles.moveMeta}>
-                                      {tool.description}
-                                    </Text>
-                                  ) : null}
-                                </Pressable>
-                              ))}
-                            </ScrollView>
-                          ) : null}
-                        </>
-                      ) : null}
+                      {showHeldItems ? renderToolPicker("defender") : null}
 
                       <Text style={styles.section}>個体値（0〜15）</Text>
                       <IvStatEditor
