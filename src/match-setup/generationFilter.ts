@@ -37,7 +37,8 @@ export type GenerationFilterOptions = {
 
 /**
  * Pool + row selection for pokemon/moves.
- * - sync ON: available bit for rules gen only
+ * - sync ON: available bit for rules gen, debuting no later than the rules gen
+ *   (Gen1-compat rows of later-debut Pokémon / moves are excluded)
  * - sync OFF: introduced_generation in selected, prefer rules-gen row, else latest row
  */
 export function filterByGenerationAvailability<T extends GenerationAvailability>(
@@ -47,7 +48,11 @@ export function filterByGenerationAvailability<T extends GenerationAvailability>
 ): T[] {
   if (options.syncWithRules) {
     const bit = generationBit(options.rulesGeneration);
-    return rows.filter((row) => (row.available_generations & bit) !== 0);
+    return rows.filter(
+      (row) =>
+        (row.available_generations & bit) !== 0 &&
+        row.introduced_generation <= options.rulesGeneration,
+    );
   }
 
   const introduced = new Set(

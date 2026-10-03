@@ -132,4 +132,54 @@ describe("filterByGenerationAvailability + Dark/Steel Gen1 remaps", () => {
     );
     expect(selected).toHaveLength(0);
   });
+
+  it("sync ON + Gen1 rules also excludes Gen1-compat rows of Gen2-debut moves", () => {
+    const selected = filterByGenerationAvailability(
+      catalog,
+      {
+        syncWithRules: true,
+        rulesGeneration: 1,
+        introducedGenerations: [1],
+      },
+      (move) => String(move.pokeapi_id),
+    );
+    expect(selected).toHaveLength(0);
+  });
+
+  it("sync ON + Gen2 rules keeps Gen2-debut rows", () => {
+    const selected = filterByGenerationAvailability(
+      catalog,
+      {
+        syncWithRules: true,
+        rulesGeneration: 2,
+        introducedGenerations: [2],
+      },
+      (move) => String(move.pokeapi_id),
+    );
+    expect(selected).toHaveLength(GEN2_DARK_STEEL_MOVES.length);
+  });
+});
+
+describe("filterByGenerationAvailability (sync ON) excludes later-debut data", () => {
+  const rows = [
+    { key: "pikachu", introduced_generation: 1, available_generations: 511 },
+    { key: "umbreon-gen1", introduced_generation: 2, available_generations: 1 },
+    { key: "umbreon", introduced_generation: 2, available_generations: 510 },
+    { key: "mightyena-gen1", introduced_generation: 3, available_generations: 1 },
+    { key: "mightyena", introduced_generation: 3, available_generations: 508 },
+  ];
+  const pick = (rulesGeneration: number) =>
+    filterByGenerationAvailability(
+      rows,
+      { syncWithRules: true, rulesGeneration, introducedGenerations: [] },
+      (row) => row.key,
+    ).map((row) => row.key);
+
+  it("初代ルールでは初代のデータだけ", () => {
+    expect(pick(1)).toEqual(["pikachu"]);
+  });
+
+  it("2世代ルールでは2世代までのデータだけ", () => {
+    expect(pick(2)).toEqual(["pikachu", "umbreon"]);
+  });
 });

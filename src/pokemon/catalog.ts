@@ -18,7 +18,10 @@ export function isUsableInGeneration(
   pokemon: PokemonSpecies,
   generation: number,
 ): boolean {
-  return (pokemon.available_generations & generationBit(generation)) !== 0;
+  return (
+    (pokemon.available_generations & generationBit(generation)) !== 0 &&
+    pokemon.introduced_generation <= generation
+  );
 }
 
 export function filterSpeciesByRestriction(
