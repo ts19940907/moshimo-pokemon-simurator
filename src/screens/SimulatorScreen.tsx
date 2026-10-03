@@ -521,6 +521,7 @@ export function SimulatorScreen({
                   showPartyActions={showPartyActions}
                   speciesPool={speciesPool}
                   levelCapMode={levelCapMode}
+                  itemGenerationOptions={itemGenerationOptions}
                   partyBuildsBySpeciesId={partyBuildsBySpeciesId}
                   partyDexNos={partyDexNos}
                   rulesGeneration={rulesGeneration}

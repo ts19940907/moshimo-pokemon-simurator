@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 
+import type { GenerationFilterOptions } from "../match-setup/generationFilter";
 import type { LevelCapMode } from "../match-setup/types";
 import { calcGen1Stats } from "../party/gen1Stats";
 import {
@@ -37,6 +38,8 @@ import {
 import { PokemonAutocompleteField } from "../pokemon/PokemonAutocompleteField";
 import { PokemonTypeBadges } from "../pokemon/TypeBadges";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
+import { fetchTools } from "../pokemon/toolRepository";
+import type { Tool } from "../pokemon/tools";
 import {
   TYPE_BY_ID,
   TYPE_NONE,
@@ -62,6 +65,8 @@ type Props = {
   visible: boolean;
   speciesPool: PokemonSpecies[];
   levelCapMode: LevelCapMode;
+  /** Gen2+: held-item pool for the self side (adopted into the party). */
+  itemGenerationOptions?: GenerationFilterOptions;
   partyBuildsBySpeciesId: Record<string, PartyMemberBuild>;
   partyDexNos: number[];
   onClose: () => void;
@@ -114,7 +119,7 @@ function partyBuildsEqual(a: PartyMemberBuild, b: PartyMemberBuild): boolean {
   return true;
 }
 
-/** Add: full draft. Update: merge level + speed IV/StatExp into existing. */
+/** Add: full draft. Update: merge level + speed IV/StatExp + held item into existing. */
 function makeSelfApplyBuild(
   draft: PartyMemberBuild,
   existing: PartyMemberBuild | null,
@@ -127,6 +132,8 @@ function makeSelfApplyBuild(
     level: draft.level,
     iv: { ...existing.iv, speed: draft.iv.speed },
     statExp: { ...existing.statExp, speed: draft.statExp.speed },
+    toolId: draft.toolId,
+    toolPokeapiId: draft.toolPokeapiId ?? null,
   };
 }
 
@@ -277,6 +284,7 @@ export function SpeedCompareDialog({
   visible,
   speciesPool,
   levelCapMode,
+  itemGenerationOptions,
   partyBuildsBySpeciesId,
   partyDexNos,
   onClose,
@@ -322,6 +330,50 @@ export function SpeedCompareDialog({
   const [foeAcQuery, setFoeAcQuery] = useState("");
   const [selfAcOpen, setSelfAcOpen] = useState(false);
   const [foeAcOpen, setFoeAcOpen] = useState(false);
+  const [tools, setTools] = useState<Tool[]>([]);
+  const [loadingTools, setLoadingTools] = useState(false);
+  const [pickingTool, setPickingTool] = useState(false);
+
+  const showHeldItems = rulesGeneration >= 2 && showPartyActions;
+  const toolsById = useMemo(
+    () => Object.fromEntries(tools.map((tool) => [tool.id, tool])),
+    [tools],
+  );
+
+  useEffect(() => {
+    if (rulesGeneration >= 2) return;
+    setPickingTool(false);
+    setSelf((current) =>
+      current.build
+        ? {
+            ...current,
+            build: { ...current.build, toolId: null, toolPokeapiId: null },
+          }
+        : current,
+    );
+  }, [rulesGeneration]);
+
+  useEffect(() => {
+    if (!showHeldItems || !itemGenerationOptions) {
+      setTools([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoadingTools(true);
+        const rows = await fetchTools(itemGenerationOptions);
+        if (!cancelled) setTools(rows);
+      } catch {
+        if (!cancelled) setTools([]);
+      } finally {
+        if (!cancelled) setLoadingTools(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [showHeldItems, itemGenerationOptions]);
 
   const isDirty =
     self.species != null ||
@@ -520,6 +572,40 @@ export function SpeedCompareDialog({
       if (!current.build) return current;
       return { ...current, build: patch(current.build) };
     });
+  };
+
+  const selfPickableTools = useMemo(() => {
+    const build = self.build;
+    if (!build) return tools;
+    const takenToolIds = new Set<string>();
+    const takenToolPokeapiIds = new Set<number>();
+    for (const member of Object.values(partyBuildsBySpeciesId)) {
+      if (member.dexNo === build.dexNo || !partyDexNos.includes(member.dexNo)) {
+        continue;
+      }
+      if (member.toolId) takenToolIds.add(member.toolId);
+      if (member.toolPokeapiId != null) {
+        takenToolPokeapiIds.add(Number(member.toolPokeapiId));
+      }
+    }
+    return tools.filter(
+      (tool) =>
+        tool.id === build.toolId ||
+        !(
+          takenToolIds.has(tool.id) ||
+          takenToolPokeapiIds.has(Number(tool.pokeapi_id))
+        ),
+    );
+  }, [tools, self.build, partyBuildsBySpeciesId, partyDexNos]);
+
+  const setSelfTool = (toolId: string | null) => {
+    const tool = toolId ? toolsById[toolId] ?? null : null;
+    patchSelfBuild((build) => ({
+      ...build,
+      toolId,
+      toolPokeapiId: tool ? Number(tool.pokeapi_id) : null,
+    }));
+    setPickingTool(false);
   };
 
   const compareResult: SpeedCompareResult | null = useMemo(() => {
@@ -752,6 +838,70 @@ export function SpeedCompareDialog({
                 setDraft((c) => ({ ...c, paralyzed: !c.paralyzed }))
               }
             />
+
+            {side === "self" && showHeldItems ? (
+              <>
+                <Text style={styles.section}>持ち物</Text>
+                <Pressable
+                  disabled={loadingTools}
+                  onPress={() => {
+                    setPickingTool((current) => !current);
+                    setSelfAcOpen(false);
+                    setFoeAcOpen(false);
+                  }}
+                  style={[
+                    styles.comboBox,
+                    loadingTools && styles.comboBoxDisabled,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.comboPlaceholder,
+                      draft.build.toolId && styles.toolName,
+                    ]}
+                  >
+                    {draft.build.toolId
+                      ? (toolsById[draft.build.toolId]?.name_ja ?? "持ち物")
+                      : loadingTools
+                        ? "読み込み中…"
+                        : "なし"}
+                  </Text>
+                </Pressable>
+                {pickingTool ? (
+                  <ScrollView
+                    style={styles.toolList}
+                    nestedScrollEnabled
+                    keyboardShouldPersistTaps="handled"
+                  >
+                    <Pressable
+                      onPress={() => setSelfTool(null)}
+                      style={[
+                        styles.toolItem,
+                        !draft.build.toolId && styles.toolItemSelected,
+                      ]}
+                    >
+                      <Text style={styles.toolName}>なし</Text>
+                    </Pressable>
+                    {selfPickableTools.map((tool) => (
+                      <Pressable
+                        key={tool.id}
+                        onPress={() => setSelfTool(tool.id)}
+                        style={[
+                          styles.toolItem,
+                          draft.build?.toolId === tool.id &&
+                            styles.toolItemSelected,
+                        ]}
+                      >
+                        <Text style={styles.toolName}>{tool.name_ja}</Text>
+                        {tool.description ? (
+                          <Text style={styles.toolMeta}>{tool.description}</Text>
+                        ) : null}
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                ) : null}
+              </>
+            ) : null}
 
             {side === "self" && showPartyActions ? (
               <>
@@ -1193,7 +1343,8 @@ export function SpeedCompareDialog({
             <Text style={styles.confirmTitle}>パーティの設定を更新しますか？</Text>
             <Text style={styles.confirmBody}>
               {self.species?.name_ja ?? "このポケモン"}
-              のパーティ設定を、素早さ比較で変更した内容（レベル・すばやさ個体値・努力値）で上書きします。よろしいですか？
+              のパーティ設定を、素早さ比較で変更した内容（レベル・すばやさ個体値・努力値
+              {showHeldItems ? "・持ち物" : ""}）で上書きします。よろしいですか？
             </Text>
             <View style={styles.confirmRow}>
               <Pressable
@@ -1502,6 +1653,52 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: "#1d1a16",
+  },
+  comboBox: {
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    borderRadius: 10,
+    backgroundColor: "#fffdf8",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 44,
+    justifyContent: "center",
+  },
+  comboBoxDisabled: {
+    opacity: 0.45,
+    backgroundColor: "#f0ebe3",
+  },
+  comboPlaceholder: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#8a8276",
+  },
+  toolList: {
+    gap: 6,
+    maxHeight: 220,
+    overflow: "hidden",
+  },
+  toolItem: {
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    borderRadius: 8,
+    padding: 8,
+    backgroundColor: "#fffdf8",
+    marginBottom: 6,
+  },
+  toolItemSelected: {
+    borderColor: "#1f6b4a",
+    backgroundColor: "#eef7f1",
+  },
+  toolName: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#1d1a16",
+  },
+  toolMeta: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#8a8276",
   },
   statField: {
     flexDirection: "row",
