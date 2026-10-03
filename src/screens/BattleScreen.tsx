@@ -116,6 +116,10 @@ const STATUS_LABEL: Record<string, string> = {
   poison: "どく",
 };
 
+function isBadlyPoisoned(fighter: BattleFighter): boolean {
+  return fighter.status === "poison" && fighter.volatiles.toxic;
+}
+
 function statusBadges(
   fighter: BattleFighter | null | undefined,
   displayedHp?: number,
@@ -432,6 +436,7 @@ export function BattleScreen() {
   /** Gen1: major status / sleep counter persist on the bench. */
   const statusBySpeciesIdRef = useRef<Record<string, BattleStatus>>({});
   const sleepTurnsBySpeciesIdRef = useRef<Record<string, number>>({});
+  const badlyPoisonedBySpeciesIdRef = useRef<Record<string, boolean>>({});
   /** Species that have appeared on the field at least once. */
   const seenOnFieldRef = useRef<Set<string>>(new Set());
   const [seenOnFieldTick, setSeenOnFieldTick] = useState(0);
@@ -609,6 +614,7 @@ export function BattleScreen() {
         hpBySpeciesIdRef.current = nextHp;
         statusBySpeciesIdRef.current = nextStatus;
         sleepTurnsBySpeciesIdRef.current = nextSleep;
+        badlyPoisonedBySpeciesIdRef.current = {};
         consumedToolBySpeciesIdRef.current = {};
         heldToolBySpeciesIdRef.current = {};
         fieldRef.current = createBattleField();
@@ -777,6 +783,13 @@ export function BattleScreen() {
         : (STATUS_LABEL[fighter.status] ?? fighter.status);
     }
     const stored = statusBySpeciesIdRef.current[speciesId];
+    if (
+      stored === "poison" &&
+      rulesGeneration >= 3 &&
+      badlyPoisonedBySpeciesIdRef.current[speciesId]
+    ) {
+      return "もうどく";
+    }
     return stored ? (STATUS_LABEL[stored] ?? stored) : null;
   }
 
@@ -931,6 +944,7 @@ export function BattleScreen() {
       hpBySpeciesIdRef.current[f.speciesId] = f.currentHp;
       statusBySpeciesIdRef.current[f.speciesId] = f.status;
       sleepTurnsBySpeciesIdRef.current[f.speciesId] = f.sleepTurns;
+      badlyPoisonedBySpeciesIdRef.current[f.speciesId] = isBadlyPoisoned(f);
     }
   };
 
@@ -940,12 +954,16 @@ export function BattleScreen() {
     if (fighterA) {
       hpBySpeciesIdRef.current[fighterA.speciesId] = snapshot.a;
       statusBySpeciesIdRef.current[fighterA.speciesId] = fighterA.status;
+      badlyPoisonedBySpeciesIdRef.current[fighterA.speciesId] =
+        isBadlyPoisoned(fighterA);
       sleepTurnsBySpeciesIdRef.current[fighterA.speciesId] =
         fighterA.sleepTurns;
     }
     if (fighterB) {
       hpBySpeciesIdRef.current[fighterB.speciesId] = snapshot.b;
       statusBySpeciesIdRef.current[fighterB.speciesId] = fighterB.status;
+      badlyPoisonedBySpeciesIdRef.current[fighterB.speciesId] =
+        isBadlyPoisoned(fighterB);
       sleepTurnsBySpeciesIdRef.current[fighterB.speciesId] =
         fighterB.sleepTurns;
     }
@@ -1102,6 +1120,7 @@ export function BattleScreen() {
       applyNaturalCureOnSwitchOut(prev);
       statusBySpeciesIdRef.current[prev.speciesId] = prev.status;
       sleepTurnsBySpeciesIdRef.current[prev.speciesId] = prev.sleepTurns;
+      badlyPoisonedBySpeciesIdRef.current[prev.speciesId] = isBadlyPoisoned(prev);
       hpBySpeciesIdRef.current[prev.speciesId] = prev.currentHp;
       persistHeldTool(prev);
       prev.volatiles.bindingMove = null;
@@ -1135,6 +1154,7 @@ export function BattleScreen() {
       maxHp: stats.hp,
       status: storedStatus,
       sleepTurns: storedSleep,
+      badlyPoisoned: badlyPoisonedBySpeciesIdRef.current[speciesId] ?? false,
       toolPokeapiId,
       toolConsumed: consumedToolBySpeciesIdRef.current[speciesId] ?? false,
       toolNameJa: member.toolId
