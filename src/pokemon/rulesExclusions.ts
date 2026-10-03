@@ -12,6 +12,12 @@ const GEN3_MECHANIC_MOVE_POKEAPI = new Set([
   293, // Camouflage
 ]);
 
+/** Moves whose only effect is on held items (no held items in Gen1). */
+const ITEM_ONLY_MOVE_POKEAPI = new Set([
+  271, // Trick
+  278, // Recycle
+]);
+
 /** Nature-dependent confusion berries. */
 const GEN3_MECHANIC_TOOL_POKEAPI = new Set([
   136, // Figy Berry
@@ -25,6 +31,7 @@ export function isMoveUsableInRules(
   pokeapiId: number,
   rulesGeneration: number,
 ): boolean {
+  if (rulesGeneration <= 1 && ITEM_ONLY_MOVE_POKEAPI.has(pokeapiId)) return false;
   return rulesGeneration >= 3 || !GEN3_MECHANIC_MOVE_POKEAPI.has(pokeapiId);
 }
 

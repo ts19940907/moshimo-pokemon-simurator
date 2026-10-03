@@ -49,13 +49,16 @@ const WEATHER_BALL_TYPE: Record<WeatherId, number> = {
 /** Gen1–3: physical / special is decided by type. */
 const TYPE_BASED_PHYSICAL_TYPES = new Set([1, 7, 8, 9, 10, 12, 13, 14, 17]);
 
-/** Weather Ball: type follows the weather and power doubles (Gen3+). */
+/**
+ * Weather Ball: type follows the weather and power doubles (Gen2+ rules).
+ * Gen1 has no weather, so it stays a 50-power Normal move.
+ */
 export function weatherBallVariant(
   move: Move,
   weatherId: string | null | undefined,
   rulesGeneration: number,
 ): Move {
-  if (move.pokeapi_id !== WEATHER_BALL_POKEAPI) return move;
+  if (move.pokeapi_id !== WEATHER_BALL_POKEAPI || rulesGeneration <= 1) return move;
   const typeId = weatherId ? WEATHER_BALL_TYPE[weatherId as WeatherId] : undefined;
   if (typeId == null) return move;
   return {
