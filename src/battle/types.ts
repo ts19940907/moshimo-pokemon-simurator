@@ -20,6 +20,10 @@ export type VolatileFlags = {
   trapTurns: number;
   trapDamage: number;
   leechSeed: boolean;
+  /** Badly poisoned (Toxic). Reverts to regular poison on switch-out (volatiles reset). */
+  toxic: boolean;
+  /** Toxic residual multiplier (N/16); increases each residual tick. */
+  toxicCounter: number;
   /** Whose side planted the seed (heals that side's active). */
   leechSeedFrom: PartySide | null;
   disableMoveId: string | null;
@@ -180,6 +184,8 @@ export function createVolatiles(): VolatileFlags {
     trapTurns: 0,
     trapDamage: 0,
     leechSeed: false,
+    toxic: false,
+    toxicCounter: 0,
     leechSeedFrom: null,
     disableMoveId: null,
     disableTurns: 0,

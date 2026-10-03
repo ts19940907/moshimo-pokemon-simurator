@@ -322,6 +322,30 @@ function fixedDamage(
   return randInt(range.min, range.max);
 }
 
+const THUNDER_WAVE_POKEAPI = 86;
+const TOXIC_POKEAPI = 92;
+
+/** Gen1: a damaging move's status secondary cannot affect a target sharing the move's type. */
+function secondaryBlockedBySameType(
+  move: Move,
+  target: BattleFighter,
+  ailment: string,
+  rulesGeneration: number,
+): boolean {
+  if (rulesGeneration > 1) return false;
+  if (
+    ailment !== "paralysis" &&
+    ailment !== "burn" &&
+    ailment !== "freeze" &&
+    ailment !== "poison"
+  ) {
+    return false;
+  }
+  return (
+    target.species.type1 === move.type_id || target.species.type2 === move.type_id
+  );
+}
+
 function canStatus(
   target: BattleFighter,
   ailment: string,
@@ -331,8 +355,12 @@ function canStatus(
   // Gen1: major status cannot be overwritten (Rest is the exception, handled separately).
   if (target.status) return false;
   if (field && safeguardBlocksStatus(field, target)) return false;
-  if (ailment === "paralysis" && target.species.type1 === 4) return false;
-  if (ailment === "burn" && target.species.type1 === 2) return false;
+  if (
+    ailment === "burn" &&
+    (target.species.type1 === 2 || target.species.type2 === 2)
+  ) {
+    return false;
+  }
   // Gen2: cannot freeze while sunny.
   if (ailment === "freeze" && weatherId === "sun") return false;
   if (
@@ -352,7 +380,15 @@ function applyAilment(
   fromSide?: PartySide,
   weatherId: string | null = null,
   field?: BattleFieldState,
+  options: {
+    rulesGeneration?: number;
+    /** Secondary effects fail without a message. */
+    silentFailure?: boolean;
+    /** Toxic: badly poisoned. */
+    badlyPoison?: boolean;
+  } = {},
 ): boolean {
+  const rulesGeneration = options.rulesGeneration ?? 1;
   if (ailment === "confusion") {
     if (field && safeguardBlocksStatus(field, target)) {
       logs.push(`${name}は　しんぴのまもりで　守られている！`);
@@ -383,6 +419,7 @@ function applyAilment(
     return false;
   }
   if (!canStatus(target, ailment, weatherId, field)) {
+    if (options.silentFailure) return false;
     if (field && safeguardBlocksStatus(field, target) && !target.status) {
       logs.push(`${name}は　しんぴのまもりで　守られている！`);
     } else {
@@ -398,13 +435,20 @@ function applyAilment(
     ailment === "poison"
   ) {
     target.status = ailment as BattleStatus;
-    if (ailment === "sleep") target.sleepTurns = randInt(1, 7);
+    if (ailment === "sleep") {
+      // Gen1: 1–7 turns including the wake turn (sleepTurns + 1 turns lost).
+      target.sleepTurns = rulesGeneration <= 1 ? randInt(0, 6) : randInt(1, 7);
+    }
+    if (ailment === "poison") {
+      target.volatiles.toxic = options.badlyPoison === true;
+      target.volatiles.toxicCounter = 0;
+    }
     const ja: Record<string, string> = {
       paralysis: "まひした",
       sleep: "ねむってしまった",
       freeze: "こおってしまった",
       burn: "やけどを　おった",
-      poison: "どくを　あびた",
+      poison: options.badlyPoison ? "もうどくを　あびた" : "どくを　あびた",
     };
     logs.push(`${name}は　${ja[ailment] ?? ailment}！`);
     return true;
@@ -614,17 +658,27 @@ function tryEndTurnStatus(
   fighter: BattleFighter,
   other: BattleFighter,
   logs: TurnLogLine[],
+  rulesGeneration = 1,
 ): void {
   if (fighter.currentHp <= 0) return;
+  const badlyPoisoned = fighter.status === "poison" && fighter.volatiles.toxic;
+  if (badlyPoisoned) {
+    fighter.volatiles.toxicCounter = Math.min(15, fighter.volatiles.toxicCounter + 1);
+  }
+  const sixteenth = Math.max(1, Math.floor(fighter.maxHp / 16));
   if (fighter.status === "burn" || fighter.status === "poison") {
-    const dmg = Math.max(1, Math.floor(fighter.maxHp / 16));
+    const dmg = badlyPoisoned ? sixteenth * fighter.volatiles.toxicCounter : sixteenth;
     fighter.currentHp = Math.max(0, fighter.currentHp - dmg);
     logs.push(
       `${fighter.member.nameJa}は　${fighter.status === "burn" ? "やけど" : "どく"}の　ダメージを　受けた！`,
     );
   }
   if (fighter.volatiles.leechSeed && fighter.currentHp > 0) {
-    const dmg = Math.max(1, Math.floor(fighter.maxHp / 16));
+    // Gen1: the Toxic counter also multiplies Leech Seed damage.
+    const dmg =
+      rulesGeneration <= 1 && badlyPoisoned
+        ? sixteenth * fighter.volatiles.toxicCounter
+        : sixteenth;
     fighter.currentHp = Math.max(0, fighter.currentHp - dmg);
     logs.push(`${fighter.member.nameJa}は　やどりぎのタネの　ダメージを　受けた！`);
     const from = fighter.volatiles.leechSeedFrom;
@@ -683,7 +737,8 @@ function canAct(
     return false;
   }
   if (fighter.status === "freeze") {
-    if (chance(25)) {
+    // Gen1: never thaws naturally (only a Fire move with a burn chance thaws it).
+    if (rulesGeneration >= 2 && chance(25)) {
       fighter.status = null;
       logs.push(`${fighter.member.nameJa}の　こおりが　溶けた！`);
     } else {
@@ -693,8 +748,7 @@ function canAct(
     }
   }
   if (fighter.status === "sleep") {
-    // sleepTurns = remaining asleep turns (must be ≥1 when status is set).
-    // Wake only after those turns are consumed — never on the apply turn.
+    // sleepTurns = remaining asleep turns before the wake turn (which cannot move).
     if (fighter.sleepTurns <= 0) {
       fighter.status = null;
       logs.push(`${fighter.member.nameJa}は　目を　覚ました！`);
@@ -713,7 +767,12 @@ function canAct(
     return false;
   }
   if (fighter.volatiles.confusionTurns > 0) {
+    // Counter 2–5: confused for 1–4 turns, then snaps out and acts normally.
     fighter.volatiles.confusionTurns -= 1;
+    if (fighter.volatiles.confusionTurns <= 0) {
+      logs.push(`${fighter.member.nameJa}の　こんらんが　とけた！`);
+      return true;
+    }
     logs.push(`${fighter.member.nameJa}は　こんらんしている！`);
     if (chance(50)) {
       const dmg = calcDamage(
@@ -1414,6 +1473,14 @@ function executeMove(
     return;
   }
   if (category === "ailment" && meta.ailment) {
+    if (
+      move.pokeapi_id === THUNDER_WAVE_POKEAPI &&
+      foresightTypeEffectiveness(move, defender) === 0
+    ) {
+      logs.push(`${defender.member.nameJa}には　効果がないようだ…`);
+      attacker.volatiles.lastMoveUsed = move;
+      return;
+    }
     if (defender.volatiles.substituteHp > 0) {
       logs.push("しかし　身代わりには　効果が　ない！");
       attacker.volatiles.lastMoveUsed = move;
@@ -1441,6 +1508,7 @@ function executeMove(
       attacker.side,
       field.weather?.id ?? null,
       field,
+      { rulesGeneration, badlyPoison: move.pokeapi_id === TOXIC_POKEAPI },
     );
     if (
       meta.ailment === "paralysis" ||
@@ -1722,8 +1790,17 @@ function executeMove(
     logs.push(`${defender.member.nameJa}は　ひるんでいる！`);
   }
 
+  const hitFrozenTarget =
+    defender.status === "freeze" &&
+    totalDealt > 0 &&
+    !brokeSub &&
+    defender.volatiles.substituteHp <= 0;
+
   if (meta.ailment && meta.ailment !== "trap") {
-    if (defender.volatiles.substituteHp <= 0) {
+    if (
+      defender.volatiles.substituteHp <= 0 &&
+      !secondaryBlockedBySameType(move, defender, meta.ailment, rulesGeneration)
+    ) {
       const pct = meta.ailment_chance > 0 ? meta.ailment_chance : 100;
       if (chance(pct)) {
         const applied = applyAilment(
@@ -1734,6 +1811,7 @@ function executeMove(
           attacker.side,
           field.weather?.id ?? null,
           field,
+          { rulesGeneration, silentFailure: true },
         );
         if (
           meta.ailment === "paralysis" ||
@@ -1753,6 +1831,12 @@ function executeMove(
         }
       }
     }
+  }
+
+  // A Fire move with a burn chance thaws a frozen target, after the secondary roll (Gen1–2).
+  if (hitFrozenTarget && meta.ailment === "burn" && defender.status === "freeze") {
+    defender.status = null;
+    logs.push(`${defender.member.nameJa}の　こおりが　溶けた！`);
   }
 
   if (category === "damage-lower" || category === "damage-raise") {
@@ -2169,8 +2253,8 @@ export function resolveTurnSteps(input: {
         trapped.volatiles.trapDamage = 0;
       }
     }
-    tryEndTurnStatus(fighterA, fighterB, endLogs);
-    tryEndTurnStatus(fighterB, fighterA, endLogs);
+    tryEndTurnStatus(fighterA, fighterB, endLogs, rulesGeneration);
+    tryEndTurnStatus(fighterB, fighterA, endLogs, rulesGeneration);
     applyCurseResidual(fighterA, endLogs);
     applyCurseResidual(fighterB, endLogs);
     for (const fighter of [fighterA, fighterB]) {

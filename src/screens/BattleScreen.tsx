@@ -120,7 +120,11 @@ function statusBadges(
       ? options?.statusOverride
       : fighter.status;
   if (status) {
-    badges.push(STATUS_LABEL[status] ?? status);
+    badges.push(
+      status === "poison" && fighter.volatiles.toxic
+        ? "もうどく"
+        : (STATUS_LABEL[status] ?? status),
+    );
   }
   const confusionTurns =
     options && "confusionOverride" in (options ?? {})
