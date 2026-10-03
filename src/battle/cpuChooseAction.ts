@@ -12,6 +12,8 @@ import { typeEffectivenessForRules } from "./typeEffectiveness";
 import { hypothesizeThreatMoves, randInt } from "./cpuTeam";
 import { getForcedMove } from "./resolveTurn";
 import { getMoveByPokeapiId } from "./gen1MovePool";
+import { effectiveWeatherId } from "./abilityEffects";
+import { moveForUse } from "./moveVariants";
 import {
   stagedStat,
   type BattleAction,
@@ -84,22 +86,33 @@ function damageModifiers(
   attacker: BattleFighter,
   defender: BattleFighter,
   field: BattleFieldState,
+  weatherId: string | null,
+  rulesGeneration: number,
 ): DamageCalcModifiers {
   return {
     crit: false,
     attackerBurn: attacker.status === "burn",
     defenderReflect: field[defender.side].reflect,
     defenderLightScreen: field[defender.side].lightScreen,
+    weatherId,
+    rulesGeneration,
   };
 }
 
 function estimateMoveDamage(
   attacker: BattleFighter,
   defender: BattleFighter,
-  move: Move,
+  selectedMove: Move,
   field: BattleFieldState,
   rulesGeneration: number,
 ): { min: number; max: number; avg: number; koLabel: string | null } {
+  const weatherId = effectiveWeatherId(field, attacker, defender);
+  const move = moveForUse(
+    selectedMove,
+    attacker.status,
+    weatherId,
+    rulesGeneration,
+  );
   const range = calcDamageRange(
     {
       attackerLevel: attacker.member.level,
@@ -114,7 +127,7 @@ function estimateMoveDamage(
       defenderCurrentHp: defender.currentHp,
     },
     move,
-    { ...damageModifiers(attacker, defender, field), rulesGeneration },
+    damageModifiers(attacker, defender, field, weatherId, rulesGeneration),
   );
   return {
     min: range.min,

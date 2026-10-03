@@ -26,6 +26,8 @@ export type DamageCalcModifiers = {
   defenderAbilityId?: string | null;
   /** Battle rules generation for type chart selection. */
   rulesGeneration?: number;
+  /** Combined ability damage multiplier (Gen3+). */
+  abilityDamageMult?: number;
 };
 
 export type DamageCalcSides = {
@@ -155,13 +157,22 @@ export function damageBeforeRandom(
   // Gen1 crit: ignores stages and screens, doubles level.
   // Gen2 crit: ×2 damage; stages and screens are ignored only when the
   // attacker's stage is not higher than the defender's.
-  const gen2Crit = modifiers.crit && (modifiers.rulesGeneration ?? 1) >= 2;
-  const ignoreStagesAndScreens = gen2Crit
-    ? atkStage <= defStage
-    : modifiers.crit;
+  // Gen3 crit: ×2 damage; ignores the attacker's drops, the defender's boosts and screens.
+  const rulesGeneration = modifiers.rulesGeneration ?? 1;
+  const gen2Crit = modifiers.crit && rulesGeneration >= 2;
+  const gen3Crit = modifiers.crit && rulesGeneration >= 3;
+  const ignoreStagesAndScreens = gen3Crit
+    ? true
+    : gen2Crit
+      ? atkStage <= defStage
+      : modifiers.crit;
 
-  let A = stagedStat(atkStat, atkStage, { crit: ignoreStagesAndScreens });
-  let D = stagedStat(defStat, defStage, { crit: ignoreStagesAndScreens });
+  let A = gen3Crit
+    ? stagedStat(atkStat, Math.max(0, atkStage), { crit: false })
+    : stagedStat(atkStat, atkStage, { crit: ignoreStagesAndScreens });
+  let D = gen3Crit
+    ? stagedStat(defStat, Math.min(0, defStage), { crit: false })
+    : stagedStat(defStat, defStage, { crit: ignoreStagesAndScreens });
   if (modifiers.attackerBurn && isPhysical) {
     A = Math.max(1, Math.floor(A / 2));
   }
@@ -172,7 +183,7 @@ export function damageBeforeRandom(
   const base = Math.floor(
     Math.floor((Math.floor((2 * level) / 5 + 2) * power * A) / Math.max(1, D)) / 50,
   );
-  let damage = (gen2Crit ? base * 2 : base) + 2;
+  let damage = gen3Crit ? (base + 2) * 2 : (gen2Crit ? base * 2 : base) + 2;
   damage = Math.floor(damage * stab(move.type_id, sides.attackerSpecies));
   damage = Math.floor(damage * typeEffectiveness);
   damage = Math.floor(
@@ -191,8 +202,12 @@ export function damageBeforeRandom(
       weatherSolarBeamMultiplier(
         modifiers.weatherId ?? null,
         move.pokeapi_id,
+        modifiers.rulesGeneration ?? 1,
       ),
   );
+  if (modifiers.abilityDamageMult != null && modifiers.abilityDamageMult !== 1) {
+    damage = Math.floor(damage * modifiers.abilityDamageMult);
+  }
 
   if (!ignoreStagesAndScreens) {
     if (isPhysical && modifiers.defenderReflect) {

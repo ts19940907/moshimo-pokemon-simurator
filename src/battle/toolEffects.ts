@@ -4,7 +4,24 @@ import type { Gen1StatBlock, PartyMemberBuild } from "../party/types";
 import type { PokemonSpecies } from "../pokemon/types";
 import type { Tool } from "../pokemon/tools";
 import type { Move } from "../pokemon/moves";
+import gen2Tools from "../data/gen2-tools.json";
 import type { BattleFighter, BattleStatus, TurnLogLine } from "./types";
+
+const TOOL_NAME_JA_BY_POKEAPI: Record<number, string> = Object.fromEntries(
+  (gen2Tools as { pokeapi_id: number; name_ja: string }[]).map((t) => [
+    t.pokeapi_id,
+    t.name_ja,
+  ]),
+);
+
+export function heldToolNameJa(
+  heldTool: BattleFighter["heldTool"],
+): string {
+  if (!heldTool) return "どうぐ";
+  return (
+    heldTool.nameJa ?? TOOL_NAME_JA_BY_POKEAPI[heldTool.pokeapiId] ?? "どうぐ"
+  );
+}
 
 /** PokeAPI item ids for Gen2 held tools in this app. */
 export const TOOL_POKEAPI = {
@@ -142,6 +159,26 @@ export function toFighterStatBlock(
   return stats as Gen1StatBlock;
 }
 
+function heldItemStatFactors(
+  species: Pick<PokemonSpecies, "dex_no">,
+  toolPokeapiId: number | null,
+): { attack: number; defense: number; special: number } {
+  const f = { attack: 1, defense: 1, special: 1 };
+  if (toolPokeapiId === TOOL_POKEAPI.LIGHT_BALL && species.dex_no === 25) {
+    f.special = 2;
+  }
+  if (toolPokeapiId === TOOL_POKEAPI.METAL_POWDER && species.dex_no === 132) {
+    f.defense = 2;
+  }
+  if (
+    toolPokeapiId === TOOL_POKEAPI.THICK_CLUB &&
+    (species.dex_no === 104 || species.dex_no === 105)
+  ) {
+    f.attack = 2;
+  }
+  return f;
+}
+
 /** Stat modifiers from species-specific held items (applied at send-out). */
 export function applyHeldItemStats(
   stats: Gen1StatBlock,
@@ -151,22 +188,33 @@ export function applyHeldItemStats(
 ): Gen1StatBlock {
   if (!itemsEnabledInBattle(rulesGeneration) || !toolPokeapiId) return stats;
   const next = { ...stats };
-
-  if (toolPokeapiId === TOOL_POKEAPI.LIGHT_BALL && species.dex_no === 25) {
-    if (next.sp_attack != null) next.sp_attack *= 2;
-    else next.special *= 2;
-  }
-  if (toolPokeapiId === TOOL_POKEAPI.METAL_POWDER && species.dex_no === 132) {
-    next.defense *= 2;
-  }
-  if (
-    toolPokeapiId === TOOL_POKEAPI.THICK_CLUB &&
-    (species.dex_no === 104 || species.dex_no === 105)
-  ) {
-    next.attack *= 2;
-  }
-
+  const f = heldItemStatFactors(species, toolPokeapiId);
+  next.attack *= f.attack;
+  next.defense *= f.defense;
+  if (next.sp_attack != null) next.sp_attack *= f.special;
+  else next.special *= f.special;
   return next;
+}
+
+/** Re-apply species stat items after the held item changes mid-battle. */
+export function adjustHeldItemStatsForSwap(
+  fighter: BattleFighter,
+  fromPokeapiId: number | null,
+  toPokeapiId: number | null,
+  rulesGeneration: number,
+): void {
+  if (!itemsEnabledInBattle(rulesGeneration)) return;
+  const from = heldItemStatFactors(fighter.species, fromPokeapiId);
+  const to = heldItemStatFactors(fighter.species, toPokeapiId);
+  const s = { ...fighter.stats };
+  s.attack = Math.round((s.attack / from.attack) * to.attack);
+  s.defense = Math.round((s.defense / from.defense) * to.defense);
+  if (s.sp_attack != null) {
+    s.sp_attack = Math.round((s.sp_attack / from.special) * to.special);
+  } else {
+    s.special = Math.round((s.special / from.special) * to.special);
+  }
+  fighter.stats = s;
 }
 
 export function computeMemberBattleStats(
