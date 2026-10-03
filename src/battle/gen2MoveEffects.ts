@@ -1,4 +1,10 @@
 import type { Move } from "../pokemon/moves";
+import {
+  abilityBlocksStatus,
+  announceAbility,
+  hasAbility,
+  ABILITY,
+} from "./abilityEffects";
 import type { BattleFighter, BattleFieldState, TurnLogLine } from "./types";
 import { blockedByProtect } from "./gen2UniqueMoves";
 
@@ -167,9 +173,18 @@ export function tryExecutePerishSong(
   logs: TurnLogLine[],
 ): boolean {
   if (move.pokeapi_id !== 195) return false;
-  attacker.volatiles.perishCount = 3;
-  defender.volatiles.perishCount = 3;
   logs.push("滅びの歌を　口ずさんだ！");
+  if (!hasAbility(attacker, ABILITY.SOUNDPROOF)) {
+    attacker.volatiles.perishCount = 3;
+  } else {
+    logs.push(announceAbility(attacker));
+  }
+  if (!hasAbility(defender, ABILITY.SOUNDPROOF)) {
+    defender.volatiles.perishCount = 3;
+  } else {
+    logs.push(announceAbility(defender));
+    logs.push(`${defender.member.nameJa}には　効果がないようだ…`);
+  }
   attacker.volatiles.lastMoveUsed = move;
   return true;
 }
@@ -197,6 +212,9 @@ export function tryExecuteAttract(
     (ag === "male" && dg === "female") || (ag === "female" && dg === "male");
   if (!opposite) {
     logs.push("しかし　うまく　決まらなかった！");
+  } else if (abilityBlocksStatus(defender, "infatuation")) {
+    logs.push(announceAbility(defender));
+    logs.push(`${defender.member.nameJa}は　メロメロに　ならない！`);
   } else {
     defender.volatiles.infatuated = true;
     logs.push(`${defender.member.nameJa}は　メロメロに　なった！`);
