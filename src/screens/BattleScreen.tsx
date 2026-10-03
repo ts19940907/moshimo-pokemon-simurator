@@ -22,8 +22,14 @@ import {
 import {
   buildFighter,
   getForcedMove,
+  pursuitSideAgainstSwitch,
   resolveTurnSteps,
   applySpikesOnSwitchIn,
+  applyNaturalCureOnSwitchOut,
+  applySwitchInAbilities,
+  canSwitchAway,
+  markTruantSwitchIn,
+  switchBlockedLogs,
 } from "../battle/resolveTurn";
 import {
   createBattleField,
@@ -31,11 +37,20 @@ import {
   type BattleFieldState,
   type BattleFighter,
   type BattleStatus,
+  type TurnStep,
 } from "../battle/types";
 import { getMoveByPokeapiId } from "../battle/gen1MovePool";
 import { moveGenerationFilterFromParams, parseRulesGeneration } from "../match-setup/params";
 import type { OpponentType } from "../match-setup/types";
-import { computeMemberBattleStats, tryLeppaBerry } from "../battle/toolEffects";
+import {
+  ABILITY_NAME_JA,
+  resolveAbilityPokeapiId,
+} from "../battle/abilityEffects";
+import {
+  computeMemberBattleStats,
+  heldToolNameJa,
+  tryLeppaBerry,
+} from "../battle/toolEffects";
 import { applyMoveTypesForGeneration } from "../pokemon/moveTypeByGeneration";
 import { usePartySetup } from "../party/PartySetupContext";
 import {
@@ -44,6 +59,7 @@ import {
   type PartyMemberBuild,
   type PartySide,
 } from "../party/types";
+import { memberNatureLabel } from "../party/memberLabels";
 import { formatDexNo, TYPE_COLORS, getTypes, typeNameJa } from "../pokemon/catalog";
 import type { Move } from "../pokemon/moves";
 import {
@@ -377,6 +393,10 @@ export function BattleScreen() {
   const hpBySpeciesIdRef = useRef<Record<string, number>>({});
   /** One-time held items consumed this battle (berries). */
   const consumedToolBySpeciesIdRef = useRef<Record<string, boolean>>({});
+  /** Held item as of last time on the field (Trick / Thief / Knock Off). Absent = original item. */
+  const heldToolBySpeciesIdRef = useRef<
+    Record<string, BattleFighter["heldTool"]>
+  >({});
   /** Gen1: major status / sleep counter persist on the bench. */
   const statusBySpeciesIdRef = useRef<Record<string, BattleStatus>>({});
   const sleepTurnsBySpeciesIdRef = useRef<Record<string, number>>({});
@@ -528,6 +548,10 @@ export function BattleScreen() {
             sleepTurns: 0,
             toolPokeapiId,
             toolConsumed: consumedToolBySpeciesIdRef.current[speciesId] ?? false,
+            toolNameJa: member.toolId
+              ? (toolsByIdRef.current[member.toolId]?.name_ja ?? null)
+              : null,
+            rulesGeneration,
           });
         };
 
@@ -554,6 +578,7 @@ export function BattleScreen() {
         statusBySpeciesIdRef.current = nextStatus;
         sleepTurnsBySpeciesIdRef.current = nextSleep;
         consumedToolBySpeciesIdRef.current = {};
+        heldToolBySpeciesIdRef.current = {};
         fieldRef.current = createBattleField();
         cpuKnowledgeRef.current = { revealedMoveIdsBySpeciesId: {} };
         seenOnFieldRef.current = new Set();
@@ -564,6 +589,33 @@ export function BattleScreen() {
         };
         if (lineup.a[0]) seenOnFieldRef.current.add(lineup.a[0]);
         if (lineup.b[0]) seenOnFieldRef.current.add(lineup.b[0]);
+        // Lead switch-in abilities (modern timing: after both are out).
+        {
+          const leadLogs: string[] = [];
+          const a = fightersRef.current.a;
+          const b = fightersRef.current.b;
+          if (a) {
+            applySwitchInAbilities(
+              a,
+              b,
+              fieldRef.current,
+              leadLogs,
+              rulesGeneration,
+            );
+          }
+          if (b) {
+            applySwitchInAbilities(
+              b,
+              a,
+              fieldRef.current,
+              leadLogs,
+              rulesGeneration,
+            );
+          }
+          if (leadLogs.length && !cancelled) {
+            setLog(leadLogs);
+          }
+        }
         setSeenOnFieldTick((n) => n + 1);
         setFieldHp({
           a: fightersRef.current.a?.currentHp ?? 0,
@@ -680,6 +732,27 @@ export function BattleScreen() {
     };
   }, [menu, controllingMember, battleMoveKey]);
 
+  /** Member build whose item reflects Trick / Thief / Knock Off this battle (for stat items). */
+  const memberWithCurrentTool = (member: PartyMemberBuild): PartyMemberBuild => {
+    const snap = heldToolBySpeciesIdRef.current[member.speciesId];
+    if (snap === undefined) return member;
+    return {
+      ...member,
+      toolId: null,
+      toolPokeapiId: snap && !snap.consumed ? snap.pokeapiId : null,
+    };
+  };
+
+  const persistHeldTool = (fighter: BattleFighter | null | undefined) => {
+    if (!fighter) return;
+    heldToolBySpeciesIdRef.current[fighter.speciesId] = fighter.heldTool
+      ? { ...fighter.heldTool }
+      : null;
+    if (fighter.heldTool?.consumed) {
+      consumedToolBySpeciesIdRef.current[fighter.speciesId] = true;
+    }
+  };
+
   const inspectMember = inspectTarget
     ? resolveMember(controllingSide, inspectTarget.speciesId)
     : null;
@@ -696,14 +769,34 @@ export function BattleScreen() {
     (inspectMember && inspectSpecies
       ? computeMemberBattleStats(
           inspectSpecies,
-          inspectMember,
+          memberWithCurrentTool(inspectMember),
           rulesGeneration,
           toolsById,
         ).stats
       : null);
-  const inspectToolName = inspectMember?.toolId
-    ? (toolsById[inspectMember.toolId]?.name_ja ?? "—")
-    : "なし";
+  const inspectHeldTool = inspectFighter
+    ? inspectFighter.heldTool
+    : inspectMember
+      ? heldToolBySpeciesIdRef.current[inspectMember.speciesId]
+      : undefined;
+  const inspectToolName =
+    inspectHeldTool !== undefined
+      ? inspectHeldTool?.knockedOff
+        ? `${heldToolNameJa(inspectHeldTool)}（はたき落とされた）`
+        : inspectHeldTool && !inspectHeldTool.consumed
+          ? heldToolNameJa(inspectHeldTool)
+          : "なし"
+      : inspectMember?.toolId
+        ? (toolsById[inspectMember.toolId]?.name_ja ?? "—")
+        : "なし";
+  const inspectAbilityName = (() => {
+    if (rulesGeneration < 3) return null;
+    if (inspectFighter?.abilityNameJa) return inspectFighter.abilityNameJa;
+    if (!inspectMember) return "—";
+    const id = resolveAbilityPokeapiId(inspectMember, rulesGeneration);
+    if (id == null) return "—";
+    return ABILITY_NAME_JA[id] ?? "—";
+  })();
   const inspectMoveIds =
     inspectFighter?.member.moveIds ?? inspectMember?.moveIds ?? null;
   const inspectMoveKey = inspectMoveIds?.map((id) => id ?? "").join(",") ?? "";
@@ -839,13 +932,15 @@ export function BattleScreen() {
   const spendPp = (
     speciesId: string,
     moveId: string,
+    amount = 1,
   ): { restoreAmount: number; log: string | null } => {
     const key = ppKey(speciesId, moveId);
     const remaining = ppRemainingRef.current[key];
     if (remaining == null) return { restoreAmount: 0, log: null };
     // Only consume Leppa when this spend actually empties the move's PP.
     if (remaining <= 0) return { restoreAmount: 0, log: null };
-    const after = Math.max(0, remaining - 1);
+    const spend = Math.max(1, amount);
+    const after = Math.max(0, remaining - spend);
     const fighter =
       fightersRef.current.a?.speciesId === speciesId
         ? fightersRef.current.a
@@ -866,9 +961,7 @@ export function BattleScreen() {
     const next = { ...ppRemainingRef.current, [key]: nextValue };
     ppRemainingRef.current = next;
     setPpRemaining(next);
-    if (fighter?.heldTool?.consumed) {
-      consumedToolBySpeciesIdRef.current[speciesId] = true;
-    }
+    persistHeldTool(fighter);
     return {
       restoreAmount,
       log: leppaLogs[0] ?? null,
@@ -908,23 +1001,24 @@ export function BattleScreen() {
       ppRemaining: ppRemainingRef.current,
       knowledge: cpuKnowledgeRef.current,
       foeLearnset: learnsetBySpeciesIdRef.current[foe.species.id] ?? [],
-      switchOptions: cpuSwitchOptions("b"),
+      switchOptions: canSwitchAway(self, foe) ? cpuSwitchOptions("b") : [],
       rulesGeneration,
     });
   };
 
-  const syncFighterFromActive = (side: PartySide, index: number) => {
-    if (!lineup) return;
+  const syncFighterFromActive = (side: PartySide, index: number): string[] => {
+    if (!lineup) return [];
     const speciesId = side === "a" ? lineup.a[index] : lineup.b[index];
     const member = resolveMember(side, speciesId);
     const species = speciesId ? speciesById[speciesId] : null;
-    if (!member || !species) return;
+    if (!member || !species) return [];
     const { stats, toolPokeapiId } = computeMemberBattleStats(
       species,
-      member,
+      memberWithCurrentTool(member),
       rulesGeneration,
       toolsByIdRef.current,
     );
+    const carriedHeldTool = heldToolBySpeciesIdRef.current[speciesId];
     const stored = hpBySpeciesIdRef.current[speciesId];
     const hp =
       stored != null ? Math.max(0, Math.min(stats.hp, stored)) : stats.hp;
@@ -944,12 +1038,11 @@ export function BattleScreen() {
     const prev = fightersRef.current[side];
     const other = fightersRef.current[side === "a" ? "b" : "a"];
     if (prev) {
+      applyNaturalCureOnSwitchOut(prev);
       statusBySpeciesIdRef.current[prev.speciesId] = prev.status;
       sleepTurnsBySpeciesIdRef.current[prev.speciesId] = prev.sleepTurns;
       hpBySpeciesIdRef.current[prev.speciesId] = prev.currentHp;
-      if (prev.heldTool?.consumed) {
-        consumedToolBySpeciesIdRef.current[prev.speciesId] = true;
-      }
+      persistHeldTool(prev);
       prev.volatiles.bindingMove = null;
       prev.volatiles.bindingTurnsLeft = 0;
       prev.volatiles.trapTurns = 0;
@@ -982,8 +1075,14 @@ export function BattleScreen() {
       sleepTurns: storedSleep,
       toolPokeapiId,
       toolConsumed: consumedToolBySpeciesIdRef.current[speciesId] ?? false,
+      toolNameJa: member.toolId
+        ? (toolsByIdRef.current[member.toolId]?.name_ja ?? null)
+        : null,
+      heldTool: carriedHeldTool,
+      rulesGeneration,
     });
     const switched = fightersRef.current[side];
+    const entryLogs: string[] = [];
     if (switched) {
       switched.volatiles.knownMoves = member.moveIds
         .map((id) => (id ? movesByIdRef.current[id] : null))
@@ -994,19 +1093,25 @@ export function BattleScreen() {
         switched.volatiles.cursed = baton.cursed;
         switched.volatiles.perishCount = baton.perishCount;
       }
-      const spikeLogs: string[] = [];
-      applySpikesOnSwitchIn(switched, fieldRef.current, spikeLogs);
-      if (spikeLogs.length) {
+      applySpikesOnSwitchIn(switched, fieldRef.current, entryLogs);
+      applySwitchInAbilities(
+        switched,
+        other,
+        fieldRef.current,
+        entryLogs,
+        rulesGeneration,
+      );
+      if (entryLogs.length) {
         hpBySpeciesIdRef.current[speciesId] = switched.currentHp;
         setFieldHp({
           a: fightersRef.current.a?.currentHp ?? 0,
           b: fightersRef.current.b?.currentHp ?? 0,
         });
-        void playLog(spikeLogs);
       }
     }
     markSeenOnField(speciesId);
     bumpFighters();
+    return entryLogs;
   };
 
   const runResolve = async (nextA: BattleAction, nextB: BattleAction) => {
@@ -1035,44 +1140,14 @@ export function BattleScreen() {
     });
     bumpFighters();
 
-    if (nextA.type === "switch") {
-      persistFighterHp();
-      switchActive("a", nextA.index);
-      liveActiveA = nextA.index;
-      syncFighterFromActive("a", nextA.index);
-      setFieldHp({
-        a: fightersRef.current.a?.currentHp ?? 0,
-        b: fightersRef.current.b?.currentHp ?? 0,
-      });
-      await playLog(["サイドAは　ポケモンを　入れ替えた！"]);
-      bumpFighters();
-    }
-    if (nextB.type === "switch") {
-      persistFighterHp();
-      switchActive("b", nextB.index);
-      liveActiveB = nextB.index;
-      syncFighterFromActive("b", nextB.index);
-      setFieldHp({
-        a: fightersRef.current.a?.currentHp ?? 0,
-        b: fightersRef.current.b?.currentHp ?? 0,
-      });
-      await playLog(["サイドBは　ポケモンを　入れ替えた！"]);
-      bumpFighters();
-    }
-
-    const result = resolveTurnSteps({
-      fighterA: fightersRef.current.a!,
-      fighterB: fightersRef.current.b!,
-      actionA: nextA,
-      actionB: nextB,
-      field: fieldRef.current,
-      rulesGeneration,
-    });
-
-    for (const step of result.steps) {
+    const playStep = async (step: TurnStep) => {
       const stepLogs = [...step.logs];
       if (step.ppSpent) {
-        const leppa = spendPp(step.ppSpent.speciesId, step.ppSpent.moveId);
+        const leppa = spendPp(
+          step.ppSpent.speciesId,
+          step.ppSpent.moveId,
+          step.ppSpent.amount ?? 1,
+        );
         if (leppa.log) stepLogs.push(leppa.log);
       }
       // Apply this beat's HP with its logs so bars drop in attack order.
@@ -1084,10 +1159,7 @@ export function BattleScreen() {
       }
       // Persist consumed berries so switch-in does not restore the item.
       for (const side of ["a", "b"] as const) {
-        const f = fightersRef.current[side];
-        if (f?.heldTool?.consumed) {
-          consumedToolBySpeciesIdRef.current[f.speciesId] = true;
-        }
+        persistHeldTool(fightersRef.current[side]);
       }
       await sleep(0);
       await new Promise<void>((resolve) => {
@@ -1105,6 +1177,74 @@ export function BattleScreen() {
         setStatusDisplay(step.statusSnapshot);
       }
       bumpFighters();
+    };
+
+    // Pursuit hits the Pokémon that is switching out, before it leaves.
+    const pursuitSide = pursuitSideAgainstSwitch(nextA, nextB, rulesGeneration);
+    if (pursuitSide) {
+      const pursuit = resolveTurnSteps({
+        fighterA,
+        fighterB,
+        actionA: nextA,
+        actionB: nextB,
+        field: fieldRef.current,
+        rulesGeneration,
+        pursuitSide,
+      });
+      for (const step of pursuit.steps) {
+        await playStep(step);
+      }
+    }
+
+    if (nextA.type === "switch") {
+      persistFighterHp();
+      switchActive("a", nextA.index);
+      liveActiveA = nextA.index;
+      const entryLogs = syncFighterFromActive("a", nextA.index);
+      if (fightersRef.current.a) {
+        markTruantSwitchIn(fightersRef.current.a, rulesGeneration);
+      }
+      setFieldHp({
+        a: fightersRef.current.a?.currentHp ?? 0,
+        b: fightersRef.current.b?.currentHp ?? 0,
+      });
+      await playLog([
+        "サイドAは　ポケモンを　入れ替えた！",
+        ...entryLogs,
+      ]);
+      bumpFighters();
+    }
+    if (nextB.type === "switch") {
+      persistFighterHp();
+      switchActive("b", nextB.index);
+      liveActiveB = nextB.index;
+      const entryLogs = syncFighterFromActive("b", nextB.index);
+      if (fightersRef.current.b) {
+        markTruantSwitchIn(fightersRef.current.b, rulesGeneration);
+      }
+      setFieldHp({
+        a: fightersRef.current.a?.currentHp ?? 0,
+        b: fightersRef.current.b?.currentHp ?? 0,
+      });
+      await playLog([
+        "サイドBは　ポケモンを　入れ替えた！",
+        ...entryLogs,
+      ]);
+      bumpFighters();
+    }
+
+    const result = resolveTurnSteps({
+      fighterA: fightersRef.current.a!,
+      fighterB: fightersRef.current.b!,
+      actionA: nextA,
+      actionB: nextB,
+      field: fieldRef.current,
+      rulesGeneration,
+      skipSides: pursuitSide ? [pursuitSide] : undefined,
+    });
+
+    for (const step of result.steps) {
+      await playStep(step);
       if (step.forceSwitchSide) {
         const side = step.forceSwitchSide;
         const ids = side === "a" ? lineup.a : lineup.b;
@@ -1125,7 +1265,7 @@ export function BattleScreen() {
           switchActive(side, pick.index);
           if (side === "a") liveActiveA = pick.index;
           else liveActiveB = pick.index;
-          syncFighterFromActive(side, pick.index);
+          const entryLogs = syncFighterFromActive(side, pick.index);
           setFieldHp({
             a: fightersRef.current.a?.currentHp ?? 0,
             b: fightersRef.current.b?.currentHp ?? 0,
@@ -1133,6 +1273,7 @@ export function BattleScreen() {
           const member = resolveMember(side, pick.id);
           await playLog([
             `${member?.nameJa ?? "ポケモン"}が　飛び出した！`,
+            ...entryLogs,
           ]);
           bumpFighters();
         }
@@ -1227,7 +1368,9 @@ export function BattleScreen() {
 
       persistFighterHp();
       switchActive(switchingSide, action.index);
-      syncFighterFromActive(switchingSide, action.index);
+      const entryLogs = syncFighterFromActive(switchingSide, action.index);
+      const entered = fightersRef.current[switchingSide];
+      if (entered) markTruantSwitchIn(entered, rulesGeneration);
       setFieldHp({
         a: fightersRef.current.a?.currentHp ?? 0,
         b: fightersRef.current.b?.currentHp ?? 0,
@@ -1236,6 +1379,7 @@ export function BattleScreen() {
       if (pending) {
         void playLog([
           `ゆけ！　${member?.nameJa ?? "ポケモン"}！`,
+          ...entryLogs,
           isCpu && pending === "b"
             ? "CPUが　次のポケモンを　選んでいます…"
             : `${pending === "a" ? "サイドA" : "サイドB"}は　次のポケモンを　選んでください。`,
@@ -1250,6 +1394,7 @@ export function BattleScreen() {
       }
       void playLog([
         `ゆけ！　${member?.nameJa ?? "ポケモン"}！`,
+        ...entryLogs,
         "次のターン。サイドAから行動を選んでください。",
       ]).then(() => {
         setMenu("root");
@@ -1263,9 +1408,13 @@ export function BattleScreen() {
     if (pickPhase === "a") {
       if (
         action.type === "switch" &&
-        fightersRef.current.a?.volatiles.cannotEscape
+        fightersRef.current.a &&
+        fightersRef.current.b &&
+        !canSwitchAway(fightersRef.current.a, fightersRef.current.b)
       ) {
-        setLog(["逃げられない！"]);
+        setLog(
+          switchBlockedLogs(fightersRef.current.a, fightersRef.current.b),
+        );
         return;
       }
       actionARef.current = action;
@@ -1303,9 +1452,13 @@ export function BattleScreen() {
     if (pickPhase === "b") {
       if (
         action.type === "switch" &&
-        fightersRef.current.b?.volatiles.cannotEscape
+        fightersRef.current.b &&
+        fightersRef.current.a &&
+        !canSwitchAway(fightersRef.current.b, fightersRef.current.a)
       ) {
-        setLog(["逃げられない！"]);
+        setLog(
+          switchBlockedLogs(fightersRef.current.b, fightersRef.current.a),
+        );
         return;
       }
       setActionB(action);
@@ -2106,15 +2259,26 @@ export function BattleScreen() {
                 <Text style={styles.modalBody}>実数値が計算できません。</Text>
               )}
 
-              <Text style={styles.inspectSection}>
-                特性・性格{rulesGeneration >= 2 ? "・持ち物" : ""}
-              </Text>
-              <Text style={styles.modalBody}>特性：—（将来対応）</Text>
-              <Text style={styles.modalBody}>性格：—（将来対応）</Text>
               {rulesGeneration >= 2 ? (
-                <Text style={styles.modalBody}>
-                  持ち物：{inspectToolName}
-                </Text>
+                <>
+                  <Text style={styles.inspectSection}>
+                    {rulesGeneration >= 3 ? "特性・性格・持ち物" : "持ち物"}
+                  </Text>
+                  {rulesGeneration >= 3 ? (
+                    <>
+                      <Text style={styles.modalBody}>
+                        特性：{inspectAbilityName ?? "—"}
+                      </Text>
+                      <Text style={styles.modalBody}>
+                        性格：
+                        {inspectMember ? memberNatureLabel(inspectMember) : "—"}
+                      </Text>
+                    </>
+                  ) : null}
+                  <Text style={styles.modalBody}>
+                    持ち物：{inspectToolName}
+                  </Text>
+                </>
               ) : null}
 
               <Pressable
@@ -2332,7 +2496,9 @@ export function BattleScreen() {
                     ? "はれ"
                     : fieldRef.current.weather.id === "sand"
                       ? "すなあらし"
-                      : fieldRef.current.weather.id}
+                      : fieldRef.current.weather.id === "hail"
+                        ? "あられ"
+                        : fieldRef.current.weather.id}
                 {fieldRef.current.weather.turnsLeft != null
                   ? `（残り${fieldRef.current.weather.turnsLeft}）`
                   : ""}

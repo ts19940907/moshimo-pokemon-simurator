@@ -76,6 +76,7 @@ describe("Gen2 assertable moves work correctly", () => {
     moves
       .filter(
         (m) =>
+          m.pokeapi_id !== 173 && // Snore: requires sleep
           ((m.power ?? 0) > 0 ||
             [175, 179, 216, 218, 222, 251].includes(m.pokeapi_id)) &&
           (m.effect_category === "damage" ||
@@ -91,6 +92,75 @@ describe("Gen2 assertable moves work correctly", () => {
     expect(
       result.steps.some((s) => s.logs.some((l) => l.includes("ダメージ"))),
     ).toBe(true);
+  });
+
+  it("いびき fails while awake and damages while asleep", () => {
+    const snore = gen2MoveByPokeapiId(173);
+    const awake = runMove(snore);
+    expect(awake.fighterB.currentHp).toBe(awake.fighterB.maxHp);
+    expect(
+      awake.result.steps.some((s) =>
+        s.logs.some((l) => l.includes("うまく　決まらなかった")),
+      ),
+    ).toBe(true);
+
+    forceHits();
+    const fighterA = makeFighter({
+      side: "a",
+      nameJa: "アタック",
+      speed: 200,
+      hp: 200,
+    });
+    fighterA.status = "sleep";
+    fighterA.sleepTurns = 3;
+    const fighterB = makeFighter({
+      side: "b",
+      nameJa: "ディフェンス",
+      speed: 50,
+      hp: 200,
+      type1: defenderTypeForMoveType(snore.type_id),
+    });
+    const { result } = runTurn({
+      fighterA,
+      fighterB,
+      actionA: { type: "move", move: withForcedSecondaries(snore) },
+    });
+    expect(fighterB.currentHp).toBeLessThan(fighterB.maxHp);
+    expect(
+      result.steps.some((s) => s.logs.some((l) => l.includes("ダメージ"))),
+    ).toBe(true);
+  });
+
+  it("あまごいは既に雨のとき失敗する", () => {
+    forceHits();
+    const rain = gen2MoveByPokeapiId(240);
+    const fighterA = makeFighter({
+      side: "a",
+      nameJa: "アタック",
+      speed: 200,
+    });
+    const fighterB = makeFighter({
+      side: "b",
+      nameJa: "ディフェンス",
+      speed: 50,
+    });
+    const field = createBattleField();
+    field.weather = { id: "rain", turnsLeft: null };
+    const { result } = runTurn({
+      fighterA,
+      fighterB,
+      field,
+      actionA: { type: "move", move: rain },
+    });
+    expect(field.weather?.id).toBe("rain");
+    expect(
+      result.steps.some((s) =>
+        s.logs.some((l) => l.includes("うまく　決まらなかった")),
+      ),
+    ).toBe(true);
+    expect(
+      result.steps.some((s) => s.logs.some((l) => l.includes("降り始めた"))),
+    ).toBe(false);
   });
 
   it.each(

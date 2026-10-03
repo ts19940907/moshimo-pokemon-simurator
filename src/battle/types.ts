@@ -81,6 +81,13 @@ export type VolatileFlags = {
   knownMoves: Move[];
   /** Baton Pass pending: next switch keeps stages/some volatiles. */
   batonPass: boolean;
+  /** Flash Fire activated this battle (Fire moves boosted). */
+  flashFireActive: boolean;
+  /**
+   * Truant: when true, this Pokémon loafs and skips its next action.
+   * Toggled after each attempted action.
+   */
+  truantIdle: boolean;
 };
 
 /** Per-side field effects. Gen1 mist/reflect/light screen last until switch-out. */
@@ -136,7 +143,19 @@ export type BattleFighter = {
   sleepTurns: number;
   volatiles: VolatileFlags;
   /** Held item pokeapi id; null when none or Gen1 rules. */
-  heldTool: { pokeapiId: number; consumed: boolean } | null;
+  heldTool: {
+    pokeapiId: number;
+    consumed: boolean;
+    nameJa?: string | null;
+    /** Gen3: once knocked off, this Pokémon cannot receive an item this battle. */
+    knockedOff?: boolean;
+  } | null;
+  /** Active ability pokeapi id (Gen3+); null when none / older rules. */
+  abilityPokeapiId: number | null;
+  abilityNameJa: string | null;
+  /** Mutable battle types (Color Change / Forecast). */
+  battleType1: number;
+  battleType2: number;
 };
 
 export type BattleAction =
@@ -150,7 +169,7 @@ export type TurnLogLine = string;
 export type TurnStep = {
   logs: TurnLogLine[];
   /** PP to spend only if the move actually began. */
-  ppSpent: { speciesId: string; moveId: string } | null;
+  ppSpent: { speciesId: string; moveId: string; amount?: number } | null;
   /** Opponent must switch (Whirlwind / Roar). */
   forceSwitchSide?: PartySide | null;
   /** HP after this beat (for multi-hit bar updates). */
@@ -212,6 +231,8 @@ export function createVolatiles(): VolatileFlags {
     specialDamageTakenThisTurn: 0,
     knownMoves: [],
     batonPass: false,
+    flashFireActive: false,
+    truantIdle: false,
   };
 }
 

@@ -4,7 +4,7 @@ import {
   rollProtectFamilySuccess,
 } from "./gen2Protection";
 import type { BattleFieldState, BattleFighter, TurnLogLine } from "./types";
-import { isSandstormImmune } from "./weather";
+import { isHailImmune, isSandstormImmune } from "./weather";
 
 function rand255(): number {
   return Math.floor(Math.random() * 256);
@@ -215,13 +215,34 @@ export function applySandstormResidual(
   fighter: BattleFighter,
   field: BattleFieldState,
   logs: TurnLogLine[],
+  weatherActive = true,
 ): void {
+  if (!weatherActive) return;
   if (field.weather?.id !== "sand") return;
   if (fighter.currentHp <= 0) return;
-  if (isSandstormImmune(fighter.species.type1, fighter.species.type2)) return;
+  const t1 = fighter.battleType1 ?? fighter.species.type1;
+  const t2 = fighter.battleType2 ?? fighter.species.type2;
+  if (isSandstormImmune(t1, t2)) return;
   const dmg = Math.max(1, Math.floor(fighter.maxHp / 16));
   fighter.currentHp = Math.max(0, fighter.currentHp - dmg);
   logs.push(`${fighter.member.nameJa}は　砂あらしで　ダメージを　受けた！`);
+}
+
+export function applyHailResidual(
+  fighter: BattleFighter,
+  field: BattleFieldState,
+  logs: TurnLogLine[],
+  weatherActive = true,
+): void {
+  if (!weatherActive) return;
+  if (field.weather?.id !== "hail") return;
+  if (fighter.currentHp <= 0) return;
+  const t1 = fighter.battleType1 ?? fighter.species.type1;
+  const t2 = fighter.battleType2 ?? fighter.species.type2;
+  if (isHailImmune(t1, t2)) return;
+  const dmg = Math.max(1, Math.floor(fighter.maxHp / 16));
+  fighter.currentHp = Math.max(0, fighter.currentHp - dmg);
+  logs.push(`${fighter.member.nameJa}は　あられで　ダメージを　受けた！`);
 }
 
 export function applyCurseResidual(

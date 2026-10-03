@@ -40,6 +40,7 @@ import {
   calcBattleStats,
   summarizeBattleStats,
 } from "../party/calcBattleStats";
+import { memberAbilityLabel } from "../party/memberLabels";
 import { getNature, natureEffectLabel } from "../party/natures";
 import {
   formatDexNo,
@@ -2270,7 +2271,11 @@ export function SelectPokemonScreen() {
                       ) : null}
                       {rulesGeneration >= 3 ? (
                         <Text style={styles.partyMoves} numberOfLines={1}>
-                          性格: {natureLabel}
+                          特性:{" "}
+                          {build
+                            ? memberAbilityLabel(build, rulesGeneration)
+                            : "—"}
+                          {" ／ "}性格: {natureLabel}
                         </Text>
                       ) : null}
                       <Text style={styles.partyMoves} numberOfLines={2}>

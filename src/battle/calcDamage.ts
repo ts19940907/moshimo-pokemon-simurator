@@ -26,6 +26,8 @@ export type DamageCalcModifiers = {
   defenderAbilityId?: string | null;
   /** Battle rules generation for type chart selection. */
   rulesGeneration?: number;
+  /** Combined ability damage multiplier (Gen3+). */
+  abilityDamageMult?: number;
 };
 
 export type DamageCalcSides = {
@@ -187,8 +189,12 @@ export function damageBeforeRandom(
       weatherSolarBeamMultiplier(
         modifiers.weatherId ?? null,
         move.pokeapi_id,
+        modifiers.rulesGeneration ?? 1,
       ),
   );
+  if (modifiers.abilityDamageMult != null && modifiers.abilityDamageMult !== 1) {
+    damage = Math.floor(damage * modifiers.abilityDamageMult);
+  }
 
   if (!modifiers.crit) {
     if (isPhysical && modifiers.defenderReflect) {
