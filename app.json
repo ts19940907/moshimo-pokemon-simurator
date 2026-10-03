@@ -25,12 +25,7 @@
     },
     "plugins": [
       "expo-router",
-      [
-        "expo-local-authentication",
-        {
-          "faceIDPermission": "ログインのために Face ID を使用します。"
-        }
-      ]
+      "expo-sqlite"
     ]
   }
 }
