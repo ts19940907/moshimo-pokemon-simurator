@@ -9,6 +9,7 @@ import {
   gen1EvolutionDexNos,
   gen1LearnsetDexNos,
 } from "./gen1Evolution";
+import { isMoveUsableInRules } from "./rulesExclusions";
 
 const MOVE_SELECT_COLUMNS = [
   "id",
@@ -102,6 +103,8 @@ export async function fetchMovesForPokemon(
     ((data as unknown as Move[]) ?? []).map(normalizeMove),
     generationOptions,
     (move) => String(move.pokeapi_id),
+  ).filter((move) =>
+    isMoveUsableInRules(move.pokeapi_id, generationOptions.rulesGeneration),
   );
 }
 
@@ -168,7 +171,11 @@ export async function searchMoves(
     ((data as unknown as Move[]) ?? []).map(normalizeMove),
     generationOptions,
     (move) => String(move.pokeapi_id),
-  ).slice(0, limit);
+  )
+    .filter((move) =>
+      isMoveUsableInRules(move.pokeapi_id, generationOptions.rulesGeneration),
+    )
+    .slice(0, limit);
 }
 
 /** Pokemon row ids that can learn every selected move (AND), including Gen1 evolutions of learners. */
