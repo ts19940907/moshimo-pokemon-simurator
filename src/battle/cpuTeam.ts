@@ -10,7 +10,7 @@ import {
   type PartyMemberBuild,
   type PartySetupState,
 } from "../party/types";
-import { gen1TypeEffectiveness } from "./gen1TypeChart";
+import { typeEffectivenessForRules } from "./typeEffectiveness";
 
 function randInt(min: number, max: number): number {
   return min + Math.floor(Math.random() * (max - min + 1));
@@ -35,6 +35,7 @@ function bst(species: PokemonSpecies, rulesGeneration: number): number {
 function typeMatchupScore(
   attacker: PokemonSpecies,
   defender: PokemonSpecies,
+  rulesGeneration: number,
 ): number {
   const types = [attacker.type1, attacker.type2].filter(
     (t) => t && t !== TYPE_NONE,
@@ -42,7 +43,8 @@ function typeMatchupScore(
   if (types.length === 0) return 1;
   let best = 0;
   for (const typeId of types) {
-    const mult = gen1TypeEffectiveness(
+    const mult = typeEffectivenessForRules(
+      rulesGeneration,
       typeId,
       defender.type1,
       defender.type2,
@@ -140,8 +142,8 @@ function scoreCpuMemberForPlayerTeam(
   const cpuBst = bst(cpu, rulesGeneration);
   score += cpuBst / 100;
   for (const foe of playerTeam) {
-    const offense = typeMatchupScore(cpu, foe);
-    const defense = typeMatchupScore(foe, cpu);
+    const offense = typeMatchupScore(cpu, foe, rulesGeneration);
+    const defense = typeMatchupScore(foe, cpu, rulesGeneration);
     score += offense * 2;
     score -= defense * 1.5;
     score += getDisplayBaseStats(cpu, rulesGeneration).speed / 200;

@@ -1,8 +1,8 @@
 import type { Gen1StatBlock } from "../party/types";
 import type { Move } from "../pokemon/moves";
 import type { PokemonSpecies } from "../pokemon/types";
-import { gen1TypeEffectiveness } from "./gen1TypeChart";
 import { heldItemDamageMultiplier } from "./toolEffects";
+import { typeEffectivenessForRules } from "./typeEffectiveness";
 import { stagedStat } from "./types";
 import {
   weatherSolarBeamMultiplier,
@@ -24,6 +24,8 @@ export type DamageCalcModifiers = {
   attackerItemPokeapiId?: number | null;
   attackerAbilityId?: string | null;
   defenderAbilityId?: string | null;
+  /** Battle rules generation for type chart selection. */
+  rulesGeneration?: number;
 };
 
 export type DamageCalcSides = {
@@ -126,7 +128,8 @@ export function damageBeforeRandom(
     return { damage: 0, typeEffectiveness: 1 };
   }
 
-  const typeEffectiveness = gen1TypeEffectiveness(
+  const typeEffectiveness = typeEffectivenessForRules(
+    modifiers.rulesGeneration ?? 1,
     move.type_id,
     sides.defenderSpecies.type1,
     sides.defenderSpecies.type2,
@@ -149,23 +152,27 @@ export function damageBeforeRandom(
     isPhysical ? sides.defenderDefenseStage : sides.defenderSpecialStage,
   );
 
-  let A = stagedStat(atkStat, atkStage, { crit: modifiers.crit });
-  let D = stagedStat(defStat, defStage, { crit: modifiers.crit });
+  // Gen1 crit: ignores stages and screens, doubles level.
+  // Gen2 crit: ×2 damage; stages and screens are ignored only when the
+  // attacker's stage is not higher than the defender's.
+  const gen2Crit = modifiers.crit && (modifiers.rulesGeneration ?? 1) >= 2;
+  const ignoreStagesAndScreens = gen2Crit
+    ? atkStage <= defStage
+    : modifiers.crit;
+
+  let A = stagedStat(atkStat, atkStage, { crit: ignoreStagesAndScreens });
+  let D = stagedStat(defStat, defStage, { crit: ignoreStagesAndScreens });
   if (modifiers.attackerBurn && isPhysical) {
     A = Math.max(1, Math.floor(A / 2));
   }
 
-  const level = modifiers.crit
-    ? sides.attackerLevel * 2
-    : sides.attackerLevel;
+  const level =
+    modifiers.crit && !gen2Crit ? sides.attackerLevel * 2 : sides.attackerLevel;
 
-  let damage = Math.floor(
-    Math.floor(
-      (Math.floor((2 * level) / 5 + 2) * power * A) / Math.max(1, D),
-    ) /
-      50 +
-      2,
+  const base = Math.floor(
+    Math.floor((Math.floor((2 * level) / 5 + 2) * power * A) / Math.max(1, D)) / 50,
   );
+  let damage = (gen2Crit ? base * 2 : base) + 2;
   damage = Math.floor(damage * stab(move.type_id, sides.attackerSpecies));
   damage = Math.floor(damage * typeEffectiveness);
   damage = Math.floor(
@@ -187,7 +194,7 @@ export function damageBeforeRandom(
       ),
   );
 
-  if (!modifiers.crit) {
+  if (!ignoreStagesAndScreens) {
     if (isPhysical && modifiers.defenderReflect) {
       damage = Math.max(1, Math.floor(damage / 2));
     }

@@ -11,15 +11,18 @@ import {
 } from "react-native";
 
 import { TYPE_BY_ID } from "../pokemon/types";
-import { gen1TypeEffectiveness } from "../battle/gen1TypeChart";
-import { gen2TypeEffectiveness } from "../battle/gen2TypeChart";
+import {
+  typeChartNote,
+  typeChartTitle,
+  typeEffectivenessForRules,
+} from "../battle/typeEffectiveness";
 
 /** Gen1 types only (Normal…Dragon). */
 export const GEN1_TYPE_IDS = [
   1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 ] as const;
 
-/** Gen2 types (Normal…Steel). */
+/** Gen2–5 types (Normal…Steel). */
 export const GEN2_TYPE_IDS = [
   1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
 ] as const;
@@ -45,7 +48,7 @@ function cellStyle(mult: number) {
 type Props = {
   visible: boolean;
   onClose: () => void;
-  /** Battle rules generation. Gen2+ uses the GSC chart (Dark/Steel). */
+  /** Battle rules generation. Gen2–5 uses the GSC chart (Dark/Steel). */
   generation?: number;
 };
 
@@ -62,15 +65,10 @@ export function Gen1TypeChartDialog({
   const labelsVRef = useRef<ScrollView>(null);
   const syncing = useRef(false);
 
-  const isGen2Plus = generation >= 2 && generation < 6;
-  const typeIds = isGen2Plus ? GEN2_TYPE_IDS : GEN1_TYPE_IDS;
-  const effectiveness = isGen2Plus
-    ? gen2TypeEffectiveness
-    : gen1TypeEffectiveness;
-  const title = isGen2Plus ? "第2世代タイプ相性表" : "初代タイプ相性表";
-  const note = isGen2Plus
-    ? "※あく・はがねが追加。ゴースト↔エスパーは抜群。むし↔どくは今ひとつ。こおり→ほのおは抜群。"
-    : "※むし→どくは抜群。くさ／どくはむし技で4倍になります。";
+  const usesDarkSteel = generation >= 2 && generation < 6;
+  const typeIds = usesDarkSteel ? GEN2_TYPE_IDS : GEN1_TYPE_IDS;
+  const title = typeChartTitle(generation);
+  const note = typeChartNote(generation);
 
   const bodyWidth = CELL * typeIds.length;
   const bodyHeight = CELL * typeIds.length;
@@ -192,7 +190,12 @@ export function Gen1TypeChartDialog({
                       style={[styles.row, { width: bodyWidth }]}
                     >
                       {typeIds.map((defId) => {
-                        const mult = effectiveness(atkId, defId, 0);
+                        const mult = typeEffectivenessForRules(
+                          generation,
+                          atkId,
+                          defId,
+                          0,
+                        );
                         return (
                           <View
                             key={`c-${atkId}-${defId}`}

@@ -2,13 +2,14 @@ import type { PartySide } from "../party/types";
 import type { Move, MoveEffectMeta } from "../pokemon/moves";
 import { EMPTY_EFFECT_META } from "../pokemon/moves";
 import { usesSplitSpecial } from "../pokemon/baseStatFilters";
+import { applyMoveTypeForGeneration } from "../pokemon/moveTypeByGeneration";
 import {
   applyDamageRoll,
   damageBeforeRandom,
   fixedDamageRange,
 } from "./calcDamage";
 import { GEN1_MOVE_POOL, pickMetronomeMove } from "./gen1MovePool";
-import { gen1TypeEffectiveness } from "./gen1TypeChart";
+import { typeEffectivenessForRules } from "./typeEffectiveness";
 import {
   heldItemAccuracyFactor,
   heldItemCritDenomModifier,
@@ -16,6 +17,7 @@ import {
   rollFocusBandSurvival,
   rollKingsRockFlinch,
   rollQuickClaw,
+  TOOL_POKEAPI,
   tryHpThresholdBerry,
   tryStatusCureBerry,
 } from "./toolEffects";
@@ -68,9 +70,16 @@ import {
   weatherSkipsSolarBeamCharge,
 } from "./weather";
 
-function typeThatResists(moveTypeId: number): number {
+function typeThatResists(
+  moveTypeId: number,
+  rulesGeneration: number,
+): number {
   for (let t = 1; t <= 17; t += 1) {
-    if (gen1TypeEffectiveness(moveTypeId, t, 0) < 1) return t;
+    if (
+      typeEffectivenessForRules(rulesGeneration, moveTypeId, t, 0) < 1
+    ) {
+      return t;
+    }
   }
   return 1;
 }
@@ -78,8 +87,10 @@ function typeThatResists(moveTypeId: number): number {
 function foresightTypeEffectiveness(
   move: Move,
   defender: BattleFighter,
+  rulesGeneration: number,
 ): number {
-  let typeEff = gen1TypeEffectiveness(
+  let typeEff = typeEffectivenessForRules(
+    rulesGeneration,
     move.type_id,
     defender.species.type1,
     defender.species.type2,
@@ -164,8 +175,36 @@ function rollTrapTurns(meta: MoveEffectMeta): number {
   return randInt(min, max);
 }
 
+/** Gen2 crit chance (/256) by stage: 0 → 17, +1 → 32, +2 → 64, +3 → 85, +4 → 128. */
+const GEN2_CRIT_CHANCE = [17, 32, 64, 85, 128];
+
+/**
+ * Gen2 crit stage: high-crit move +1, Focus Energy +1, Scope Lens +1,
+ * Lucky Punch (Chansey) / Stick (Farfetch'd) +2.
+ */
+function gen2CritStage(attacker: BattleFighter, move: Move): number {
+  let stage = 0;
+  if ((metaOf(move).crit_rate ?? 0) > 0) stage += 1;
+  if (attacker.volatiles.focusEnergy) stage += 1;
+  const toolId =
+    attacker.heldTool && !attacker.heldTool.consumed
+      ? attacker.heldTool.pokeapiId
+      : null;
+  if (toolId === TOOL_POKEAPI.SCOPE_LENS) stage += 1;
+  if (toolId === TOOL_POKEAPI.LUCKY_PUNCH && attacker.species.dex_no === 113) stage += 2;
+  if (toolId === TOOL_POKEAPI.LEEK && attacker.species.dex_no === 83) stage += 2;
+  return Math.min(stage, GEN2_CRIT_CHANCE.length - 1);
+}
+
+function rollsCrit(attacker: BattleFighter, move: Move, rulesGeneration = 1): boolean {
+  if (rulesGeneration >= 2) {
+    return randInt(0, 255) < GEN2_CRIT_CHANCE[gen2CritStage(attacker, move)]!;
+  }
+  return rollsGen1Crit(attacker, move);
+}
+
 /** Gen1 crit: high-crit moves use /64, else /512; Focus Energy quarters (cart glitch). */
-function rollsCrit(attacker: BattleFighter, move: Move): boolean {
+function rollsGen1Crit(attacker: BattleFighter, move: Move): boolean {
   const baseSpeed = attacker.species.base_speed;
   let highCrit = (metaOf(move).crit_rate ?? 0) > 0;
   let denom = highCrit ? 64 : 512;
@@ -301,6 +340,7 @@ function calcDamage(
         attacker.heldTool && !attacker.heldTool.consumed
           ? attacker.heldTool.pokeapiId
           : null,
+      rulesGeneration,
     },
   );
   if (before <= 0) return 0;
@@ -322,7 +362,70 @@ function fixedDamage(
   return randInt(range.min, range.max);
 }
 
+function partialTrapStartMessage(move: Move, target: string, user: string): string {
+  switch (move.pokeapi_id) {
+    case 35: // Wrap
+      return `${target}は　${user}に　まきつかれた！`;
+    case 83: // Fire Spin
+      return `${target}は　ほのおのうずに　とじこめられた！`;
+    case 128: // Clamp
+      return `${target}は　${user}に　はさまれた！`;
+    case 250: // Whirlpool
+      return `${target}は　うずしおに　とじこめられた！`;
+    default:
+      return `${target}は　${user}に　しめつけられた！`;
+  }
+}
+
+/** Gen2 binding residual: 1/16 each end of turn; ends when turns run out or the user leaves. */
+function applyPartialTrapResidual(
+  trapped: BattleFighter,
+  binder: BattleFighter,
+  logs: TurnLogLine[],
+): void {
+  const trap = trapped.volatiles.partialTrap;
+  if (!trap || trapped.currentHp <= 0) return;
+  if (binder.currentHp <= 0) {
+    trapped.volatiles.partialTrap = null;
+    return;
+  }
+  trap.turnsLeft -= 1;
+  if (trap.turnsLeft <= 0) {
+    trapped.volatiles.partialTrap = null;
+    logs.push(`${trapped.member.nameJa}は　${trap.moveNameJa}から　解放された！`);
+    return;
+  }
+  const dmg = Math.max(1, Math.floor(trapped.maxHp / 16));
+  trapped.currentHp = Math.max(0, trapped.currentHp - dmg);
+  logs.push(`${trapped.member.nameJa}は　${trap.moveNameJa}の　ダメージを　受けている！`);
+}
+
+const HITS_FLYING_POKEAPI = new Set([16, 239, 87]); // Gust, Twister, Thunder
+const HITS_DIGGING_POKEAPI = new Set([89, 222]); // Earthquake, Magnitude
+const DOUBLED_VS_SEMI_INVULNERABLE_POKEAPI = new Set([16, 239, 89, 222]);
+
+function hitsSemiInvulnerable(move: Move, state: "fly" | "dig"): boolean {
+  return state === "fly"
+    ? HITS_FLYING_POKEAPI.has(move.pokeapi_id)
+    : HITS_DIGGING_POKEAPI.has(move.pokeapi_id);
+}
+
+/** Gen2: Gust / Twister double on a flying target, Earthquake / Magnitude on a digging one. */
+function semiInvulnerablePowerMultiplier(
+  move: Move,
+  defender: BattleFighter,
+  rulesGeneration: number,
+): number {
+  const state = defender.volatiles.semiInvulnerable;
+  if (rulesGeneration < 2 || !state) return 1;
+  return hitsSemiInvulnerable(move, state) &&
+    DOUBLED_VS_SEMI_INVULNERABLE_POKEAPI.has(move.pokeapi_id)
+    ? 2
+    : 1;
+}
+
 const THUNDER_WAVE_POKEAPI = 86;
+const RAPID_SPIN_POKEAPI = 229;
 const TOXIC_POKEAPI = 92;
 
 /** Gen1: a damaging move's status secondary cannot affect a target sharing the move's type. */
@@ -351,21 +454,20 @@ function canStatus(
   ailment: string,
   weatherId: string | null = null,
   field?: BattleFieldState,
+  rulesGeneration = 1,
 ): boolean {
   // Gen1: major status cannot be overwritten (Rest is the exception, handled separately).
   if (target.status) return false;
   if (field && safeguardBlocksStatus(field, target)) return false;
-  if (
-    ailment === "burn" &&
-    (target.species.type1 === 2 || target.species.type2 === 2)
-  ) {
-    return false;
-  }
-  // Gen2: cannot freeze while sunny.
+  const hasType = (typeId: number) =>
+    target.species.type1 === typeId || target.species.type2 === typeId;
+  if (ailment === "burn" && hasType(2)) return false;
+  // Gen2: cannot freeze while sunny; Ice types cannot be frozen.
   if (ailment === "freeze" && weatherId === "sun") return false;
+  if (ailment === "freeze" && rulesGeneration >= 2 && hasType(6)) return false;
   if (
     (ailment === "poison" || ailment === "toxic") &&
-    (target.species.type1 === 8 || target.species.type2 === 8)
+    (hasType(8) || (rulesGeneration >= 2 && hasType(17)))
   ) {
     return false;
   }
@@ -418,7 +520,7 @@ function applyAilment(
     }
     return false;
   }
-  if (!canStatus(target, ailment, weatherId, field)) {
+  if (!canStatus(target, ailment, weatherId, field, rulesGeneration)) {
     if (options.silentFailure) return false;
     if (field && safeguardBlocksStatus(field, target) && !target.status) {
       logs.push(`${name}は　しんぴのまもりで　守られている！`);
@@ -437,7 +539,8 @@ function applyAilment(
     target.status = ailment as BattleStatus;
     if (ailment === "sleep") {
       // Gen1: 1–7 turns including the wake turn (sleepTurns + 1 turns lost).
-      target.sleepTurns = rulesGeneration <= 1 ? randInt(0, 6) : randInt(1, 7);
+      // Gen2: asleep 1–6 turns, then acts on the turn it wakes.
+      target.sleepTurns = rulesGeneration <= 1 ? randInt(0, 6) : randInt(1, 6);
     }
     if (ailment === "poison") {
       target.volatiles.toxic = options.badlyPoison === true;
@@ -622,17 +725,20 @@ function checkAccuracy(
   defender: BattleFighter,
   move: Move,
   weatherId: string | null = null,
+  rulesGeneration = 1,
 ): boolean {
   if (attacker.volatiles.sureHit) {
     attacker.volatiles.sureHit = false;
     return true;
   }
-  // Gen1: only Swift reliably hits Fly / Dig mid-charge
-  if (
-    defender.volatiles.semiInvulnerable &&
-    move.pokeapi_id !== 129 // Swift
-  ) {
-    return false;
+  if (defender.volatiles.semiInvulnerable) {
+    if (rulesGeneration >= 2) {
+      // Gen2: Gust / Twister / Thunder reach Fly; Earthquake / Magnitude reach Dig.
+      if (!hitsSemiInvulnerable(move, defender.volatiles.semiInvulnerable)) return false;
+    } else if (move.pokeapi_id !== 129) {
+      // Gen1: only Swift reliably hits Fly / Dig mid-charge
+      return false;
+    }
   }
   if (weatherGuaranteesHit(weatherId, move.pokeapi_id)) return true;
   if (move.accuracy == null) return true; // Swift etc.
@@ -666,8 +772,11 @@ function tryEndTurnStatus(
     fighter.volatiles.toxicCounter = Math.min(15, fighter.volatiles.toxicCounter + 1);
   }
   const sixteenth = Math.max(1, Math.floor(fighter.maxHp / 16));
+  // Gen1: burn / poison / Leech Seed deal 1/16. Gen2: 1/8 (Toxic stays N/16).
+  const residual =
+    rulesGeneration >= 2 ? Math.max(1, Math.floor(fighter.maxHp / 8)) : sixteenth;
   if (fighter.status === "burn" || fighter.status === "poison") {
-    const dmg = badlyPoisoned ? sixteenth * fighter.volatiles.toxicCounter : sixteenth;
+    const dmg = badlyPoisoned ? sixteenth * fighter.volatiles.toxicCounter : residual;
     fighter.currentHp = Math.max(0, fighter.currentHp - dmg);
     logs.push(
       `${fighter.member.nameJa}は　${fighter.status === "burn" ? "やけど" : "どく"}の　ダメージを　受けた！`,
@@ -678,7 +787,7 @@ function tryEndTurnStatus(
     const dmg =
       rulesGeneration <= 1 && badlyPoisoned
         ? sixteenth * fighter.volatiles.toxicCounter
-        : sixteenth;
+        : residual;
     fighter.currentHp = Math.max(0, fighter.currentHp - dmg);
     logs.push(`${fighter.member.nameJa}は　やどりぎのタネの　ダメージを　受けた！`);
     const from = fighter.volatiles.leechSeedFrom;
@@ -698,10 +807,16 @@ function tryEndTurnStatus(
   }
 }
 
+const DEFROST_MOVE_POKEAPI = new Set([172, 221]); // Flame Wheel, Sacred Fire
+const SLEEP_USABLE_POKEAPI = new Set([173, 214]); // Snore, Sleep Talk
+const SNORE_POKEAPI = 173;
+const STRUGGLE_POKEAPI = 165;
+
 function canAct(
   fighter: BattleFighter,
   logs: TurnLogLine[],
   rulesGeneration = 1,
+  selectedMove?: Move | null,
 ): boolean {
   const clearChargeIfAny = () => {
     if (fighter.volatiles.chargingMove) {
@@ -737,8 +852,13 @@ function canAct(
     return false;
   }
   if (fighter.status === "freeze") {
-    // Gen1: never thaws naturally (only a Fire move with a burn chance thaws it).
-    if (rulesGeneration >= 2 && chance(25)) {
+    // Gen1: never thaws on its own. Gen2: thaws only at end of turn (25/256),
+    // but Flame Wheel / Sacred Fire thaw the user and go off.
+    if (
+      rulesGeneration >= 2 &&
+      selectedMove != null &&
+      DEFROST_MOVE_POKEAPI.has(selectedMove.pokeapi_id)
+    ) {
       fighter.status = null;
       logs.push(`${fighter.member.nameJa}の　こおりが　溶けた！`);
     } else {
@@ -748,20 +868,31 @@ function canAct(
     }
   }
   if (fighter.status === "sleep") {
-    // sleepTurns = remaining asleep turns before the wake turn (which cannot move).
+    // sleepTurns = remaining asleep turns. Gen1: the wake turn is also lost. Gen2: acts that turn.
     if (fighter.sleepTurns <= 0) {
       fighter.status = null;
       logs.push(`${fighter.member.nameJa}は　目を　覚ました！`);
-      // Gen1: cannot select a move on the turn sleep ends
+      if (rulesGeneration < 2) {
+        clearChargeIfAny();
+        return false;
+      }
+    } else {
+      fighter.sleepTurns -= 1;
+      // Gen2: Snore / Sleep Talk work while asleep.
+      if (
+        rulesGeneration >= 2 &&
+        selectedMove != null &&
+        SLEEP_USABLE_POKEAPI.has(selectedMove.pokeapi_id)
+      ) {
+        return true;
+      }
+      logs.push(`${fighter.member.nameJa}は　ぐうぐう　眠っている！`);
       clearChargeIfAny();
       return false;
     }
-    logs.push(`${fighter.member.nameJa}は　ぐうぐう　眠っている！`);
-    fighter.sleepTurns -= 1;
-    clearChargeIfAny();
-    return false;
   }
-  if (fighter.status === "paralysis" && chance(25)) {
+  // Gen1–2 full paralysis: 63/256.
+  if (fighter.status === "paralysis" && randInt(0, 255) < 63) {
     logs.push(`${fighter.member.nameJa}は　まひして　動けない！`);
     clearChargeIfAny();
     return false;
@@ -783,7 +914,8 @@ function canAct(
           pokeapi_id: 0,
           name_ja: "こんらん",
           name_en: "confusion",
-          type_id: 1,
+          // Gen2: typeless self-hit (no STAB, hits Ghost types).
+          type_id: rulesGeneration >= 2 ? 0 : 1,
           damage_class: "physical",
           power: 40,
           accuracy: null,
@@ -946,9 +1078,19 @@ function executeMove(
   ctx?: ExecCtx,
   rulesGeneration = 1,
 ): void {
+  // Gen2 Struggle is typeless (hits Ghost types, no STAB).
+  if (move.pokeapi_id === STRUGGLE_POKEAPI && rulesGeneration >= 2) {
+    move = { ...move, type_id: 0 };
+  }
   const code = move.effect_code;
   const category = move.effect_category ?? "damage";
   const meta = metaOf(move);
+
+  if (move.pokeapi_id === SNORE_POKEAPI && attacker.status !== "sleep") {
+    logs.push("しかし　うまく　決まらなかった！");
+    attacker.volatiles.lastMoveUsed = move;
+    return;
+  }
 
   // Two-turn charge: wind-up turn (Solar Beam skips charge in sun)
   if (
@@ -1085,7 +1227,7 @@ function executeMove(
     if (!last) {
       logs.push("しかし　うまく　決まらなかった！");
     } else {
-      const resistType = typeThatResists(last.type_id);
+      const resistType = typeThatResists(last.type_id, rulesGeneration);
       attacker.species = {
         ...attacker.species,
         type1: resistType,
@@ -1172,7 +1314,7 @@ function executeMove(
     move.pokeapi_id === 18 ||
     move.pokeapi_id === 46
   ) {
-    if (!checkAccuracy(attacker, defender, move, field.weather?.id ?? null)) {
+    if (!checkAccuracy(attacker, defender, move, field.weather?.id ?? null, rulesGeneration)) {
       logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
       attacker.volatiles.lastMoveUsed = move;
       return;
@@ -1212,9 +1354,10 @@ function executeMove(
     }
     attacker.currentHp = attacker.maxHp;
     attacker.status = "sleep";
-    // After Rest: one full asleep turn, then a wake turn that cannot move.
+    // Gen1: one asleep turn, then a wake turn that cannot move.
+    // Gen2: two asleep turns, then it wakes and acts.
     // Chesto / Lum wake immediately (Gen2 held berry).
-    attacker.sleepTurns = 1;
+    attacker.sleepTurns = rulesGeneration >= 2 ? 2 : 1;
     logs.push(`${attacker.member.nameJa}は　眠って　HPを　回復した！`);
     emitAilmentThenBerry(attacker, "sleep", true, logs, emitBeat);
     attacker.volatiles.lastMoveUsed = move;
@@ -1288,7 +1431,7 @@ function executeMove(
     return;
   }
   if (code === "unique-metronome") {
-    const picked = pickMetronomeMove();
+    const picked = applyMoveTypeForGeneration(pickMetronomeMove(), rulesGeneration);
     logs.push(`${picked.name_ja}が　でた！`);
     attacker.volatiles.lastMoveUsed = move;
     executeMove(
@@ -1392,7 +1535,7 @@ function executeMove(
       attacker.volatiles.lastMoveUsed = move;
       return;
     }
-    if (!checkAccuracy(attacker, defender, move, field.weather?.id ?? null)) {
+    if (!checkAccuracy(attacker, defender, move, field.weather?.id ?? null, rulesGeneration)) {
       logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
       attacker.volatiles.lastMoveUsed = move;
       return;
@@ -1475,7 +1618,7 @@ function executeMove(
   if (category === "ailment" && meta.ailment) {
     if (
       move.pokeapi_id === THUNDER_WAVE_POKEAPI &&
-      foresightTypeEffectiveness(move, defender) === 0
+      foresightTypeEffectiveness(move, defender, rulesGeneration) === 0
     ) {
       logs.push(`${defender.member.nameJa}には　効果がないようだ…`);
       attacker.volatiles.lastMoveUsed = move;
@@ -1486,7 +1629,7 @@ function executeMove(
       attacker.volatiles.lastMoveUsed = move;
       return;
     }
-    if (!checkAccuracy(attacker, defender, move, field.weather?.id ?? null)) {
+    if (!checkAccuracy(attacker, defender, move, field.weather?.id ?? null, rulesGeneration)) {
       logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
       attacker.volatiles.lastMoveUsed = move;
       return;
@@ -1530,7 +1673,7 @@ function executeMove(
     return;
   }
   if (code === "unique-ohko" || category === "ohko") {
-    if (!checkAccuracy(attacker, defender, move, field.weather?.id ?? null)) {
+    if (!checkAccuracy(attacker, defender, move, field.weather?.id ?? null, rulesGeneration)) {
       logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
       attacker.volatiles.lastMoveUsed = move;
       return;
@@ -1553,7 +1696,7 @@ function executeMove(
 
   // Gen1 Counter: 2× physical damage taken this turn
   if (move.pokeapi_id === 68) {
-    if (!checkAccuracy(attacker, defender, move, field.weather?.id ?? null)) {
+    if (!checkAccuracy(attacker, defender, move, field.weather?.id ?? null, rulesGeneration)) {
       logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
       attacker.volatiles.lastMoveUsed = move;
       return;
@@ -1580,7 +1723,7 @@ function executeMove(
 
   // Gen2 Mirror Coat: 2× special damage taken this turn
   if (move.pokeapi_id === 243) {
-    if (!checkAccuracy(attacker, defender, move, field.weather?.id ?? null)) {
+    if (!checkAccuracy(attacker, defender, move, field.weather?.id ?? null, rulesGeneration)) {
       logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
       attacker.volatiles.lastMoveUsed = move;
       return;
@@ -1603,7 +1746,7 @@ function executeMove(
   }
 
   // Damage-dealing path (including partial trap / hyper beam / fixed / explosion)
-  if (!checkAccuracy(attacker, defender, move, field.weather?.id ?? null)) {
+  if (!checkAccuracy(attacker, defender, move, field.weather?.id ?? null, rulesGeneration)) {
     logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
     if (code === "unique-crash") {
       attacker.currentHp = Math.max(0, attacker.currentHp - 1);
@@ -1627,7 +1770,7 @@ function executeMove(
 
   let totalDealt = 0;
   let brokeSub = false;
-  let typeEff = foresightTypeEffectiveness(move, defender);
+  let typeEff = foresightTypeEffectiveness(move, defender, rulesGeneration);
   // Whirlpool uses partial-trap residual like Wrap.
   const effectiveCode =
     move.pokeapi_id === 250 ? "unique-partial-trap" : code;
@@ -1650,7 +1793,7 @@ function executeMove(
   if (
     typeEff === 0 &&
     effectiveCode !== "unique-fixed-damage" &&
-    effectiveCode !== "unique-partial-trap"
+    (effectiveCode !== "unique-partial-trap" || rulesGeneration >= 2)
   ) {
     logs.push(`${defender.member.nameJa}には　効果がないようだ…`);
     attacker.volatiles.lastMoveUsed = move;
@@ -1678,12 +1821,16 @@ function executeMove(
   } else {
     const variable = resolveVariableMovePower(move, attacker, randInt);
     if (variable.log) logs.push(variable.log);
+    const basePower =
+      move.pokeapi_id === 251
+        ? 10
+        : (presentPower ?? variable.power ?? move.power);
     const poweredMove: Move = {
       ...move,
       power:
-        move.pokeapi_id === 251
-          ? 10
-          : (presentPower ?? variable.power ?? move.power),
+        basePower == null
+          ? basePower
+          : basePower * semiInvulnerablePowerMultiplier(move, defender, rulesGeneration),
     };
     // Beat Up: one hit per known ally (fallback: self only).
     const beatUpHits =
@@ -1691,35 +1838,45 @@ function executeMove(
         ? Math.max(1, attacker.volatiles.knownMoves.length || 1)
         : null;
     const hits = beatUpHits ?? rollHits(meta);
-    const crit = rollsCrit(attacker, move);
-    // Gen1: one crit roll / damage value shared across multi-hit
-    let perHit =
-      typeEff === 0
-        ? 0
-        : calcDamage(
-            attacker,
-            defender,
-            poweredMove,
-            crit,
-            field[defender.side],
-            field.weather?.id ?? null,
-            rulesGeneration,
-          );
-    if (code === "unique-explosion" && perHit > 0) {
-      perHit = Math.max(1, perHit * 2);
-    }
-    if (crit && perHit > 0) logs.push("急所に　当たった！");
+    const rollHit = (): { damage: number; crit: boolean } => {
+      const crit = rollsCrit(attacker, move, rulesGeneration);
+      let damage =
+        typeEff === 0
+          ? 0
+          : calcDamage(
+              attacker,
+              defender,
+              poweredMove,
+              crit,
+              field[defender.side],
+              field.weather?.id ?? null,
+              rulesGeneration,
+            );
+      if (code === "unique-explosion" && damage > 0) {
+        damage = Math.max(1, damage * 2);
+      }
+      return { damage, crit: crit && damage > 0 };
+    };
+    // Gen1: one crit roll / damage value shared across multi-hit. Gen2: rolled per hit.
+    const rollsPerHit = rulesGeneration >= 2 && hits > 1;
+    const firstHit = rollHit();
+    let perHit = firstHit.damage;
+    if (firstHit.crit && !rollsPerHit) logs.push("急所に　当たった！");
     let actualHits = 0;
     for (let i = 0; i < hits; i += 1) {
       if (defender.currentHp <= 0 && defender.volatiles.substituteHp <= 0) break;
+      const hit = !rollsPerHit || i === 0 ? firstHit : rollHit();
+      perHit = hit.damage;
       const result = applyDamage(defender, perHit, { move, logs });
       if (result.dealt <= 0 && perHit <= 0) break;
       actualHits += 1;
       totalDealt += result.dealt;
       if (result.brokeSub) brokeSub = true;
+      if (rollsPerHit && hit.crit && !emitBeat) logs.push("急所に　当たった！");
       if (emitBeat && hits > 1) {
         const beatLogs = [
           ...(i === 0 ? [...logs] : []),
+          ...(rollsPerHit && hit.crit ? ["急所に　当たった！"] : []),
           `${actualHits}回目！　${result.dealt}の　ダメージ！`,
         ];
         logs.length = 0;
@@ -1770,6 +1927,13 @@ function executeMove(
   }
   if (meta.drain < 0 && totalDealt > 0) {
     const recoil = Math.max(1, Math.floor((totalDealt * Math.abs(meta.drain)) / 100));
+    attacker.currentHp = Math.max(0, attacker.currentHp - recoil);
+    logs.push(`${attacker.member.nameJa}は　反動を　受けた！`);
+    emitDamageThenHpBerry(attacker, logs, emitBeat);
+  }
+  // Gen2 Struggle: recoil is 1/4 of the damage dealt.
+  if (move.pokeapi_id === STRUGGLE_POKEAPI && rulesGeneration >= 2 && totalDealt > 0) {
+    const recoil = Math.max(1, Math.floor(totalDealt / 4));
     attacker.currentHp = Math.max(0, attacker.currentHp - recoil);
     logs.push(`${attacker.member.nameJa}は　反動を　受けた！`);
     emitDamageThenHpBerry(attacker, logs, emitBeat);
@@ -1861,7 +2025,44 @@ function executeMove(
     );
   }
 
-  if (code === "unique-partial-trap" || move.pokeapi_id === 250) {
+  // Rapid Spin: frees the user from binding, Leech Seed and Spikes.
+  if (move.pokeapi_id === RAPID_SPIN_POKEAPI && attacker.currentHp > 0 && totalDealt > 0) {
+    if (attacker.volatiles.partialTrap) {
+      logs.push(
+        `${attacker.member.nameJa}は　${attacker.volatiles.partialTrap.moveNameJa}から　解放された！`,
+      );
+      attacker.volatiles.partialTrap = null;
+    }
+    if (attacker.volatiles.leechSeed) {
+      attacker.volatiles.leechSeed = false;
+      attacker.volatiles.leechSeedFrom = null;
+      logs.push(`${attacker.member.nameJa}は　やどりぎのタネを　吹き飛ばした！`);
+    }
+    if (field[attacker.side].spikes) {
+      field[attacker.side].spikes = false;
+      logs.push(`${attacker.member.nameJa}は　まきびしを　吹き飛ばした！`);
+    }
+  }
+
+  if (
+    (code === "unique-partial-trap" || move.pokeapi_id === 250) &&
+    rulesGeneration >= 2
+  ) {
+    // Gen2: the target keeps acting but cannot switch; 1/16 at end of turn.
+    if (
+      totalDealt > 0 &&
+      !brokeSub &&
+      defender.volatiles.substituteHp <= 0 &&
+      defender.currentHp > 0 &&
+      !defender.volatiles.partialTrap
+    ) {
+      defender.volatiles.partialTrap = {
+        moveNameJa: move.name_ja,
+        turnsLeft: randInt(3, 5),
+      };
+      logs.push(partialTrapStartMessage(move, defender.member.nameJa, attacker.member.nameJa));
+    }
+  } else if (code === "unique-partial-trap" || move.pokeapi_id === 250) {
     // Gen1: duration 2–5 includes this turn; remaining turns force the same move.
     const duration = rollTrapTurns(meta);
     const fixed = Math.max(1, totalDealt || 1);
@@ -1884,12 +2085,12 @@ function executeMove(
     logs.push(`${defender.member.nameJa}は　相手を　道連れにした！`);
   }
 
+  // Gen1: no recharge after a KO or breaking a substitute. Gen2: always recharges once it hits.
   if (
     code === "unique-hyper-beam" &&
     attacker.currentHp > 0 &&
-    totalDealt > 0 &&
-    defender.currentHp > 0 &&
-    !brokeSub
+    (rulesGeneration >= 2 ||
+      (totalDealt > 0 && defender.currentHp > 0 && !brokeSub))
   ) {
     attacker.volatiles.recharge = true;
   }
@@ -2062,7 +2263,7 @@ export function resolveTurnSteps(input: {
     }
 
     const logs: TurnLogLine[] = [];
-    if (!canAct(slot.fighter, logs, rulesGeneration)) {
+    if (!canAct(slot.fighter, logs, rulesGeneration, slot.action.move)) {
       if (slot.fighter.volatiles.bindingMove) {
         const foe = slot.foe;
         slot.fighter.volatiles.bindingMove = null;
@@ -2255,6 +2456,16 @@ export function resolveTurnSteps(input: {
     }
     tryEndTurnStatus(fighterA, fighterB, endLogs, rulesGeneration);
     tryEndTurnStatus(fighterB, fighterA, endLogs, rulesGeneration);
+    applyPartialTrapResidual(fighterA, fighterB, endLogs);
+    applyPartialTrapResidual(fighterB, fighterA, endLogs);
+    if (rulesGeneration >= 2) {
+      for (const fighter of [fighterA, fighterB]) {
+        if (fighter.status === "freeze" && fighter.currentHp > 0 && randInt(0, 99) < 10) {
+          fighter.status = null;
+          endLogs.push(`${fighter.member.nameJa}の　こおりが　溶けた！`);
+        }
+      }
+    }
     applyCurseResidual(fighterA, endLogs);
     applyCurseResidual(fighterB, endLogs);
     for (const fighter of [fighterA, fighterB]) {

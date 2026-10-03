@@ -26,6 +26,7 @@ import {
   applySpikesOnSwitchIn,
 } from "../battle/resolveTurn";
 import {
+  cannotSwitchOut,
   createBattleField,
   type BattleAction,
   type BattleFieldState,
@@ -41,6 +42,7 @@ import { usePartySetup } from "../party/PartySetupContext";
 import {
   GEN1_STAT_KEYS,
   GEN1_STAT_LABELS,
+  type BattleGender,
   type PartyMemberBuild,
   type PartySide,
 } from "../party/types";
@@ -134,6 +136,7 @@ function statusBadges(
   if (fighter.volatiles.trapTurns > 0) {
     badges.push(`しめつけ(残り${fighter.volatiles.trapTurns})`);
   }
+  if (fighter.volatiles.partialTrap) badges.push("しめつけ");
   if (fighter.volatiles.leechSeed) badges.push("やどりぎ");
   // 「ため」「反動」は交代・ターン演出のあとに出す（解決中は隠す）
   if (fighter.volatiles.recharge && !options?.hideDeferred) {
@@ -155,6 +158,31 @@ function statusBadges(
     badges.push(`しめつけ中(残り${fighter.volatiles.bindingTurnsLeft + 1})`);
   }
   return badges;
+}
+
+function GenderMark({
+  gender,
+  fontSize = 15,
+  onDark = false,
+}: {
+  gender: BattleGender | undefined;
+  fontSize?: number;
+  onDark?: boolean;
+}) {
+  if (gender !== "male" && gender !== "female") return null;
+  const color =
+    gender === "male"
+      ? onDark
+        ? styles.genderMaleOnDark
+        : styles.genderMale
+      : onDark
+        ? styles.genderFemaleOnDark
+        : styles.genderFemale;
+  return (
+    <Text style={[styles.genderMark, { fontSize }, color]}>
+      {gender === "male" ? "♂" : "♀"}
+    </Text>
+  );
 }
 
 function FieldFighter({
@@ -240,6 +268,7 @@ function FieldFighter({
           <Text style={styles.fighterName} numberOfLines={1}>
             {member.nameJa}
           </Text>
+          <GenderMark gender={member.gender} />
           {badges && badges.length > 0 ? (
             <View style={styles.statusRow}>
               {badges.map((label) => (
@@ -684,6 +713,22 @@ export function BattleScreen() {
     };
   }, [menu, controllingMember, battleMoveKey]);
 
+  function memberStatusLabel(
+    side: PartySide,
+    speciesId: string,
+    isActive: boolean,
+  ): string | null {
+    const fighter = fightersRef.current[side];
+    if (isActive && fighter?.speciesId === speciesId) {
+      if (!fighter.status) return null;
+      return fighter.status === "poison" && fighter.volatiles.toxic
+        ? "もうどく"
+        : (STATUS_LABEL[fighter.status] ?? fighter.status);
+    }
+    const stored = statusBySpeciesIdRef.current[speciesId];
+    return stored ? (STATUS_LABEL[stored] ?? stored) : null;
+  }
+
   const inspectMember = inspectTarget
     ? resolveMember(controllingSide, inspectTarget.speciesId)
     : null;
@@ -695,6 +740,19 @@ export function BattleScreen() {
     inspectTarget.index === controllingActiveIndex;
   const inspectFighter =
     inspectIsActive ? fightersRef.current[controllingSide] : null;
+  const inspectStatusText = (() => {
+    if (!inspectTarget) return "なし";
+    if (inspectFighter) {
+      const badges = statusBadges(inspectFighter);
+      return badges.length > 0 ? badges.join("・") : "なし";
+    }
+    const storedHp = hpBySpeciesIdRef.current[inspectTarget.speciesId];
+    if (storedHp != null && storedHp <= 0) return "ひんし";
+    return (
+      memberStatusLabel(controllingSide, inspectTarget.speciesId, false) ??
+      "なし"
+    );
+  })();
   const inspectStats =
     inspectFighter?.stats ??
     (inspectMember && inspectSpecies
@@ -912,7 +970,7 @@ export function BattleScreen() {
       ppRemaining: ppRemainingRef.current,
       knowledge: cpuKnowledgeRef.current,
       foeLearnset: learnsetBySpeciesIdRef.current[foe.species.id] ?? [],
-      switchOptions: cpuSwitchOptions("b"),
+      switchOptions: cannotSwitchOut(self) ? [] : cpuSwitchOptions("b"),
       rulesGeneration,
     });
   };
@@ -964,6 +1022,7 @@ export function BattleScreen() {
       other.volatiles.bindingTurnsLeft = 0;
       other.volatiles.trapTurns = 0;
       other.volatiles.trapDamage = 0;
+      other.volatiles.partialTrap = null;
     }
     const prevFighter = fightersRef.current[side];
     const baton = prevFighter?.volatiles.batonPass
@@ -1267,7 +1326,7 @@ export function BattleScreen() {
     if (pickPhase === "a") {
       if (
         action.type === "switch" &&
-        fightersRef.current.a?.volatiles.cannotEscape
+        cannotSwitchOut(fightersRef.current.a)
       ) {
         setLog(["逃げられない！"]);
         return;
@@ -1307,7 +1366,7 @@ export function BattleScreen() {
     if (pickPhase === "b") {
       if (
         action.type === "switch" &&
-        fightersRef.current.b?.volatiles.cannotEscape
+        cannotSwitchOut(fightersRef.current.b)
       ) {
         setLog(["逃げられない！"]);
         return;
@@ -1331,6 +1390,7 @@ export function BattleScreen() {
     const action = chooseCpuForcedSwitch({
       switchOptions: options,
       foe,
+      rulesGeneration,
     });
     if (action.type !== "switch") return;
     const t = setTimeout(() => {
@@ -1781,6 +1841,9 @@ export function BattleScreen() {
                                 ).stats.hp
                               : 0;
                           const fainted = (hp ?? 0) <= 0;
+                          const statusLabel = fainted
+                            ? null
+                            : memberStatusLabel(controllingSide, speciesId, isActive);
                           return (
                             <Pressable
                               key={speciesId}
@@ -1800,14 +1863,32 @@ export function BattleScreen() {
                                   style={styles.partySprite}
                                 />
                                 <View style={styles.partyText}>
-                                  <Text
-                                    style={styles.partyName}
-                                    numberOfLines={1}
-                                  >
-                                    {member?.nameJa ?? "？"}
-                                    {isActive ? "（場）" : ""}
-                                    {fainted ? "（ひんし）" : ""}
-                                  </Text>
+                                  <View style={styles.partyNameRow}>
+                                    <Text
+                                      style={styles.partyName}
+                                      numberOfLines={1}
+                                    >
+                                      {member?.nameJa ?? "？"}
+                                    </Text>
+                                    <GenderMark
+                                      gender={member?.gender}
+                                      fontSize={14}
+                                      onDark
+                                    />
+                                    {isActive ? (
+                                      <Text style={styles.partyName}>（場）</Text>
+                                    ) : null}
+                                    {fainted ? (
+                                      <Text style={styles.partyName}>（ひんし）</Text>
+                                    ) : null}
+                                    {statusLabel ? (
+                                      <View style={styles.statusBadge}>
+                                        <Text style={styles.statusBadgeText}>
+                                          {statusLabel}
+                                        </Text>
+                                      </View>
+                                    ) : null}
+                                  </View>
                                   <Text style={styles.partyMeta}>
                                     {member
                                       ? `${formatDexNo(member.dexNo)} ／ Lv${member.level} ／ HP ${hp ?? "—"}/${maxHp || "—"}`
@@ -1996,10 +2077,20 @@ export function BattleScreen() {
                   <Text style={styles.modalBody}>
                     {formatDexNo(inspectMember.dexNo)} ／ Lv
                     {inspectMember.level}
+                    {inspectMember.gender === "male" ||
+                    inspectMember.gender === "female" ? (
+                      <>
+                        {" ／ "}
+                        <GenderMark gender={inspectMember.gender} fontSize={14} />
+                      </>
+                    ) : null}
                     {inspectIsActive ? " ／ 場に出ている" : ""}
                     {inspectFighter?.volatiles.transformed
                       ? " ／ へんしん中"
                       : ""}
+                  </Text>
+                  <Text style={styles.detailStat}>
+                    状態：{inspectStatusText}
                   </Text>
                   {(inspectFighter?.species ?? inspectSpecies) ? (
                     <View style={styles.inspectTypeRow}>
@@ -2519,6 +2610,27 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   fighterNameRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 6,
+  },
+  genderMark: {
+    fontWeight: "900",
+  },
+  genderMale: {
+    color: "#2f6fd6",
+  },
+  genderFemale: {
+    color: "#d6456f",
+  },
+  genderMaleOnDark: {
+    color: "#8db8ff",
+  },
+  genderFemaleOnDark: {
+    color: "#ff9bbb",
+  },
+  partyNameRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     alignItems: "center",

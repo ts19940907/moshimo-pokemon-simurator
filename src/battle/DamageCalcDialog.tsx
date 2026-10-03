@@ -49,6 +49,7 @@ import { PokemonAutocompleteField } from "../pokemon/PokemonAutocompleteField";
 import { MoveTypeBadge, PokemonTypeBadges } from "../pokemon/TypeBadges";
 import type { Move, MoveDamageClass } from "../pokemon/moves";
 import { fetchMovesForPokemon } from "../pokemon/moveRepository";
+import { applyMoveTypesForGeneration } from "../pokemon/moveTypeByGeneration";
 import { fetchTools } from "../pokemon/toolRepository";
 import type { Tool } from "../pokemon/tools";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
@@ -649,7 +650,7 @@ export function DamageCalcDialog({
           moveGenerationOptions,
         );
         if (cancelled) return;
-        setMoves(rows);
+        setMoves(applyMoveTypesForGeneration(rows, rulesGeneration));
       } catch (error) {
         if (!cancelled) {
           setMoves([]);
@@ -666,7 +667,7 @@ export function DamageCalcDialog({
     return () => {
       cancelled = true;
     };
-  }, [attacker.species, moveGenerationOptions]);
+  }, [attacker.species, moveGenerationOptions, rulesGeneration]);
 
   const filteredSpecies = useMemo(() => {
     return speciesPool.filter((pokemon) => {
@@ -954,6 +955,7 @@ export function DamageCalcDialog({
         defenderLightScreen: lightScreen,
         weatherId: rulesGeneration >= 2 ? weatherId : null,
         attackerItemPokeapiId: atkToolPokeapiId,
+        rulesGeneration,
       },
     );
   }, [
