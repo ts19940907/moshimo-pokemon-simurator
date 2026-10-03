@@ -481,54 +481,147 @@ export function modifyAccuracyForAbilities(
   return acc;
 }
 
+/** Inputs for ability damage effects, shared by the battle engine and the damage calculator. */
+export type AbilityDamageContext = {
+  attackerAbility: number | null;
+  defenderAbility: number | null;
+  attackerStatused: boolean;
+  defenderStatused: boolean;
+  /** Attacker HP <= 1/3 (Overgrow / Blaze / Torrent / Swarm). */
+  attackerPinch: boolean;
+  flashFireActive: boolean;
+};
+
+const PINCH_ABILITY_TYPE: Record<number, number> = {
+  [ABILITY.OVERGROW]: 5,
+  [ABILITY.BLAZE]: 2,
+  [ABILITY.TORRENT]: 3,
+  [ABILITY.SWARM]: 12,
+};
+
+export function pinchAbilityType(abilityId: number | null): number | null {
+  return abilityId != null ? (PINCH_ABILITY_TYPE[abilityId] ?? null) : null;
+}
+
+function attackerAbilityMultiplier(
+  ctx: AbilityDamageContext,
+  move: Move,
+): number {
+  const physical = move.damage_class === "physical";
+  const id = ctx.attackerAbility;
+  let mult = 1;
+  if (physical && (id === ABILITY.HUGE_POWER || id === ABILITY.PURE_POWER)) {
+    mult *= 2;
+  }
+  if (physical && id === ABILITY.HUSTLE) {
+    mult *= 1.5;
+  }
+  if (physical && id === ABILITY.GUTS && ctx.attackerStatused) {
+    mult *= 1.5;
+  }
+  if (move.type_id === 2 && id === ABILITY.FLASH_FIRE && ctx.flashFireActive) {
+    mult *= 1.5;
+  }
+  if (ctx.attackerPinch && pinchAbilityType(id) === move.type_id) {
+    mult *= 1.5;
+  }
+  return mult;
+}
+
+function defenderAbilityMultiplier(
+  ctx: AbilityDamageContext,
+  move: Move,
+): number {
+  const id = ctx.defenderAbility;
+  let mult = 1;
+  if (id === ABILITY.THICK_FAT && (move.type_id === 2 || move.type_id === 6)) {
+    mult *= 0.5;
+  }
+  if (
+    id === ABILITY.MARVEL_SCALE &&
+    ctx.defenderStatused &&
+    move.damage_class === "physical"
+  ) {
+    // Marvel Scale raises Defense; approximate as 2/3 damage taken
+    mult *= 2 / 3;
+  }
+  return mult;
+}
+
+/** Damage multiplier from abilities (after type chart), split by side. */
+export function abilityDamageMultipliersFor(
+  ctx: AbilityDamageContext,
+  move: Move,
+): { attacker: number; defender: number; total: number } {
+  const attacker = attackerAbilityMultiplier(ctx, move);
+  const defender = defenderAbilityMultiplier(ctx, move);
+  return { attacker, defender, total: attacker * defender };
+}
+
+/**
+ * Ability that stops a damaging move outright, in battle-engine order
+ * (Damp, Soundproof, absorb abilities, Wonder Guard, Levitate).
+ */
+export function abilityBlockingDamage(
+  attackerAbility: number | null,
+  defenderAbility: number | null,
+  move: Move,
+  typeEffectiveness: number,
+): number | null {
+  if (EXPLOSION_IDS.has(move.pokeapi_id)) {
+    if (attackerAbility === ABILITY.DAMP || defenderAbility === ABILITY.DAMP) {
+      return ABILITY.DAMP;
+    }
+  }
+  if (defenderAbility == null) return null;
+  if (isSoundMove(move) && defenderAbility === ABILITY.SOUNDPROOF) {
+    return ABILITY.SOUNDPROOF;
+  }
+  if (move.type_id === 4 && defenderAbility === ABILITY.VOLT_ABSORB) {
+    return ABILITY.VOLT_ABSORB;
+  }
+  if (move.type_id === 3 && defenderAbility === ABILITY.WATER_ABSORB) {
+    return ABILITY.WATER_ABSORB;
+  }
+  if (move.type_id === 2 && defenderAbility === ABILITY.FLASH_FIRE) {
+    return ABILITY.FLASH_FIRE;
+  }
+  if (defenderAbility === ABILITY.WONDER_GUARD && typeEffectiveness <= 1) {
+    return ABILITY.WONDER_GUARD;
+  }
+  if (move.type_id === 9 && defenderAbility === ABILITY.LEVITATE) {
+    return ABILITY.LEVITATE;
+  }
+  return null;
+}
+
+export function abilitySuppressesWeather(abilityId: number | null): boolean {
+  return abilityId === ABILITY.CLOUD_NINE || abilityId === ABILITY.AIR_LOCK;
+}
+
+export function abilityPreventsCrit(abilityId: number | null): boolean {
+  return abilityId === ABILITY.BATTLE_ARMOR || abilityId === ABILITY.SHELL_ARMOR;
+}
+
+function abilityDamageContext(
+  attacker: BattleFighter,
+  defender: BattleFighter | null,
+): AbilityDamageContext {
+  return {
+    attackerAbility: attacker.abilityPokeapiId,
+    defenderAbility: defender?.abilityPokeapiId ?? null,
+    attackerStatused: attacker.status != null,
+    defenderStatused: defender?.status != null,
+    attackerPinch: attacker.currentHp / Math.max(1, attacker.maxHp) <= 1 / 3,
+    flashFireActive: attacker.volatiles.flashFireActive,
+  };
+}
+
 export function attackStatAbilityMultiplier(
   attacker: BattleFighter,
   move: Move,
 ): number {
-  const physical = move.damage_class === "physical";
-  let mult = 1;
-  if (
-    physical &&
-    (hasAbility(attacker, ABILITY.HUGE_POWER) ||
-      hasAbility(attacker, ABILITY.PURE_POWER))
-  ) {
-    mult *= 2;
-  }
-  if (physical && hasAbility(attacker, ABILITY.HUSTLE)) {
-    mult *= 1.5;
-  }
-  if (
-    physical &&
-    hasAbility(attacker, ABILITY.GUTS) &&
-    attacker.status != null
-  ) {
-    mult *= 1.5;
-  }
-  // Flash Fire boost
-  if (
-    move.type_id === 2 &&
-    attacker.volatiles.flashFireActive &&
-    hasAbility(attacker, ABILITY.FLASH_FIRE)
-  ) {
-    mult *= 1.5;
-  }
-  // Pinch abilities
-  const hpRatio = attacker.currentHp / Math.max(1, attacker.maxHp);
-  if (hpRatio <= 1 / 3) {
-    if (move.type_id === 5 && hasAbility(attacker, ABILITY.OVERGROW)) {
-      mult *= 1.5;
-    }
-    if (move.type_id === 2 && hasAbility(attacker, ABILITY.BLAZE)) {
-      mult *= 1.5;
-    }
-    if (move.type_id === 3 && hasAbility(attacker, ABILITY.TORRENT)) {
-      mult *= 1.5;
-    }
-    if (move.type_id === 12 && hasAbility(attacker, ABILITY.SWARM)) {
-      mult *= 1.5;
-    }
-  }
-  return mult;
+  return attackerAbilityMultiplier(abilityDamageContext(attacker, null), move);
 }
 
 export function defenseStatAbilityMultiplier(
@@ -558,36 +651,26 @@ export function abilityDamageMultiplier(
   defender: BattleFighter,
   move: Move,
 ): number {
-  let mult = 1;
-  mult *= attackStatAbilityMultiplier(attacker, move);
-  if (
-    hasAbility(defender, ABILITY.THICK_FAT) &&
-    (move.type_id === 2 || move.type_id === 6)
-  ) {
-    mult *= 0.5;
-  }
-  if (
-    hasAbility(defender, ABILITY.MARVEL_SCALE) &&
-    defender.status != null &&
-    move.damage_class === "physical"
-  ) {
-    // Marvel Scale raises Defense; approximate as 2/3 damage taken
-    mult *= 2 / 3;
-  }
-  return mult;
+  return abilityDamageMultipliersFor(
+    abilityDamageContext(attacker, defender),
+    move,
+  ).total;
+}
+
+export function abilitySpeedMultiplierFor(
+  abilityId: number | null,
+  weatherId: string | null,
+): number {
+  if (abilityId === ABILITY.SWIFT_SWIM && weatherId === "rain") return 2;
+  if (abilityId === ABILITY.CHLOROPHYLL && weatherId === "sun") return 2;
+  return 1;
 }
 
 export function abilitySpeedMultiplier(
   fighter: BattleFighter,
   weatherId: string | null,
 ): number {
-  if (hasAbility(fighter, ABILITY.SWIFT_SWIM) && weatherId === "rain") {
-    return 2;
-  }
-  if (hasAbility(fighter, ABILITY.CHLOROPHYLL) && weatherId === "sun") {
-    return 2;
-  }
-  return 1;
+  return abilitySpeedMultiplierFor(fighter.abilityPokeapiId, weatherId);
 }
 
 /** Gen3 Sturdy: only blocks OHKO moves (not Focus Sash style). */

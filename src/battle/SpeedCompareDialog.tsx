@@ -28,6 +28,18 @@ import {
   type PartyMemberBuild,
 } from "../party/types";
 import {
+  AbilityChips,
+  NatureComboBox,
+  useSpeciesAbilities,
+} from "../party/AbilityNatureFields";
+import {
+  ABILITY_NAME_JA,
+  abilitySpeedMultiplierFor,
+  abilitySuppressesWeather,
+  resolveAbilityPokeapiId,
+} from "./abilityEffects";
+import { WEATHER_LABEL_JA, type WeatherId } from "./weather";
+import {
   formatDexNo,
   PAGE_SIZE,
   PARTY_SIZE,
@@ -108,6 +120,8 @@ function partyBuildsEqual(a: PartyMemberBuild, b: PartyMemberBuild): boolean {
     "attack",
     "defense",
     "special",
+    "sp_attack",
+    "sp_defense",
     "speed",
   ] as const) {
     if (a.iv[key] !== b.iv[key] || a.statExp[key] !== b.statExp[key]) {
@@ -118,6 +132,8 @@ function partyBuildsEqual(a: PartyMemberBuild, b: PartyMemberBuild): boolean {
     if (a.moveIds[i] !== b.moveIds[i]) return false;
   }
   if ((a.toolId ?? null) !== (b.toolId ?? null)) return false;
+  if ((a.abilityId ?? null) !== (b.abilityId ?? null)) return false;
+  if ((a.natureId ?? null) !== (b.natureId ?? null)) return false;
   if ((a.specialSource ?? "sp_attack") !== (b.specialSource ?? "sp_attack")) {
     return false;
   }
@@ -139,6 +155,8 @@ function makeSelfApplyBuild(
     statExp: { ...existing.statExp, speed: draft.statExp.speed },
     toolId: draft.toolId,
     toolPokeapiId: draft.toolPokeapiId ?? null,
+    abilityId: draft.abilityId ?? null,
+    natureId: draft.natureId ?? null,
   };
 }
 
@@ -340,6 +358,13 @@ export function SpeedCompareDialog({
   const [pickingTool, setPickingTool] = useState(false);
 
   const showHeldItems = rulesGeneration >= 2 && showPartyActions;
+  const showNature = rulesGeneration >= 3;
+  const showAbilityPicker = rulesGeneration >= 3;
+  const showAbility = showAbilityPicker && showPartyActions;
+  const showWeather = rulesGeneration >= 3;
+  const [weatherId, setWeatherId] = useState<WeatherId | null>(null);
+  const selfAbilities = useSpeciesAbilities(self.species, rulesGeneration);
+  const foeAbilities = useSpeciesAbilities(foe.species, rulesGeneration);
   const toolsById = useMemo(
     () => Object.fromEntries(tools.map((tool) => [tool.id, tool])),
     [tools],
@@ -386,11 +411,13 @@ export function SpeedCompareDialog({
     self.speedStage !== 0 ||
     foe.speedStage !== 0 ||
     self.paralyzed ||
-    foe.paralyzed;
+    foe.paralyzed ||
+    weatherId != null;
 
   const resetAll = () => {
     setSelf(emptySide());
     setFoe(emptySide());
+    setWeatherId(null);
     setPickingSide(null);
     setSelfAcQuery("");
     setFoeAcQuery("");
@@ -613,6 +640,20 @@ export function SpeedCompareDialog({
     setPickingTool(false);
   };
 
+  const selfAbility = self.build
+    ? resolveAbilityPokeapiId(self.build, rulesGeneration)
+    : null;
+  const foeAbility = foe.build
+    ? resolveAbilityPokeapiId(foe.build, rulesGeneration)
+    : null;
+  const weatherSuppressor = abilitySuppressesWeather(selfAbility)
+    ? selfAbility
+    : abilitySuppressesWeather(foeAbility)
+      ? foeAbility
+      : null;
+  const effectiveWeatherId =
+    showWeather && weatherSuppressor == null ? weatherId : null;
+
   const compareResult: SpeedCompareResult | null = useMemo(() => {
     if (!self.species || !self.build || !foe.species || !foe.build) return null;
     return compareSpeeds(
@@ -621,15 +662,30 @@ export function SpeedCompareDialog({
         build: self.build,
         speedStage: self.speedStage,
         paralyzed: self.paralyzed,
+        rulesGeneration,
+        abilityId: selfAbility,
+        weatherId: effectiveWeatherId,
       },
       {
         species: foe.species,
         build: foe.build,
         speedStage: foe.speedStage,
         paralyzed: foe.paralyzed,
+        rulesGeneration,
+        abilityId: foeAbility,
+        weatherId: effectiveWeatherId,
       },
     );
-  }, [self, foe]);
+  }, [self, foe, rulesGeneration, selfAbility, foeAbility, effectiveWeatherId]);
+
+  const speedBoostNames = [
+    abilitySpeedMultiplierFor(selfAbility, effectiveWeatherId) !== 1
+      ? `自分の${ABILITY_NAME_JA[selfAbility ?? 0]}`
+      : null,
+    abilitySpeedMultiplierFor(foeAbility, effectiveWeatherId) !== 1
+      ? `相手の${ABILITY_NAME_JA[foeAbility ?? 0]}`
+      : null,
+  ].filter((name): name is string => name != null);
 
   const partyFull = partyDexNos.length >= PARTY_SIZE;
 
@@ -790,6 +846,41 @@ export function SpeedCompareDialog({
                 }))
               }
             />
+
+            {showAbilityPicker ? (
+              <>
+                <Text style={styles.section}>特性</Text>
+                <AbilityChips
+                  abilities={
+                    side === "self"
+                      ? selfAbilities.abilities
+                      : foeAbilities.abilities
+                  }
+                  loading={
+                    side === "self" ? selfAbilities.loading : foeAbilities.loading
+                  }
+                  error={
+                    side === "self" ? selfAbilities.error : foeAbilities.error
+                  }
+                  value={draft.build.abilityId}
+                  onChange={(abilityId) =>
+                    patchBuild((b) => ({ ...b, abilityId }))
+                  }
+                />
+              </>
+            ) : null}
+
+            {showNature ? (
+              <>
+                <Text style={styles.section}>性格</Text>
+                <NatureComboBox
+                  value={draft.build.natureId}
+                  onChange={(natureId) =>
+                    patchBuild((b) => ({ ...b, natureId }))
+                  }
+                />
+              </>
+            ) : null}
 
             <Text style={styles.section}>
               {ivSectionLabel(rulesGeneration)}
@@ -1263,6 +1354,49 @@ export function SpeedCompareDialog({
 
               <View style={styles.resultBox}>
                 <Text style={styles.columnTitle}>比較結果</Text>
+                {showWeather ? (
+                  <>
+                    <Text style={styles.section}>天候</Text>
+                    <View style={styles.weatherRow}>
+                      {(
+                        [
+                          { value: null, label: "なし" },
+                          { value: "rain", label: WEATHER_LABEL_JA.rain },
+                          { value: "sun", label: WEATHER_LABEL_JA.sun },
+                          { value: "sand", label: WEATHER_LABEL_JA.sand },
+                          { value: "hail", label: WEATHER_LABEL_JA.hail },
+                        ] as { value: WeatherId | null; label: string }[]
+                      ).map((option) => {
+                        const selected = weatherId === option.value;
+                        return (
+                          <Pressable
+                            key={option.label}
+                            onPress={() => setWeatherId(option.value)}
+                            style={[
+                              styles.weatherChip,
+                              selected && styles.weatherChipSelected,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.weatherChipText,
+                                selected && styles.weatherChipTextSelected,
+                              ]}
+                            >
+                              {option.label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                    {weatherId && weatherSuppressor != null ? (
+                      <Text style={styles.muted}>
+                        {ABILITY_NAME_JA[weatherSuppressor]}
+                        のため天候の影響はありません。
+                      </Text>
+                    ) : null}
+                  </>
+                ) : null}
                 {!self.species || !foe.species ? (
                   <Text style={styles.muted}>
                     自分と相手のポケモンを選ぶと結果が表示されます。
@@ -1286,6 +1420,11 @@ export function SpeedCompareDialog({
                       {compareResult.foeSpeed}
                       （実効すばやさ）
                     </Text>
+                    {speedBoostNames.length > 0 ? (
+                      <Text style={styles.muted}>
+                        {speedBoostNames.join("・")}ですばやさ2倍
+                      </Text>
+                    ) : null}
                     {compareResult.tips.length > 0 ? (
                       <View style={styles.tipsBox}>
                         <Text style={styles.tipsTitle}>
@@ -1361,6 +1500,7 @@ export function SpeedCompareDialog({
             <Text style={styles.confirmBody}>
               {self.species?.name_ja ?? "このポケモン"}
               のパーティ設定を、素早さ比較で変更した内容（レベル・すばやさ個体値・努力値
+              {showAbility ? "・特性・性格" : ""}
               {showHeldItems ? "・持ち物" : ""}）で上書きします。よろしいですか？
             </Text>
             <View style={styles.confirmRow}>
@@ -1833,6 +1973,32 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
     color: "#8a8276",
+  },
+  weatherRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 4,
+  },
+  weatherChip: {
+    borderWidth: 1,
+    borderColor: "#cfe3d6",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "#fffdf8",
+  },
+  weatherChipSelected: {
+    backgroundColor: "#1f6b4a",
+    borderColor: "#1f6b4a",
+  },
+  weatherChipText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#1d1a16",
+  },
+  weatherChipTextSelected: {
+    color: "#fff",
   },
   resultBox: {
     gap: 4,
