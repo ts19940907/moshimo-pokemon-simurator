@@ -31,7 +31,7 @@ export function typeChartNote(rulesGeneration: number): string {
   if (rulesGeneration <= 1) {
     return "※むし→どくは抜群。くさ／どくはむし技で4倍になります。";
   }
-  if (rulesGeneration === 3) {
+  if (rulesGeneration >= 3 && rulesGeneration < 6) {
     return "※第2世代と同じ相性です。あく・はがねあり。フェアリーなし。ゴースト↔エスパーは抜群。";
   }
   if (rulesGeneration >= 2 && rulesGeneration < 6) {
