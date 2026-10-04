@@ -1,4 +1,5 @@
 import {
+  categoryGenerationFilter,
   formatGenerationList,
   parseGenerationList,
   type GenerationFilterOptions,
@@ -35,11 +36,17 @@ export function parseSyncWithRules(params: MatchGenerationParams): boolean {
   return raw === "1" || raw === "true";
 }
 
+/** Empty string = nothing checked in manual mode (treated as sync later). */
+function parseOptionalGenerationList(raw: string): Generation[] {
+  if (raw.trim() === "") return [];
+  return parseGenerationList(raw);
+}
+
 export function parsePokemonGenerations(
   params: MatchGenerationParams,
 ): Generation[] {
   const list = firstString(params.pokemonGenerations);
-  if (list) return parseGenerationList(list);
+  if (list != null) return parseOptionalGenerationList(list);
   return parseGenerationList(firstString(params.pokemonGeneration));
 }
 
@@ -47,7 +54,7 @@ export function parseMoveGenerations(
   params: MatchGenerationParams,
 ): Generation[] {
   const list = firstString(params.moveGenerations);
-  if (list) return parseGenerationList(list);
+  if (list != null) return parseOptionalGenerationList(list);
   return parseGenerationList(firstString(params.moveGeneration));
 }
 
@@ -63,31 +70,31 @@ export function parseItemGenerations(
 export function pokemonGenerationFilterFromParams(
   params: MatchGenerationParams,
 ): GenerationFilterOptions {
-  return {
-    syncWithRules: parseSyncWithRules(params),
-    rulesGeneration: parseRulesGeneration(params),
-    introducedGenerations: parsePokemonGenerations(params),
-  };
+  return categoryGenerationFilter(
+    parseSyncWithRules(params),
+    parseRulesGeneration(params),
+    parsePokemonGenerations(params),
+  );
 }
 
 export function moveGenerationFilterFromParams(
   params: MatchGenerationParams,
 ): GenerationFilterOptions {
-  return {
-    syncWithRules: parseSyncWithRules(params),
-    rulesGeneration: parseRulesGeneration(params),
-    introducedGenerations: parseMoveGenerations(params),
-  };
+  return categoryGenerationFilter(
+    parseSyncWithRules(params),
+    parseRulesGeneration(params),
+    parseMoveGenerations(params),
+  );
 }
 
 export function itemGenerationFilterFromParams(
   params: MatchGenerationParams,
 ): GenerationFilterOptions {
-  return {
-    syncWithRules: parseSyncWithRules(params),
-    rulesGeneration: parseRulesGeneration(params),
-    introducedGenerations: parseItemGenerations(params),
-  };
+  return categoryGenerationFilter(
+    parseSyncWithRules(params),
+    parseRulesGeneration(params),
+    parseItemGenerations(params),
+  );
 }
 
 export function matchGenerationRouteParams(input: {

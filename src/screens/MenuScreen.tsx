@@ -16,6 +16,7 @@ import {
   opponentOptions,
   poolGenerationOptions,
   restrictionOptions,
+  selectableGenerations,
   type GenerationOption,
 } from "../match-setup/options";
 import { matchGenerationRouteParams } from "../match-setup/params";
@@ -110,6 +111,13 @@ function labelsOf(
     .join("・");
 }
 
+function poolLabel(
+  values: Generation[],
+  options: { value: Generation; title: string }[],
+) {
+  return values.length > 0 ? labelsOf(values, options) : "ルールに合わせる";
+}
+
 type GenerationRadioGroupProps = {
   value: Generation;
   onChange: (value: Generation) => void;
@@ -161,16 +169,14 @@ type GenerationCheckboxGroupProps = {
   values: Generation[];
   options?: GenerationOption[];
   disabled?: boolean;
-  /** When true, every generation may be unchecked (held items). */
-  allowEmpty?: boolean;
   onChange: (values: Generation[]) => void;
 };
 
+/** Unchecking everything is allowed; empty means "follow rules" for that category. */
 function GenerationCheckboxGroup({
   values,
   options = poolGenerationOptions,
   disabled,
-  allowEmpty = false,
   onChange,
 }: GenerationCheckboxGroupProps) {
   const selected = new Set(values);
@@ -178,7 +184,6 @@ function GenerationCheckboxGroup({
   const toggle = (generation: Generation) => {
     if (disabled) return;
     if (selected.has(generation)) {
-      if (!allowEmpty && selected.size <= 1) return;
       onChange(values.filter((value) => value !== generation));
       return;
     }
@@ -186,40 +191,66 @@ function GenerationCheckboxGroup({
   };
 
   return (
-    <View style={styles.generationRow}>
-      {options.map((option) => {
-        const isOn = selected.has(option.value);
-        const isDisabled = Boolean(disabled) || option.disabled;
-        return (
+    <View style={styles.generationGroup}>
+      {!disabled ? (
+        <View style={styles.bulkRow}>
           <Pressable
-            key={option.value}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: isOn, disabled: isDisabled }}
-            disabled={isDisabled}
-            onPress={() => toggle(option.value)}
+            accessibilityRole="button"
+            onPress={() => onChange(selectableGenerations(options))}
             style={({ pressed }) => [
-              styles.generationChip,
-              isOn && styles.generationChipSelected,
-              isDisabled && styles.generationChipDisabled,
-              pressed && !isDisabled && styles.cardPressed,
+              styles.bulkButton,
+              pressed && styles.cardPressed,
             ]}
           >
-            <View
-              style={[styles.checkbox, isOn && styles.checkboxSelected]}
-              accessibilityElementsHidden
-            />
-            <Text
-              style={[
-                styles.generationChipText,
-                isOn && styles.generationChipTextSelected,
-                isDisabled && styles.disabledText,
+            <Text style={styles.bulkButtonText}>全てチェック</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => onChange([])}
+            style={({ pressed }) => [
+              styles.bulkButton,
+              pressed && styles.cardPressed,
+            ]}
+          >
+            <Text style={styles.bulkButtonText}>全てチェックを外す</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      <View style={styles.generationRow}>
+        {options.map((option) => {
+          const isOn = selected.has(option.value);
+          const isDisabled = Boolean(disabled) || option.disabled;
+          return (
+            <Pressable
+              key={option.value}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: isOn, disabled: isDisabled }}
+              disabled={isDisabled}
+              onPress={() => toggle(option.value)}
+              style={({ pressed }) => [
+                styles.generationChip,
+                isOn && styles.generationChipSelected,
+                isDisabled && styles.generationChipDisabled,
+                pressed && !isDisabled && styles.cardPressed,
               ]}
             >
-              {option.title}
-            </Text>
-          </Pressable>
-        );
-      })}
+              <View
+                style={[styles.checkbox, isOn && styles.checkboxSelected]}
+                accessibilityElementsHidden
+              />
+              <Text
+                style={[
+                  styles.generationChipText,
+                  isOn && styles.generationChipTextSelected,
+                  isDisabled && styles.disabledText,
+                ]}
+              >
+                {option.title}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -285,12 +316,6 @@ export function MenuScreen() {
       setPokemonGenerations([rulesGeneration]);
       setMoveGenerations([rulesGeneration]);
       setItemGenerations(syncedItemGenerations(rulesGeneration));
-    } else {
-      setPokemonGenerations(
-        pokemonGenerations.length > 0 ? pokemonGenerations : [1],
-      );
-      setMoveGenerations(moveGenerations.length > 0 ? moveGenerations : [1]);
-      setItemGenerations(itemGenerations);
     }
   };
 
@@ -369,7 +394,7 @@ export function MenuScreen() {
               <Text style={styles.sectionHint}>
                 {syncGenerationsWithRules
                   ? "対戦ルール世代で使えるポケモン（自動）"
-                  : "初登場世代（複数可）。少なくとも1つ必要です。"}
+                  : "初登場世代（複数可）。未選択なら対戦ルールに合わせます。"}
               </Text>
               <GenerationCheckboxGroup
                 values={displayedPokemonGens}
@@ -383,7 +408,7 @@ export function MenuScreen() {
               <Text style={styles.sectionHint}>
                 {syncGenerationsWithRules
                   ? "対戦ルール世代で使える技（自動）"
-                  : "初登場世代（複数可）。少なくとも1つ必要です。"}
+                  : "初登場世代（複数可）。未選択なら対戦ルールに合わせます。"}
               </Text>
               <GenerationCheckboxGroup
                 values={displayedMoveGens}
@@ -399,13 +424,12 @@ export function MenuScreen() {
                   ? "初代ルールでは持ち物は使えません。"
                   : syncGenerationsWithRules
                     ? "対戦ルール世代で使える持ち物（自動）"
-                    : "初登場世代（第2〜9世代・複数可）。未選択でも構いません。"}
+                    : "初登場世代（第2〜9世代・複数可）。未選択なら対戦ルールに合わせます。"}
               </Text>
               <GenerationCheckboxGroup
                 values={displayedItemGens}
                 options={itemPoolGenerationOptions}
                 disabled={syncGenerationsWithRules || rulesGeneration < 2}
-                allowEmpty
                 onChange={setItemGenerations}
               />
             </View>
@@ -457,12 +481,12 @@ export function MenuScreen() {
                 {syncGenerationsWithRules ? "世代合わせ ON" : "手動"}
               </Text>
               <Text style={styles.summaryLine}>
-                ポケモン {labelsOf(displayedPokemonGens, poolGenerationOptions)}{" "}
-                ／ 技 {labelsOf(displayedMoveGens, poolGenerationOptions)} ／
+                ポケモン {poolLabel(displayedPokemonGens, poolGenerationOptions)}{" "}
+                ／ 技 {poolLabel(displayedMoveGens, poolGenerationOptions)} ／
                 持ち物{" "}
-                {displayedItemGens.length > 0
-                  ? labelsOf(displayedItemGens, itemPoolGenerationOptions)
-                  : "なし"}
+                {rulesGeneration < 2
+                  ? "なし"
+                  : poolLabel(displayedItemGens, itemPoolGenerationOptions)}
               </Text>
               <Text style={styles.summaryLine}>
                 {labelOf(restrictionMode, restrictionOptions)} ／{" "}
@@ -555,6 +579,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: "#5c564c",
+  },
+  generationGroup: {
+    gap: 8,
+  },
+  bulkRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  bulkButton: {
+    borderWidth: 1,
+    borderColor: "#1f6b4a",
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: "#fffdf8",
+  },
+  bulkButtonText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#1f6b4a",
   },
   generationRow: {
     flexDirection: "row",

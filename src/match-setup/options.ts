@@ -42,6 +42,14 @@ export const itemPoolGenerationOptions: GenerationOption[] =
     disabled: !isGenerationImplemented(generation),
   }));
 
+export function selectableGenerations(
+  options: readonly { value: Generation; disabled?: boolean }[],
+): Generation[] {
+  return options
+    .filter((option) => !option.disabled)
+    .map((option) => option.value);
+}
+
 export const restrictionOptions: {
   value: RestrictionMode;
   title: string;

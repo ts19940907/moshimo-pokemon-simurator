@@ -18,8 +18,12 @@ import {
   generationOptions,
   itemPoolGenerationOptions,
   poolGenerationOptions,
+  selectableGenerations,
 } from "../match-setup/options";
-import type { GenerationFilterOptions } from "../match-setup/generationFilter";
+import {
+  categoryGenerationFilter,
+  type GenerationFilterOptions,
+} from "../match-setup/generationFilter";
 import type { Generation, LevelCapMode } from "../match-setup/types";
 import {
   implementedGeneration,
@@ -67,6 +71,13 @@ function labelsOf(
     .sort((a, b) => a - b)
     .map((value) => labelOf(value, options))
     .join("・");
+}
+
+function poolLabel(
+  values: Generation[],
+  options: { value: Generation; title: string }[],
+) {
+  return values.length > 0 ? labelsOf(values, options) : "ルールに合わせる";
 }
 
 function OptionCard({
@@ -160,17 +171,16 @@ function GenerationRadioGroup({
   );
 }
 
+/** Unchecking everything is allowed; empty means "follow rules" for that category. */
 function GenerationCheckboxGroup({
   values,
   options = poolGenerationOptions,
   disabled,
-  allowEmpty = false,
   onChange,
 }: {
   values: Generation[];
   options?: { value: Generation; title: string; disabled?: boolean }[];
   disabled?: boolean;
-  allowEmpty?: boolean;
   onChange: (values: Generation[]) => void;
 }) {
   const selected = new Set(values);
@@ -178,7 +188,6 @@ function GenerationCheckboxGroup({
   const toggle = (generation: Generation) => {
     if (disabled) return;
     if (selected.has(generation)) {
-      if (!allowEmpty && selected.size <= 1) return;
       onChange(values.filter((value) => value !== generation));
       return;
     }
@@ -186,36 +195,62 @@ function GenerationCheckboxGroup({
   };
 
   return (
-    <View style={styles.generationRow}>
-      {options.map((option) => {
-        const isOn = selected.has(option.value);
-        const isDisabled = Boolean(disabled) || Boolean(option.disabled);
-        return (
+    <View style={styles.generationGroup}>
+      {!disabled ? (
+        <View style={styles.bulkRow}>
           <Pressable
-            key={option.value}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: isOn, disabled: isDisabled }}
-            disabled={isDisabled}
-            onPress={() => toggle(option.value)}
+            accessibilityRole="button"
+            onPress={() => onChange(selectableGenerations(options))}
             style={({ pressed }) => [
-              styles.generationChip,
-              isOn && styles.generationChipSelected,
-              isDisabled && styles.generationChipDisabled,
-              pressed && !isDisabled && styles.cardPressed,
+              styles.bulkButton,
+              pressed && styles.cardPressed,
             ]}
           >
-            <Text
-              style={[
-                styles.generationChipText,
-                isOn && styles.generationChipTextSelected,
-                isDisabled && styles.disabledText,
+            <Text style={styles.bulkButtonText}>全てチェック</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => onChange([])}
+            style={({ pressed }) => [
+              styles.bulkButton,
+              pressed && styles.cardPressed,
+            ]}
+          >
+            <Text style={styles.bulkButtonText}>全てチェックを外す</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      <View style={styles.generationRow}>
+        {options.map((option) => {
+          const isOn = selected.has(option.value);
+          const isDisabled = Boolean(disabled) || Boolean(option.disabled);
+          return (
+            <Pressable
+              key={option.value}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: isOn, disabled: isDisabled }}
+              disabled={isDisabled}
+              onPress={() => toggle(option.value)}
+              style={({ pressed }) => [
+                styles.generationChip,
+                isOn && styles.generationChipSelected,
+                isDisabled && styles.generationChipDisabled,
+                pressed && !isDisabled && styles.cardPressed,
               ]}
             >
-              {option.title}
-            </Text>
-          </Pressable>
-        );
-      })}
+              <Text
+                style={[
+                  styles.generationChipText,
+                  isOn && styles.generationChipTextSelected,
+                  isDisabled && styles.disabledText,
+                ]}
+              >
+                {option.title}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -246,14 +281,15 @@ export function SimulatorScreen({
   );
   const [pokemonGenerations, setPokemonGenerations] = useState<Generation[]>(
     () =>
-      initialPokemonGenerations?.length
-        ? initialPokemonGenerations
-        : [initialRulesGeneration ?? implementedGeneration],
+      initialPokemonGenerations ?? [
+        initialRulesGeneration ?? implementedGeneration,
+      ],
   );
-  const [moveGenerations, setMoveGenerations] = useState<Generation[]>(() =>
-    initialMoveGenerations?.length
-      ? initialMoveGenerations
-      : [initialRulesGeneration ?? implementedGeneration],
+  const [moveGenerations, setMoveGenerations] = useState<Generation[]>(
+    () =>
+      initialMoveGenerations ?? [
+        initialRulesGeneration ?? implementedGeneration,
+      ],
   );
   const [itemGenerations, setItemGenerations] = useState<Generation[]>(() =>
     initialItemGenerations
@@ -279,16 +315,12 @@ export function SimulatorScreen({
     setPokemonGenerations(
       sync
         ? [initialRulesGeneration]
-        : initialPokemonGenerations?.length
-          ? initialPokemonGenerations
-          : [initialRulesGeneration],
+        : (initialPokemonGenerations ?? [initialRulesGeneration]),
     );
     setMoveGenerations(
       sync
         ? [initialRulesGeneration]
-        : initialMoveGenerations?.length
-          ? initialMoveGenerations
-          : [initialRulesGeneration],
+        : (initialMoveGenerations ?? [initialRulesGeneration]),
     );
     setItemGenerations(
       sync
@@ -322,32 +354,35 @@ export function SimulatorScreen({
 
   const generationSummary = syncGenerationsWithRules
     ? `ルール ${labelOf(rulesGeneration, generationOptions)}（世代合わせ ON）`
-    : `ルール ${labelOf(rulesGeneration, generationOptions)} ／ ポケモン ${labelsOf(displayedPokemonGens, poolGenerationOptions)} ／ 技 ${labelsOf(displayedMoveGens, poolGenerationOptions)}`;
+    : `ルール ${labelOf(rulesGeneration, generationOptions)} ／ ポケモン ${poolLabel(displayedPokemonGens, poolGenerationOptions)} ／ 技 ${poolLabel(displayedMoveGens, poolGenerationOptions)}`;
 
   const pokemonGenerationOptions: GenerationFilterOptions = useMemo(
-    () => ({
-      syncWithRules: syncGenerationsWithRules,
-      rulesGeneration,
-      introducedGenerations: displayedPokemonGens,
-    }),
+    () =>
+      categoryGenerationFilter(
+        syncGenerationsWithRules,
+        rulesGeneration,
+        displayedPokemonGens,
+      ),
     [syncGenerationsWithRules, rulesGeneration, displayedPokemonGens],
   );
 
   const moveGenerationOptions: GenerationFilterOptions = useMemo(
-    () => ({
-      syncWithRules: syncGenerationsWithRules,
-      rulesGeneration,
-      introducedGenerations: displayedMoveGens,
-    }),
+    () =>
+      categoryGenerationFilter(
+        syncGenerationsWithRules,
+        rulesGeneration,
+        displayedMoveGens,
+      ),
     [syncGenerationsWithRules, rulesGeneration, displayedMoveGens],
   );
 
   const itemGenerationOptions: GenerationFilterOptions = useMemo(
-    () => ({
-      syncWithRules: syncGenerationsWithRules,
-      rulesGeneration,
-      introducedGenerations: displayedItemGens,
-    }),
+    () =>
+      categoryGenerationFilter(
+        syncGenerationsWithRules,
+        rulesGeneration,
+        displayedItemGens,
+      ),
     [syncGenerationsWithRules, rulesGeneration, displayedItemGens],
   );
 
@@ -404,16 +439,6 @@ export function SimulatorScreen({
       setPokemonGenerations([rulesGeneration]);
       setMoveGenerations([rulesGeneration]);
       setItemGenerations(syncedItemGenerations(rulesGeneration));
-    } else {
-      setPokemonGenerations(
-        pokemonGenerations.length > 0 ? pokemonGenerations : [1],
-      );
-      setMoveGenerations(moveGenerations.length > 0 ? moveGenerations : [1]);
-      setItemGenerations(
-        itemGenerations.length > 0
-          ? itemGenerations
-          : syncedItemGenerations(rulesGeneration),
-      );
     }
   };
 
@@ -581,6 +606,11 @@ export function SimulatorScreen({
 
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>ポケモン世代</Text>
+                {!syncGenerationsWithRules ? (
+                  <Text style={styles.sectionHint}>
+                    未選択ならルールに合わせます。
+                  </Text>
+                ) : null}
                 <GenerationCheckboxGroup
                   values={displayedPokemonGens}
                   disabled={syncGenerationsWithRules}
@@ -590,6 +620,11 @@ export function SimulatorScreen({
 
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>技世代</Text>
+                {!syncGenerationsWithRules ? (
+                  <Text style={styles.sectionHint}>
+                    未選択ならルールに合わせます。
+                  </Text>
+                ) : null}
                 <GenerationCheckboxGroup
                   values={displayedMoveGens}
                   disabled={syncGenerationsWithRules}
@@ -604,13 +639,12 @@ export function SimulatorScreen({
                     ? "初代ルールでは持ち物は使えません。"
                     : syncGenerationsWithRules
                       ? "対戦ルール世代で使える持ち物（自動）"
-                      : "初登場世代（第2〜9世代・複数可）。"}
+                      : "初登場世代（第2〜9世代・複数可）。未選択ならルールに合わせます。"}
                 </Text>
                 <GenerationCheckboxGroup
                   values={displayedItemGens}
                   options={itemPoolGenerationOptions}
                   disabled={syncGenerationsWithRules || rulesGeneration < 2}
-                  allowEmpty
                   onChange={setItemGenerations}
                 />
               </View>
@@ -786,6 +820,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: "#8a8276",
+  },
+  generationGroup: {
+    gap: 8,
+  },
+  bulkRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  bulkButton: {
+    borderWidth: 1,
+    borderColor: "#1f6b4a",
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: "#fffdf8",
+  },
+  bulkButtonText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#1f6b4a",
   },
   generationRow: {
     flexDirection: "row",

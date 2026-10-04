@@ -35,6 +35,19 @@ export type GenerationFilterOptions = {
   introducedGenerations: readonly number[];
 };
 
+/** Manual mode with nothing checked behaves like sync for that category. */
+export function categoryGenerationFilter(
+  syncWithRules: boolean,
+  rulesGeneration: number,
+  introducedGenerations: readonly number[],
+): GenerationFilterOptions {
+  return {
+    syncWithRules: syncWithRules || introducedGenerations.length === 0,
+    rulesGeneration,
+    introducedGenerations,
+  };
+}
+
 /**
  * Pool + row selection for pokemon/moves.
  * - sync ON: available bit for rules gen, debuting no later than the rules gen
