@@ -36,7 +36,8 @@ export type VolatileFlags = {
   /** Two-turn charge (Solar Beam, Fly, …). Set on wind-up turn. */
   chargingMove: Move | null;
   /** Fly / Dig mid-charge: most moves miss. */
-  semiInvulnerable: "fly" | "dig" | null;
+  /** Fly / Dig / Shadow Force (Gen4: vanished, nothing reaches it). */
+  semiInvulnerable: "fly" | "dig" | "shadow" | null;
   /** Thrash / Petal Dance lock. */
   lockedMove: Move | null;
   /** Remaining forced attacks including the current one after start. Gen1: 3–4. */
@@ -97,6 +98,41 @@ export type VolatileFlags = {
    * Toggled after each attempted action.
    */
   truantIdle: boolean;
+  /** Gen4 Roost: loses the Flying type until end of turn. */
+  roosted: boolean;
+  /** Gen4 Magnet Rise: immune to Ground moves while > 0. */
+  magnetRiseTurns: number;
+  /** Gen4 Embargo: held item has no effect while > 0. */
+  embargoTurns: number;
+  /** Gen4 Heal Block: healing moves fail while > 0. */
+  healBlockTurns: number;
+  /** Gen4 Aqua Ring: heals 1/16 at end of turn. */
+  aquaRing: boolean;
+  /** Gen4 Power Trick: Attack and Defense are swapped. */
+  powerTrick: boolean;
+  /** Gen4 Miracle Eye: Psychic hits Dark, evasion boosts ignored. */
+  miracleEye: boolean;
+  /** Choice Band / Specs / Scarf lock. */
+  choiceLockMoveId: string | null;
+  /** Gen4 Unburden: held item was used up. */
+  unburdenActive: boolean;
+  /** Gen4 Slow Start: Attack / Speed halved while > 0. */
+  slowStartTurns: number;
+  /** Took damage from the foe's move this turn (Assurance / Avalanche). */
+  damagedByFoeThisTurn: boolean;
+  /** Already acted this turn (Payback / Sucker Punch / Me First). */
+  movedThisTurn: boolean;
+  /** Metronome (item): consecutive uses of the same move. */
+  metronomeMoveId: string | null;
+  metronomeCount: number;
+  /** Last Resort: moves used since entering. */
+  movesUsedIds: string[];
+  /** Custap Berry: moves first this turn. */
+  custapActive: boolean;
+  /** Micle Berry: next move accuracy ×1.2. */
+  micleActive: boolean;
+  /** Damage taken this turn from the foe (Metal Burst). */
+  lastDamageTaken: number;
 };
 
 /** Per-side field effects. Gen1 mist/reflect/light screen last until switch-out. */
@@ -108,6 +144,19 @@ export type SideFieldEffects = {
   spikes: boolean;
   /** Gen2 Safeguard remaining turns (including this turn's end tick). */
   safeguardTurns: number;
+  /** Gen4: Reflect / Light Screen / Mist turns (0 = until switch-out in older rules). */
+  reflectTurns: number;
+  lightScreenTurns: number;
+  mistTurns: number;
+  /** Gen4 Spikes layers (1–3). */
+  spikesLayers: number;
+  /** Gen4 Toxic Spikes layers (1–2). */
+  toxicSpikes: number;
+  stealthRock: boolean;
+  tailwindTurns: number;
+  luckyChantTurns: number;
+  /** Healing Wish / Lunar Dance: the next Pokémon sent out is fully restored. */
+  healingWish: boolean;
 };
 
 export type BattleFieldState = {
@@ -116,6 +165,12 @@ export type BattleFieldState = {
   /** Active weather (Gen2+: Rain Dance / Sunny Day / …). */
   weather: BattleWeather | null;
   terrain: { id: string; turnsLeft: number } | null;
+  /** Gen4 Trick Room remaining turns. */
+  trickRoomTurns: number;
+  /** Gen4 Gravity remaining turns. */
+  gravityTurns: number;
+  /** Last move used by either side (Copycat). */
+  lastMoveUsed: Move | null;
   /**
    * Future Sight / similar delayed attacks.
    * `turnsLeft` counts down each end-of-turn; hits when it reaches 0.
@@ -165,6 +220,8 @@ export type BattleFighter = {
   /** Mutable battle types (Color Change / Forecast). */
   battleType1: number;
   battleType2: number;
+  /** Battle rules generation (item / ability behavior differs by generation). */
+  rulesGeneration: number;
 };
 
 export type BattleAction =
@@ -245,6 +302,24 @@ export function createVolatiles(): VolatileFlags {
     batonPass: false,
     flashFireActive: false,
     truantIdle: false,
+    roosted: false,
+    magnetRiseTurns: 0,
+    embargoTurns: 0,
+    healBlockTurns: 0,
+    aquaRing: false,
+    powerTrick: false,
+    miracleEye: false,
+    choiceLockMoveId: null,
+    unburdenActive: false,
+    slowStartTurns: 0,
+    damagedByFoeThisTurn: false,
+    movedThisTurn: false,
+    metronomeMoveId: null,
+    metronomeCount: 0,
+    movesUsedIds: [],
+    custapActive: false,
+    micleActive: false,
+    lastDamageTaken: 0,
   };
 }
 
@@ -261,6 +336,15 @@ export function createSideField(): SideFieldEffects {
     lightScreen: false,
     spikes: false,
     safeguardTurns: 0,
+    reflectTurns: 0,
+    lightScreenTurns: 0,
+    mistTurns: 0,
+    spikesLayers: 0,
+    toxicSpikes: 0,
+    stealthRock: false,
+    tailwindTurns: 0,
+    luckyChantTurns: 0,
+    healingWish: false,
   };
 }
 
@@ -270,6 +354,9 @@ export function createBattleField(): BattleFieldState {
     b: createSideField(),
     weather: null,
     terrain: null,
+    trickRoomTurns: 0,
+    gravityTurns: 0,
+    lastMoveUsed: null,
     futureSight: null,
   };
 }

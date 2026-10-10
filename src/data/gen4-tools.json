@@ -1,0 +1,920 @@
+[
+  {
+    "pokeapi_id": 112,
+    "name_ja": "こんごうだま",
+    "name_en": "Adamant Orb",
+    "category": "species-specific",
+    "description": "ディアルガに もたせると ドラゴンと はがねタイプの わざの いりょくが あがる ひかり かがやく たま。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 113,
+    "name_ja": "しらたま",
+    "name_en": "Lustrous Orb",
+    "category": "species-specific",
+    "description": "パルキアに もたせると ドラゴンと みずタイプの わざの いりょくが あがる うつくしく かがやく たま。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 136,
+    "name_ja": "フィラのみ",
+    "name_en": "Figy Berry",
+    "category": "picky-healing",
+    "description": "ポケモンに もたせると ピンチのとき ＨＰを かいふくする。 きらいな あじだと こんらん する。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 137,
+    "name_ja": "ウイのみ",
+    "name_en": "Wiki Berry",
+    "category": "picky-healing",
+    "description": "ポケモンに もたせると ピンチのとき ＨＰを かいふくする。 きらいな あじだと こんらん する。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 138,
+    "name_ja": "マゴのみ",
+    "name_en": "Mago Berry",
+    "category": "picky-healing",
+    "description": "ポケモンに もたせると ピンチのとき ＨＰを かいふくする。 きらいな あじだと こんらん する。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 139,
+    "name_ja": "バンジのみ",
+    "name_en": "Aguav Berry",
+    "category": "picky-healing",
+    "description": "ポケモンに もたせると ピンチのとき ＨＰを かいふくする。 きらいな あじだと こんらん する。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 140,
+    "name_ja": "イアのみ",
+    "name_en": "Iapapa Berry",
+    "category": "picky-healing",
+    "description": "ポケモンに もたせると ピンチのとき ＨＰを かいふくする。 きらいな あじだと こんらん する。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 161,
+    "name_ja": "オッカのみ",
+    "name_en": "Occa Berry",
+    "category": "type-protection",
+    "description": "ポケモンに もたせると こうかばつぐんの ほのお わざを うけたとき いりょくが よわまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 162,
+    "name_ja": "イトケのみ",
+    "name_en": "Passho Berry",
+    "category": "type-protection",
+    "description": "ポケモンに もたせると こうかばつぐんの みず わざを うけたとき いりょくが よわまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 163,
+    "name_ja": "ソクノのみ",
+    "name_en": "Wacan Berry",
+    "category": "type-protection",
+    "description": "ポケモンに もたせると こうかばつぐんの でんき わざを うけたとき いりょくが よわまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 164,
+    "name_ja": "リンドのみ",
+    "name_en": "Rindo Berry",
+    "category": "type-protection",
+    "description": "ポケモンに もたせると こうかばつぐんの くさ わざを うけたとき いりょくが よわまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 165,
+    "name_ja": "ヤチェのみ",
+    "name_en": "Yache Berry",
+    "category": "type-protection",
+    "description": "ポケモンに もたせると こうかばつぐんの こおり わざを うけたとき いりょくが よわまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 166,
+    "name_ja": "ヨプのみ",
+    "name_en": "Chople Berry",
+    "category": "type-protection",
+    "description": "ポケモンに もたせると こうかばつぐんの かくとう わざを うけたとき いりょくが よわまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 167,
+    "name_ja": "ビアーのみ",
+    "name_en": "Kebia Berry",
+    "category": "type-protection",
+    "description": "ポケモンに もたせると こうかばつぐんの どく わざを うけたとき いりょくが よわまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 168,
+    "name_ja": "シュカのみ",
+    "name_en": "Shuca Berry",
+    "category": "type-protection",
+    "description": "ポケモンに もたせると こうかばつぐんの じめん わざを うけたとき いりょくが よわまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 169,
+    "name_ja": "バコウのみ",
+    "name_en": "Coba Berry",
+    "category": "type-protection",
+    "description": "ポケモンに もたせると こうかばつぐんの ひこう わざを うけたとき いりょくが よわまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 170,
+    "name_ja": "ウタンのみ",
+    "name_en": "Payapa Berry",
+    "category": "type-protection",
+    "description": "ポケモンに もたせると こうかばつぐんの エスパー わざを うけたとき いりょくが よわまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 171,
+    "name_ja": "タンガのみ",
+    "name_en": "Tanga Berry",
+    "category": "type-protection",
+    "description": "ポケモンに もたせると こうかばつぐんの むし わざを うけたとき いりょくが よわまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 172,
+    "name_ja": "ヨロギのみ",
+    "name_en": "Charti Berry",
+    "category": "type-protection",
+    "description": "ポケモンに もたせると こうかばつぐんの いわ わざを うけたとき いりょくが よわまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 173,
+    "name_ja": "カシブのみ",
+    "name_en": "Kasib Berry",
+    "category": "type-protection",
+    "description": "ポケモンに もたせると こうかばつぐんの ゴースト わざを うけたとき いりょくが よわまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 174,
+    "name_ja": "ハバンのみ",
+    "name_en": "Haban Berry",
+    "category": "type-protection",
+    "description": "ポケモンに もたせると こうかばつぐんの ドラゴン わざを うけたとき いりょくが よわまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 175,
+    "name_ja": "ナモのみ",
+    "name_en": "Colbur Berry",
+    "category": "type-protection",
+    "description": "ポケモンに もたせると こうかばつぐんの あく わざを うけたとき いりょくが よわまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 176,
+    "name_ja": "リリバのみ",
+    "name_en": "Babiri Berry",
+    "category": "type-protection",
+    "description": "ポケモンに もたせると こうかばつぐんの はがね わざを うけたとき いりょくが よわまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 177,
+    "name_ja": "ホズのみ",
+    "name_en": "Chilan Berry",
+    "category": "type-protection",
+    "description": "ポケモンに もたせると ノーマル わざを うけたとき いりょくが よわまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 178,
+    "name_ja": "チイラのみ",
+    "name_en": "Liechi Berry",
+    "category": "in-a-pinch",
+    "description": "ポケモンに もたせると ピンチのとき じぶんの こうげきが あがる。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 179,
+    "name_ja": "リュガのみ",
+    "name_en": "Ganlon Berry",
+    "category": "in-a-pinch",
+    "description": "ポケモンに もたせると ピンチのとき じぶんの ぼうぎょが あがる。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 180,
+    "name_ja": "カムラのみ",
+    "name_en": "Salac Berry",
+    "category": "in-a-pinch",
+    "description": "ポケモンに もたせると ピンチのとき じぶんの すばやさが あがる。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 181,
+    "name_ja": "ヤタピのみ",
+    "name_en": "Petaya Berry",
+    "category": "in-a-pinch",
+    "description": "ポケモンに もたせると ピンチのとき じぶんの とくこうが あがる。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 182,
+    "name_ja": "ズアのみ",
+    "name_en": "Apicot Berry",
+    "category": "in-a-pinch",
+    "description": "ポケモンに もたせると ピンチのとき じぶんの とくぼうが あがる。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 183,
+    "name_ja": "サンのみ",
+    "name_en": "Lansat Berry",
+    "category": "in-a-pinch",
+    "description": "ポケモンに もたせると ピンチのとき こうげきが きゅうしょに あたりやすくなる。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 184,
+    "name_ja": "スターのみ",
+    "name_en": "Starf Berry",
+    "category": "in-a-pinch",
+    "description": "ポケモンに もたせると ピンチのとき どれか １つの のうりょくが ぐーんと あがる。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 186,
+    "name_ja": "ミクルのみ",
+    "name_en": "Micle Berry",
+    "category": "in-a-pinch",
+    "description": "ポケモンに もたせると ピンチのとき いちどだけ わざの めいちゅうりつが あがる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 187,
+    "name_ja": "イバンのみ",
+    "name_en": "Custap Berry",
+    "category": "in-a-pinch",
+    "description": "ポケモンに もたせると ピンチのとき いちどだけ こうどうが はやくなる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 188,
+    "name_ja": "ジャポのみ",
+    "name_en": "Jaboca Berry",
+    "category": "other",
+    "description": "ポケモンに もたせると ぶつりわざを うけたとき あいてにも ダメージを あたえる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 189,
+    "name_ja": "レンブのみ",
+    "name_en": "Rowap Berry",
+    "category": "other",
+    "description": "ポケモンに もたせると とくしゅわざを うけたとき あいてにも ダメージを あたえる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 191,
+    "name_ja": "しろいハーブ",
+    "name_en": "White Herb",
+    "category": "held-items",
+    "description": "もたせた ポケモンの のうりょくが さがったとき いちどだけ もとの じょうたいに もどす。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 192,
+    "name_ja": "きょうせいギプス",
+    "name_en": "Macho Brace",
+    "category": "effort-training",
+    "description": "かたくて おもい ギプス。 もたせると すばやさは さがるが ふつうより つよく そだちやすい。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 196,
+    "name_ja": "メンタルハーブ",
+    "name_en": "Mental Herb",
+    "category": "held-items",
+    "description": "もたせた ポケモンが じゆうに わざを だせなくなったときに いちどだけ かいふくする。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 197,
+    "name_ja": "こだわりハチマキ",
+    "name_en": "Choice Band",
+    "category": "choice",
+    "description": "ちょっと こだわった ハチマキ。 もたせると こうげきは あがるが おなじ わざしか だせなくなる。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 202,
+    "name_ja": "こころのしずく",
+    "name_en": "Soul Dew",
+    "category": "species-specific",
+    "description": "ラティオス または ラティアスに もたせると とくこうと とくぼうが あがる ふしぎな たま。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 203,
+    "name_ja": "しんかいのキバ",
+    "name_en": "Deep Sea Tooth",
+    "category": "species-specific",
+    "description": "パールルに もたせると とくこうが あがる キバ。 するどく ぎんいろに ひかる。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 204,
+    "name_ja": "しんかいのウロコ",
+    "name_en": "Deep Sea Scale",
+    "category": "species-specific",
+    "description": "パールルに もたせると とくぼうが あがる ウロコ。 うすい ピンクいろに ひかる。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 230,
+    "name_ja": "かいがらのすず",
+    "name_en": "Shell Bell",
+    "category": "held-items",
+    "description": "もたせた ポケモンが こうげきして あいてに ダメージを あたえたとき ＨＰを すこし かいふく できる。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 231,
+    "name_ja": "うしおのおこう",
+    "name_en": "Sea Incense",
+    "category": "type-enhancement",
+    "description": "ふしぎな かおりの おこう。 もたせると みずタイプの わざの いりょくが あがる。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 232,
+    "name_ja": "のんきのおこう",
+    "name_en": "Lax Incense",
+    "category": "held-items",
+    "description": "もたせると おこうの ふしぎな かおりが あいてを まどわせて わざが めいちゅう しにくくなる。",
+    "introduced_generation": 3,
+    "available_generations": 508
+  },
+  {
+    "pokeapi_id": 242,
+    "name_ja": "こうかくレンズ",
+    "name_en": "Wide Lens",
+    "category": "held-items",
+    "description": "ものが おおきく みえる レンズ。 もたせると わざの めいちゅうりつが すこし あがる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 243,
+    "name_ja": "ちからのハチマキ",
+    "name_en": "Muscle Band",
+    "category": "held-items",
+    "description": "ちからが わいてくる ハチマキ。 もたせると ぶつりわざの いりょくが すこし あがる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 244,
+    "name_ja": "ものしりメガネ",
+    "name_en": "Wise Glasses",
+    "category": "held-items",
+    "description": "ぶあつい レンズの ついた メガネ。 もたせると とくしゅわざの いりょくが すこし あがる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 245,
+    "name_ja": "たつじんのおび",
+    "name_en": "Expert Belt",
+    "category": "held-items",
+    "description": "つかいこまれた くろい おび。 もたせると こうかばつぐんの とき わざの いりょくが すこし あがる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 246,
+    "name_ja": "ひかりのねんど",
+    "name_en": "Light Clay",
+    "category": "held-items",
+    "description": "もたせた ポケモンが ひかりのかべや リフレクターを つかったとき いつもよりも ながく のこる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 247,
+    "name_ja": "いのちのたま",
+    "name_en": "Life Orb",
+    "category": "held-items",
+    "description": "もたせると こうげきする たびに ＨＰが すこし へってしまうが わざの いりょくが あがる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 248,
+    "name_ja": "パワフルハーブ",
+    "name_en": "Power Herb",
+    "category": "held-items",
+    "description": "もたせた ポケモンは いちどだけ １ターンめに ちからを ためるわざを すぐに つかうことが できる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 249,
+    "name_ja": "どくどくだま",
+    "name_en": "Toxic Orb",
+    "category": "bad-held-items",
+    "description": "さわると どくをだす ふしぎなたま。 もたせると せんとうちゅうに もうどくの じょうたいに なる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 250,
+    "name_ja": "かえんだま",
+    "name_en": "Flame Orb",
+    "category": "bad-held-items",
+    "description": "さわると ねつをだす ふしぎなたま。 もたせると せんとうちゅうに やけどの じょうたいに なる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 251,
+    "name_ja": "スピードパウダー",
+    "name_en": "Quick Powder",
+    "category": "species-specific",
+    "description": "メタモンに もたせると すばやさが あがる ふしぎなこな。 とても こまかくて かたい。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 252,
+    "name_ja": "きあいのタスキ",
+    "name_en": "Focus Sash",
+    "category": "held-items",
+    "description": "もたせると ＨＰが まんたんのとき ひんしになりそうな わざを うけても ＨＰ１で いちどだけ たえる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 253,
+    "name_ja": "フォーカスレンズ",
+    "name_en": "Zoom Lens",
+    "category": "held-items",
+    "description": "もたせた ポケモンが あいてよりも こうどうするのが おそいとき わざが めいちゅう しやすくなる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 254,
+    "name_ja": "メトロノーム",
+    "name_en": "Metronome",
+    "category": "held-items",
+    "description": "もたせると おなじわざを れんぞくで つかったとき いりょくが あがる。 やめると いりょくは もどる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 255,
+    "name_ja": "くろいてっきゅう",
+    "name_en": "Iron Ball",
+    "category": "bad-held-items",
+    "description": "もたせると すばやさが さがる。 ひこうタイプや ふゆう ポケモンは じめんわざが あたって しまう。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 256,
+    "name_ja": "こうこうのしっぽ",
+    "name_en": "Lagging Tail",
+    "category": "bad-held-items",
+    "description": "とても おもたい なにかの しっぽ。 もたせると いつもより こうどうが おそくなる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 257,
+    "name_ja": "あかいいと",
+    "name_en": "Destiny Knot",
+    "category": "held-items",
+    "description": "ほそくて ながい まっかな いと。 もたせると メロメロに なったとき あいても メロメロに できる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 258,
+    "name_ja": "くろいヘドロ",
+    "name_en": "Black Sludge",
+    "category": "held-items",
+    "description": "もたせると どくタイプの ポケモンは すこしずつ ＨＰを かいふくする。 それいがいは ＨＰが へってしまう。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 259,
+    "name_ja": "つめたいいわ",
+    "name_en": "Icy Rock",
+    "category": "held-items",
+    "description": "もたせた ポケモンが あられを つかうと いつもより あられの じかんが ながくなる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 260,
+    "name_ja": "さらさらいわ",
+    "name_en": "Smooth Rock",
+    "category": "held-items",
+    "description": "もたせた ポケモンが すなあらしを つかうと いつもより すなあらしの じかんが ながくなる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 261,
+    "name_ja": "あついいわ",
+    "name_en": "Heat Rock",
+    "category": "held-items",
+    "description": "もたせた ポケモンが にほんばれを つかうと いつもより はれの じかんが ながくなる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 262,
+    "name_ja": "しめったいわ",
+    "name_en": "Damp Rock",
+    "category": "held-items",
+    "description": "もたせた ポケモンが あまごいを つかうと いつもより あめの じかんが ながくなる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 263,
+    "name_ja": "ねばりのかぎづめ",
+    "name_en": "Grip Claw",
+    "category": "held-items",
+    "description": "もたせると しめつける まきつくなど ダメージを あたえつづける わざの ターンすうが ふえる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 264,
+    "name_ja": "こだわりスカーフ",
+    "name_en": "Choice Scarf",
+    "category": "choice",
+    "description": "ちょっと こだわった スカーフ。 もたせると すばやさは あがるが おなじ わざしか だせなくなる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 265,
+    "name_ja": "くっつきバリ",
+    "name_en": "Sticky Barb",
+    "category": "bad-held-items",
+    "description": "もたせると まいターン ダメージを うける。 じぶんに ふれてきた あいてに くっつくことも ある。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 266,
+    "name_ja": "パワーリスト",
+    "name_en": "Power Bracer",
+    "category": "effort-training",
+    "description": "もたせると すばやさが さがるが ふつうよりも ポケモンの こうげきが たかく そだちやすい。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 267,
+    "name_ja": "パワーベルト",
+    "name_en": "Power Belt",
+    "category": "effort-training",
+    "description": "もたせると すばやさが さがるが ふつうよりも ポケモンの ぼうぎょが たかく そだちやすい。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 268,
+    "name_ja": "パワーレンズ",
+    "name_en": "Power Lens",
+    "category": "effort-training",
+    "description": "もたせると すばやさが さがるが ふつうよりも ポケモンの とくこうが たかく そだちやすい。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 269,
+    "name_ja": "パワーバンド",
+    "name_en": "Power Band",
+    "category": "effort-training",
+    "description": "もたせると すばやさが さがるが ふつうよりも ポケモンの とくぼうが たかく そだちやすい。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 270,
+    "name_ja": "パワーアンクル",
+    "name_en": "Power Anklet",
+    "category": "effort-training",
+    "description": "もたせると すばやさが さがるが ふつうよりも ポケモンの すばやさが たかく そだちやすい。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 271,
+    "name_ja": "パワーウエイト",
+    "name_en": "Power Weight",
+    "category": "effort-training",
+    "description": "もたせると すばやさが さがるが ふつうよりも ポケモンの ＨＰが たかく そだちやすい。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 272,
+    "name_ja": "きれいなぬけがら",
+    "name_en": "Shed Shell",
+    "category": "held-items",
+    "description": "じょうぶで かたい ぬけがら。 もたせた ポケモンは ひかえの ポケモンと かならず いれかわれる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 273,
+    "name_ja": "おおきなねっこ",
+    "name_en": "Big Root",
+    "category": "held-items",
+    "description": "もたせると ＨＰを すいとる わざで いつもより おおく じぶんの ＨＰを かいふくできる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 274,
+    "name_ja": "こだわりメガネ",
+    "name_en": "Choice Specs",
+    "category": "choice",
+    "description": "ちょっと こだわった メガネ。 もたせると とくこうは あがるが おなじ わざしか だせなくなる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 275,
+    "name_ja": "ひのたまプレート",
+    "name_en": "Flame Plate",
+    "category": "plates",
+    "description": "ほのおの タイプの せきばん。 もたせると ほのおタイプの わざの いりょくが つよまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 276,
+    "name_ja": "しずくプレート",
+    "name_en": "Splash Plate",
+    "category": "plates",
+    "description": "みずの タイプの せきばん。 もたせると みずタイプの わざの いりょくが つよまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 277,
+    "name_ja": "いかずちプレート",
+    "name_en": "Zap Plate",
+    "category": "plates",
+    "description": "でんきの タイプの せきばん。 もたせると でんきタイプの わざの いりょくが つよまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 278,
+    "name_ja": "みどりのプレート",
+    "name_en": "Meadow Plate",
+    "category": "plates",
+    "description": "くさの タイプの せきばん。 もたせると くさタイプの わざの いりょくが つよまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 279,
+    "name_ja": "つららのプレート",
+    "name_en": "Icicle Plate",
+    "category": "plates",
+    "description": "こおりの タイプの せきばん。 もたせると こおりタイプの わざの いりょくが つよまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 280,
+    "name_ja": "こぶしのプレート",
+    "name_en": "Fist Plate",
+    "category": "plates",
+    "description": "かくとうの タイプの せきばん。 もたせると かくとうタイプの わざの いりょくが つよまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 281,
+    "name_ja": "もうどくプレート",
+    "name_en": "Toxic Plate",
+    "category": "plates",
+    "description": "どくの タイプの せきばん。 もたせると どくタイプの わざの いりょくが つよまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 282,
+    "name_ja": "だいちのプレート",
+    "name_en": "Earth Plate",
+    "category": "plates",
+    "description": "じめんの タイプの せきばん。 もたせると じめんタイプの わざの いりょくが つよまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 283,
+    "name_ja": "あおぞらプレート",
+    "name_en": "Sky Plate",
+    "category": "plates",
+    "description": "ひこうの タイプの せきばん。 もたせると ひこうタイプの わざの いりょくが つよまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 284,
+    "name_ja": "ふしぎのプレート",
+    "name_en": "Mind Plate",
+    "category": "plates",
+    "description": "エスパーの タイプの せきばん。 もたせると エスパータイプの わざの いりょくが つよまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 285,
+    "name_ja": "たまむしプレート",
+    "name_en": "Insect Plate",
+    "category": "plates",
+    "description": "むしの タイプの せきばん。 もたせると むしタイプの わざの いりょくが つよまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 286,
+    "name_ja": "がんせきプレート",
+    "name_en": "Stone Plate",
+    "category": "plates",
+    "description": "いわの タイプの せきばん。 もたせると いわタイプの わざの いりょくが つよまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 287,
+    "name_ja": "もののけプレート",
+    "name_en": "Spooky Plate",
+    "category": "plates",
+    "description": "ゴーストの タイプの せきばん。 もたせると ゴーストタイプの わざの いりょくが つよまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 288,
+    "name_ja": "りゅうのプレート",
+    "name_en": "Draco Plate",
+    "category": "plates",
+    "description": "ドラゴンの タイプの せきばん。 もたせると ドラゴンタイプの わざの いりょくが つよまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 289,
+    "name_ja": "こわもてプレート",
+    "name_en": "Dread Plate",
+    "category": "plates",
+    "description": "あくの タイプの せきばん。 もたせると あくタイプの わざの いりょくが つよまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 290,
+    "name_ja": "こうてつプレート",
+    "name_en": "Iron Plate",
+    "category": "plates",
+    "description": "はがねの タイプの せきばん。 もたせると はがねタイプの わざの いりょくが つよまる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 291,
+    "name_ja": "あやしいおこう",
+    "name_en": "Odd Incense",
+    "category": "type-enhancement",
+    "description": "ふしぎな かおりの おこう。 もたせると エスパータイプの わざの いりょくが あがる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 292,
+    "name_ja": "がんせきおこう",
+    "name_en": "Rock Incense",
+    "category": "type-enhancement",
+    "description": "ふしぎな かおりの おこう。 もたせると いわタイプの わざの いりょくが あがる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 293,
+    "name_ja": "まんぷくおこう",
+    "name_en": "Full Incense",
+    "category": "bad-held-items",
+    "description": "ふしぎな かおりの おこう。 もたせた ポケモンは いつもより こうどうが おそくなる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 294,
+    "name_ja": "さざなみのおこう",
+    "name_en": "Wave Incense",
+    "category": "type-enhancement",
+    "description": "ふしぎな かおりの おこう。 もたせると みずタイプの わざの いりょくが あがる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 295,
+    "name_ja": "おはなのおこう",
+    "name_en": "Rose Incense",
+    "category": "type-enhancement",
+    "description": "ふしぎな かおりの おこう。 もたせると くさタイプの わざの いりょくが あがる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 303,
+    "name_ja": "するどいツメ",
+    "name_en": "Razor Claw",
+    "category": "held-items",
+    "description": "するどく とがった ツメ。 もたせると わざが きゅうしょに あたりやすくなる。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 304,
+    "name_ja": "するどいキバ",
+    "name_en": "Razor Fang",
+    "category": "held-items",
+    "description": "するどく とがった キバ。 もたせると ダメージを あたえたとき ひるませることが ある。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  },
+  {
+    "pokeapi_id": 442,
+    "name_ja": "はっきんだま",
+    "name_en": "Griseous Orb",
+    "category": "species-specific",
+    "description": "ギラティナに もたせると ドラゴンと ゴーストタイプの わざの いりょくが あがる ひかり かがやく たま。",
+    "introduced_generation": 4,
+    "available_generations": 504
+  }
+]

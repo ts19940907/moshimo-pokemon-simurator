@@ -1,0 +1,378 @@
+[
+  {
+    "pokeapi_id": 77,
+    "name_ja": "ちどりあし",
+    "name_en": "Tangled Feet",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "こんらん していると かいひ しやすくなる。"
+  },
+  {
+    "pokeapi_id": 78,
+    "name_ja": "でんきエンジン",
+    "name_en": "Motor Drive",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "でんきを うけると すばやさが あがる。"
+  },
+  {
+    "pokeapi_id": 79,
+    "name_ja": "とうそうしん",
+    "name_en": "Rivalry",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "あいてと せいべつが おなじだと つよくなる。"
+  },
+  {
+    "pokeapi_id": 80,
+    "name_ja": "ふくつのこころ",
+    "name_en": "Steadfast",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "ひるむ たびに すばやさが あがる。"
+  },
+  {
+    "pokeapi_id": 81,
+    "name_ja": "ゆきがくれ",
+    "name_en": "Snow Cloak",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "てんきが あられのとき かいひりつが あがる。"
+  },
+  {
+    "pokeapi_id": 82,
+    "name_ja": "くいしんぼう",
+    "name_en": "Gluttony",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "きのみを いつもより はやく つかう。"
+  },
+  {
+    "pokeapi_id": 83,
+    "name_ja": "いかりのつぼ",
+    "name_en": "Anger Point",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "きゅうしょに うけると こうげきが あがる。"
+  },
+  {
+    "pokeapi_id": 84,
+    "name_ja": "かるわざ",
+    "name_en": "Unburden",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "どうぐが なくなると すばやさが あがる。"
+  },
+  {
+    "pokeapi_id": 85,
+    "name_ja": "たいねつ",
+    "name_en": "Heatproof",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "ほのお わざの いりょくを よわめる。"
+  },
+  {
+    "pokeapi_id": 86,
+    "name_ja": "たんじゅん",
+    "name_en": "Simple",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "のうりょく へんかが いつもより はげしい。"
+  },
+  {
+    "pokeapi_id": 87,
+    "name_ja": "かんそうはだ",
+    "name_en": "Dry Skin",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "あついと ＨＰが へる。 みずで ＨＰを かいふく。"
+  },
+  {
+    "pokeapi_id": 88,
+    "name_ja": "ダウンロード",
+    "name_en": "Download",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "あいての のうりょくを みて つよさを かえる。"
+  },
+  {
+    "pokeapi_id": 89,
+    "name_ja": "てつのこぶし",
+    "name_en": "Iron Fist",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "パンチを つかう わざの いりょくが あがる。"
+  },
+  {
+    "pokeapi_id": 90,
+    "name_ja": "ポイズンヒール",
+    "name_en": "Poison Heal",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "どくじょうたいに なると ＨＰを かいふくする。"
+  },
+  {
+    "pokeapi_id": 91,
+    "name_ja": "てきおうりょく",
+    "name_en": "Adaptability",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "タイプが おなじ わざの いりょくが あがる。"
+  },
+  {
+    "pokeapi_id": 92,
+    "name_ja": "スキルリンク",
+    "name_en": "Skill Link",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "れんぞく わざを たくさん だせる。"
+  },
+  {
+    "pokeapi_id": 93,
+    "name_ja": "うるおいボディ",
+    "name_en": "Hydration",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "じょうたい いじょうが あめの とき なおる。"
+  },
+  {
+    "pokeapi_id": 94,
+    "name_ja": "サンパワー",
+    "name_en": "Solar Power",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "はれると ＨＰが へるが とくこうが あがる。"
+  },
+  {
+    "pokeapi_id": 95,
+    "name_ja": "はやあし",
+    "name_en": "Quick Feet",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "じょうたい いじょうで すばやさが あがる。"
+  },
+  {
+    "pokeapi_id": 96,
+    "name_ja": "ノーマルスキン",
+    "name_en": "Normalize",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "だしたわざが すべて ノーマルタイプに なる。"
+  },
+  {
+    "pokeapi_id": 97,
+    "name_ja": "スナイパー",
+    "name_en": "Sniper",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "きゅうしょに あてたとき いりょくが あがる。"
+  },
+  {
+    "pokeapi_id": 98,
+    "name_ja": "マジックガード",
+    "name_en": "Magic Guard",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "こうげき いがいでは ダメージを うけない。"
+  },
+  {
+    "pokeapi_id": 99,
+    "name_ja": "ノーガード",
+    "name_en": "No Guard",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "おたがいの わざが かならず あたる。"
+  },
+  {
+    "pokeapi_id": 100,
+    "name_ja": "あとだし",
+    "name_en": "Stall",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "あいてより すばやくても こうどうが おそくなる。"
+  },
+  {
+    "pokeapi_id": 101,
+    "name_ja": "テクニシャン",
+    "name_en": "Technician",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "よわい わざの いりょくが あがる。"
+  },
+  {
+    "pokeapi_id": 102,
+    "name_ja": "リーフガード",
+    "name_en": "Leaf Guard",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "じょうたい いじょうに はれのとき ならない。"
+  },
+  {
+    "pokeapi_id": 103,
+    "name_ja": "ぶきよう",
+    "name_en": "Klutz",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "もっている どうぐを つかうことが できない。"
+  },
+  {
+    "pokeapi_id": 104,
+    "name_ja": "かたやぶり",
+    "name_en": "Mold Breaker",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "とくせいに かんけいなく あいてに わざを だせる。"
+  },
+  {
+    "pokeapi_id": 105,
+    "name_ja": "きょううん",
+    "name_en": "Super Luck",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "あいての きゅうしょに こうげきが あたりやすい。"
+  },
+  {
+    "pokeapi_id": 106,
+    "name_ja": "ゆうばく",
+    "name_en": "Aftermath",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "ひんしの ときに ふれた あいてに ダメージ。"
+  },
+  {
+    "pokeapi_id": 107,
+    "name_ja": "きけんよち",
+    "name_en": "Anticipation",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "あいての もつ きけんな わざを さっちする。"
+  },
+  {
+    "pokeapi_id": 108,
+    "name_ja": "よちむ",
+    "name_en": "Forewarn",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "あいての もつ わざを よみとることが できる。"
+  },
+  {
+    "pokeapi_id": 109,
+    "name_ja": "てんねん",
+    "name_en": "Unaware",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "あいての のうりょくの へんかを むしする。"
+  },
+  {
+    "pokeapi_id": 110,
+    "name_ja": "いろめがね",
+    "name_en": "Tinted Lens",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "こうかいまひとつ のとき わざを つよめる。"
+  },
+  {
+    "pokeapi_id": 111,
+    "name_ja": "フィルター",
+    "name_en": "Filter",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "こうかばつぐん のとき いりょくを よわめる。"
+  },
+  {
+    "pokeapi_id": 112,
+    "name_ja": "スロースタート",
+    "name_en": "Slow Start",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "こうげきと すばやさが しばらく はんぶんになる。"
+  },
+  {
+    "pokeapi_id": 113,
+    "name_ja": "きもったま",
+    "name_en": "Scrappy",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "ゴーストタイプに ノーマルわざが あたる。"
+  },
+  {
+    "pokeapi_id": 114,
+    "name_ja": "よびみず",
+    "name_en": "Storm Drain",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "みずを よびこんで とくこうを あげる。"
+  },
+  {
+    "pokeapi_id": 115,
+    "name_ja": "アイスボディ",
+    "name_en": "Ice Body",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "あられのとき HPを すこしずつ かいふく。"
+  },
+  {
+    "pokeapi_id": 116,
+    "name_ja": "ハードロック",
+    "name_en": "Solid Rock",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "こうかばつぐん のとき いりょくを よわめる。"
+  },
+  {
+    "pokeapi_id": 117,
+    "name_ja": "ゆきふらし",
+    "name_en": "Snow Warning",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "せんとうに でると あられを ふらす。"
+  },
+  {
+    "pokeapi_id": 118,
+    "name_ja": "みつあつめ",
+    "name_en": "Honey Gather",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "あまいミツを あつめて くることが ある。"
+  },
+  {
+    "pokeapi_id": 119,
+    "name_ja": "おみとおし",
+    "name_en": "Frisk",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "あいての もちものを しることが できる。"
+  },
+  {
+    "pokeapi_id": 120,
+    "name_ja": "すてみ",
+    "name_en": "Reckless",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "はんどうで ダメージを うけるわざが つよくなる。"
+  },
+  {
+    "pokeapi_id": 121,
+    "name_ja": "マルチタイプ",
+    "name_en": "Multitype",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "もっている プレートで タイプが かわる。"
+  },
+  {
+    "pokeapi_id": 122,
+    "name_ja": "フラワーギフト",
+    "name_en": "Flower Gift",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "はれのとき じぶんと みかたが つよくなる。"
+  },
+  {
+    "pokeapi_id": 123,
+    "name_ja": "ナイトメア",
+    "name_en": "Bad Dreams",
+    "introduced_generation": 4,
+    "available_generations": 504,
+    "description": "ねむっている あいての ＨＰを へらす。"
+  }
+]

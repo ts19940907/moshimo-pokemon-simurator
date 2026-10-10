@@ -51,13 +51,23 @@ const METRONOME_BAN_GEN3 = [
   271, // Trick
 ];
 
+/** Added to the Metronome exclusions from Gen4 rules on. */
+const METRONOME_BAN_GEN4 = [
+  448, // Chatter
+  383, // Copycat
+  364, // Feint
+  382, // Me First
+  415, // Switcheroo
+];
+
 export function isMetronomeBanned(
   pokeapiId: number,
   rulesGeneration: number,
 ): boolean {
   if (METRONOME_BAN.has(pokeapiId)) return true;
   if (rulesGeneration >= 2 && METRONOME_BAN_GEN2.includes(pokeapiId)) return true;
-  return rulesGeneration >= 3 && METRONOME_BAN_GEN3.includes(pokeapiId);
+  if (rulesGeneration >= 3 && METRONOME_BAN_GEN3.includes(pokeapiId)) return true;
+  return rulesGeneration >= 4 && METRONOME_BAN_GEN4.includes(pokeapiId);
 }
 
 /**

@@ -81,6 +81,18 @@ describe("compareSpeeds", () => {
     expect(paralyzed.selfSpeed).toBe(32);
   });
 
+  it("applies Choice Scarf and Quick Feet under Gen4 rules", () => {
+    const scarf = compareSpeeds(side({ toolPokeapiId: 264 }, 4), side({}, 4));
+    // 65 × 1.5
+    expect(scarf.selfSpeed).toBe(97);
+    const quickFeet = compareSpeeds(
+      { ...side({}, 4), paralyzed: true, abilityId: 95 },
+      side({}, 4),
+    );
+    // Paralysis drop ignored, ×1.5 while statused
+    expect(quickFeet.selfSpeed).toBe(97);
+  });
+
   it("suggests Gen3 IV / EV values within Gen3 caps", () => {
     const self = side({ iv: { ...side({}, 3).build.iv, speed: 20 } }, 3);
     const foe = side({ statExp: { ...side({}, 3).build.statExp, speed: 4 } }, 3);

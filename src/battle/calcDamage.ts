@@ -28,6 +28,13 @@ export type DamageCalcModifiers = {
   rulesGeneration?: number;
   /** Combined ability damage multiplier (Gen3+). */
   abilityDamageMult?: number;
+  /**
+   * Effectiveness already resolved by the engine (Foresight / Scrappy /
+   * Miracle Eye / Gravity can turn an immunity into a hit).
+   */
+  typeEffectivenessOverride?: number;
+  /** Gen4 final multipliers: Life Orb / Expert Belt / Metronome / resist berries / Sniper. */
+  finalDamageMult?: number;
 };
 
 export type DamageCalcSides = {
@@ -130,12 +137,14 @@ export function damageBeforeRandom(
     return { damage: 0, typeEffectiveness: 1 };
   }
 
-  const typeEffectiveness = typeEffectivenessForRules(
-    modifiers.rulesGeneration ?? 1,
-    move.type_id,
-    sides.defenderSpecies.type1,
-    sides.defenderSpecies.type2,
-  );
+  const typeEffectiveness =
+    modifiers.typeEffectivenessOverride ??
+    typeEffectivenessForRules(
+      modifiers.rulesGeneration ?? 1,
+      move.type_id,
+      sides.defenderSpecies.type1,
+      sides.defenderSpecies.type2,
+    );
   if (typeEffectiveness === 0) {
     return { damage: 0, typeEffectiveness: 0 };
   }
@@ -191,6 +200,9 @@ export function damageBeforeRandom(
       heldItemDamageMultiplier(
         move.type_id,
         modifiers.attackerItemPokeapiId ?? null,
+        rulesGeneration,
+        sides.attackerSpecies.dex_no,
+        move.damage_class,
       ),
   );
   damage = Math.floor(
@@ -220,6 +232,9 @@ export function damageBeforeRandom(
     ) {
       damage = Math.max(1, Math.floor(damage / 2));
     }
+  }
+  if (modifiers.finalDamageMult != null && modifiers.finalDamageMult !== 1) {
+    damage = Math.max(1, Math.floor(damage * modifiers.finalDamageMult));
   }
 
   return { damage, typeEffectiveness };

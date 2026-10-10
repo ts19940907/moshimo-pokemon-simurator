@@ -4,9 +4,9 @@
 import type { Move } from "../pokemon/moves";
 import { ABILITY, announceAbility, hasAbility } from "./abilityEffects";
 import {
-  activeToolPokeapiId,
   adjustHeldItemStatsForSwap,
   heldToolNameJa,
+  heldToolPokeapiId,
   tryHpThresholdBerry,
 } from "./toolEffects";
 import type { BattleFighter, TurnLogLine } from "./types";
@@ -15,14 +15,21 @@ export const ITEM_MOVE_POKEAPI = {
   THIEF: 168,
   TRICK: 271,
   KNOCK_OFF: 282,
+  /** Gen4 Switcheroo: same as Trick. */
+  SWITCHEROO: 415,
 } as const;
 
 type HeldItem = { pokeapiId: number; nameJa: string };
 
 function usableItem(fighter: BattleFighter): HeldItem | null {
-  const id = activeToolPokeapiId(fighter);
+  const id = heldToolPokeapiId(fighter);
   if (id == null) return null;
   return { pokeapiId: id, nameJa: heldToolNameJa(fighter.heldTool) };
+}
+
+function noteItemLost(fighter: BattleFighter): void {
+  if (hasAbility(fighter, ABILITY.UNBURDEN)) fighter.volatiles.unburdenActive = true;
+  fighter.volatiles.choiceLockMoveId = null;
 }
 
 function canReceiveItem(fighter: BattleFighter): boolean {
@@ -34,10 +41,12 @@ function setHeldItem(
   item: HeldItem | null,
   rulesGeneration: number,
 ): void {
-  const before = activeToolPokeapiId(fighter);
+  const before = heldToolPokeapiId(fighter);
   fighter.heldTool = item
     ? { pokeapiId: item.pokeapiId, consumed: false, nameJa: item.nameJa }
     : null;
+  if (before != null && !item) noteItemLost(fighter);
+  fighter.volatiles.choiceLockMoveId = null;
   adjustHeldItemStatsForSwap(
     fighter,
     before,
@@ -66,7 +75,12 @@ export function tryExecuteTrick(
   logs: TurnLogLine[],
   rulesGeneration: number,
 ): boolean {
-  if (move.pokeapi_id !== ITEM_MOVE_POKEAPI.TRICK) return false;
+  if (
+    move.pokeapi_id !== ITEM_MOVE_POKEAPI.TRICK &&
+    move.pokeapi_id !== ITEM_MOVE_POKEAPI.SWITCHEROO
+  ) {
+    return false;
+  }
   attacker.volatiles.lastMoveUsed = move;
   const fail = () => logs.push("しかし　うまく　決まらなかった！");
 
@@ -152,6 +166,7 @@ export function applyItemMoveAfterHit(
       nameJa: theirs.nameJa,
       knockedOff: true,
     };
+    noteItemLost(defender);
     logs.push(
       `${attacker.member.nameJa}は　${defender.member.nameJa}の　${theirs.nameJa}を　はたき落とした！`,
     );
