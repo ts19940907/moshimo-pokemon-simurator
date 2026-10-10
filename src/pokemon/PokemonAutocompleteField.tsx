@@ -139,7 +139,7 @@ export function PokemonAutocompleteField({
             >
               {suggestions.map((pokemon) => (
                 <Pressable
-                  key={`${pokemon.dex_no}-${pokemon.region_type}-${pokemon.is_mega}`}
+                  key={pokemon.id}
                   onPressIn={(event) => {
                     preventBlurOnWeb(event);
                     pick(pokemon);

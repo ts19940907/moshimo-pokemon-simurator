@@ -112,7 +112,7 @@ type Props = {
   /** Current party builds keyed by species id. */
   partyBuildsBySpeciesId: Record<string, PartyMemberBuild>;
   /** Dex numbers already in the party. */
-  partyDexNos: number[];
+  partySpeciesIds: string[];
   onClose: () => void;
   /** Add a new member or overwrite an existing party build. */
   onApplyToParty: (build: PartyMemberBuild) => void;
@@ -469,7 +469,7 @@ export function DamageCalcDialog({
   moveGenerationOptions,
   itemGenerationOptions,
   partyBuildsBySpeciesId,
-  partyDexNos,
+  partySpeciesIds,
   onClose,
   onApplyToParty,
   presentation = "modal",
@@ -1048,7 +1048,10 @@ export function DamageCalcDialog({
     const takenToolIds = new Set<string>();
     const takenToolPokeapiIds = new Set<number>();
     for (const member of Object.values(partyBuildsBySpeciesId)) {
-      if (member.dexNo === build.dexNo || !partyDexNos.includes(member.dexNo)) {
+      if (
+        member.dexNo === build.dexNo ||
+        !partySpeciesIds.includes(member.speciesId)
+      ) {
         continue;
       }
       if (member.toolId) takenToolIds.add(member.toolId);
@@ -1224,7 +1227,13 @@ export function DamageCalcDialog({
     toolsById,
   ]);
 
-  const partyFull = partyDexNos.length >= PARTY_SIZE;
+  const partyFull = partySpeciesIds.length >= PARTY_SIZE;
+  /** Another form with this dex number is in the party (adding swaps it). */
+  const sameDexInParty = (species: PokemonSpecies) =>
+    partySpeciesIds.some(
+      (id) =>
+        id !== species.id && partyBuildsBySpeciesId[id]?.dexNo === species.dex_no,
+    );
 
   const attackerPartyAction = useMemo((): PartyApplyAction => {
     const labelAdd = "このポケモンをパーティに入れる";
@@ -1238,7 +1247,7 @@ export function DamageCalcDialog({
       };
     }
     const existing = partyBuildsBySpeciesId[attacker.species.id] ?? null;
-    const inParty = partyDexNos.includes(attacker.species.dex_no);
+    const inParty = partySpeciesIds.includes(attacker.species.id);
     const applyBuild = makeAttackerApplyBuild(
       attacker.build,
       moveId,
@@ -1246,7 +1255,7 @@ export function DamageCalcDialog({
     );
 
     if (!inParty) {
-      if (partyFull) {
+      if (partyFull && !sameDexInParty(attacker.species)) {
         return {
           mode: "disabled",
           label: labelAdd,
@@ -1282,7 +1291,7 @@ export function DamageCalcDialog({
     attacker.build,
     moveId,
     partyBuildsBySpeciesId,
-    partyDexNos,
+    partySpeciesIds,
     partyFull,
   ]);
 
@@ -1298,14 +1307,14 @@ export function DamageCalcDialog({
       };
     }
     const existing = partyBuildsBySpeciesId[defender.species.id] ?? null;
-    const inParty = partyDexNos.includes(defender.species.dex_no);
+    const inParty = partySpeciesIds.includes(defender.species.id);
     const applyBuild = makeDefenderApplyBuild(
       defender.build,
       inParty ? existing : null,
     );
 
     if (!inParty) {
-      if (partyFull) {
+      if (partyFull && !sameDexInParty(defender.species)) {
         return {
           mode: "disabled",
           label: labelAdd,
@@ -1340,7 +1349,7 @@ export function DamageCalcDialog({
     defender.species,
     defender.build,
     partyBuildsBySpeciesId,
-    partyDexNos,
+    partySpeciesIds,
     partyFull,
   ]);
 
@@ -1523,7 +1532,7 @@ export function DamageCalcDialog({
                   <View style={styles.suggestList}>
                     {suggestions.map((pokemon) => (
                       <Pressable
-                        key={`${pokemon.dex_no}-${pokemon.region_type}`}
+                        key={pokemon.id}
                         onPress={() => {
                           setNameQuery(pokemon.name_ja);
                           setSuggestOpen(false);
@@ -1691,10 +1700,10 @@ export function DamageCalcDialog({
 
               <View style={styles.pickList}>
                 {pageItems.map((pokemon) => {
-                  const inParty = partyDexNos.includes(pokemon.dex_no);
+                  const inParty = partySpeciesIds.includes(pokemon.id);
                   return (
                     <Pressable
-                      key={`${pokemon.dex_no}-${pokemon.region_type}-${pokemon.is_mega}`}
+                      key={pokemon.id}
                       onPress={() => handlePickSpecies(pokemon)}
                       style={({ pressed }) => [
                         styles.pickCard,

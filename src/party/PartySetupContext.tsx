@@ -51,10 +51,9 @@ function buildMembersFromSpecies(
   rulesGeneration: number,
 ): PartyMemberBuild[] {
   return speciesList.map((species) => {
-    const existing = previous?.members.find(
-      (member) =>
-        member.speciesId === species.id || member.dexNo === species.dex_no,
-    );
+    const existing =
+      previous?.members.find((member) => member.speciesId === species.id) ??
+      previous?.members.find((member) => member.dexNo === species.dex_no);
     if (existing) {
       return {
         ...existing,

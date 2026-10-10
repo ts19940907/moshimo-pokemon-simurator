@@ -44,7 +44,7 @@ export type SimulatorScreenProps = {
   showSprites?: boolean;
   showPartyActions?: boolean;
   partyBuildsBySpeciesId?: Record<string, PartyMemberBuild>;
-  partyDexNos?: number[];
+  partySpeciesIds?: string[];
   onApplyToParty?: (build: PartyMemberBuild) => void;
   levelCapMode?: LevelCapMode;
   initialRulesGeneration?: Generation;
@@ -262,7 +262,7 @@ export function SimulatorScreen({
   showSprites = false,
   showPartyActions = false,
   partyBuildsBySpeciesId = {},
-  partyDexNos = [],
+  partySpeciesIds = [],
   onApplyToParty,
   levelCapMode: levelCapModeProp,
   initialRulesGeneration,
@@ -533,7 +533,7 @@ export function SimulatorScreen({
                   moveGenerationOptions={moveGenerationOptions}
                   itemGenerationOptions={itemGenerationOptions}
                   partyBuildsBySpeciesId={partyBuildsBySpeciesId}
-                  partyDexNos={partyDexNos}
+                  partySpeciesIds={partySpeciesIds}
                   rulesGeneration={rulesGeneration}
                   onClose={onClose ?? (() => undefined)}
                   onApplyToParty={onApplyToParty ?? (() => undefined)}
@@ -548,7 +548,7 @@ export function SimulatorScreen({
                   levelCapMode={levelCapMode}
                   itemGenerationOptions={itemGenerationOptions}
                   partyBuildsBySpeciesId={partyBuildsBySpeciesId}
-                  partyDexNos={partyDexNos}
+                  partySpeciesIds={partySpeciesIds}
                   rulesGeneration={rulesGeneration}
                   onClose={onClose ?? (() => undefined)}
                   onApplyToParty={onApplyToParty ?? (() => undefined)}
