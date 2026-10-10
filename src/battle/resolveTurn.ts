@@ -181,6 +181,8 @@ function logNoEffect(
 
 type ExecCtx = {
   forceSwitchSide: PartySide | null;
+  /** Moves usable under the match rules (Metronome candidates). */
+  metronomePool?: readonly Move[];
 };
 
 
@@ -1708,7 +1710,10 @@ function executeMove(
     return;
   }
   if (code === "unique-metronome") {
-    const picked = applyMoveTypeForGeneration(pickMetronomeMove(), rulesGeneration);
+    const picked = applyMoveTypeForGeneration(
+      pickMetronomeMove(ctx?.metronomePool, rulesGeneration),
+      rulesGeneration,
+    );
     logs.push(`${picked.name_ja}が　でた！`);
     attacker.volatiles.lastMoveUsed = move;
     executeMove(
@@ -2692,6 +2697,8 @@ export function resolveTurnSteps(input: {
   pursuitSide?: PartySide;
   /** Sides that already acted this turn (e.g. Pursuit). */
   skipSides?: PartySide[];
+  /** Moves usable under the match rules (Metronome candidates). */
+  metronomePool?: readonly Move[];
 }): {
   steps: TurnStep[];
   faintedA: boolean;
@@ -2907,7 +2914,10 @@ export function resolveTurnSteps(input: {
       }
     };
 
-    const ctx: ExecCtx = { forceSwitchSide: null };
+    const ctx: ExecCtx = {
+      forceSwitchSide: null,
+      metronomePool: input.metronomePool,
+    };
     executeMove(
       slot.fighter,
       slot.foe,

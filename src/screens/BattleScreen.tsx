@@ -66,6 +66,7 @@ import type { Move } from "../pokemon/moves";
 import {
   fetchMovesByIds,
   fetchMovesForPokemon,
+  fetchMovesForRules,
 } from "../pokemon/moveRepository";
 import { PokemonSprite } from "../pokemon/PokemonSprite";
 import { fetchPokemonSpecies } from "../pokemon/repository";
@@ -452,6 +453,7 @@ export function BattleScreen() {
   const toolsByIdRef = useRef<Record<string, Tool>>({});
   const [toolsById, setToolsById] = useState<Record<string, Tool>>({});
   const learnsetBySpeciesIdRef = useRef<Record<string, Move[]>>({});
+  const metronomePoolRef = useRef<Move[]>([]);
   const ppRemainingRef = useRef<Record<string, number>>({});
   const [fighterTick, setFighterTick] = useState(0);
   const bumpFighters = () => setFighterTick((n) => n + 1);
@@ -728,6 +730,21 @@ export function BattleScreen() {
       cancelled = true;
     };
   }, [lineup, getSide, isCpu, moveGenerationOptions, rulesGeneration]);
+
+  useEffect(() => {
+    let cancelled = false;
+    metronomePoolRef.current = [];
+    fetchMovesForRules(moveGenerationOptions)
+      .then((moves) => {
+        if (!cancelled) metronomePoolRef.current = moves;
+      })
+      .catch(() => {
+        // Metronome falls back to the seeded Gen1 moves.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [moveGenerationOptions]);
 
   useEffect(() => {
     if (menu !== "fight" || !controllingMember || !battleMoveIds) {
@@ -1272,6 +1289,7 @@ export function BattleScreen() {
         field: fieldRef.current,
         rulesGeneration,
         pursuitSide,
+        metronomePool: metronomePoolRef.current,
       });
       for (const step of pursuit.steps) {
         await playStep(step);
@@ -1323,6 +1341,7 @@ export function BattleScreen() {
       field: fieldRef.current,
       rulesGeneration,
       skipSides: pursuitSide ? [pursuitSide] : undefined,
+      metronomePool: metronomePoolRef.current,
     });
 
     for (const step of result.steps) {

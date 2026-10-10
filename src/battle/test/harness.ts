@@ -178,6 +178,7 @@ export function runTurn(input: {
   actionB?: BattleAction;
   field?: BattleFieldState;
   rulesGeneration?: number;
+  metronomePool?: Move[];
 }) {
   const field = input.field ?? createBattleField();
   return {
@@ -189,6 +190,7 @@ export function runTurn(input: {
       actionB: input.actionB ?? { type: "move", move: idleMove() },
       field,
       rulesGeneration: input.rulesGeneration ?? 2,
+      metronomePool: input.metronomePool,
     }),
   };
 }
