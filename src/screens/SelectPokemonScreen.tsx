@@ -1078,7 +1078,7 @@ export function SelectPokemonScreen() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [page, setPage] = useState(0);
-  const [selectedDexNos, setSelectedDexNos] = useState<number[]>([]);
+  const [selectedSpeciesIds, setSelectedSpeciesIds] = useState<string[]>([]);
   /** Builds keyed by species id (survives re-select of same dex). */
   const [buildsBySpeciesId, setBuildsBySpeciesId] = useState<
     Record<string, PartyMemberBuild>
@@ -1129,7 +1129,9 @@ export function SelectPokemonScreen() {
 
   useEffect(() => {
     const existing = getSide(side);
-    setSelectedDexNos(existing?.members.map((member) => member.dexNo) ?? []);
+    setSelectedSpeciesIds(
+      existing?.members.map((member) => member.speciesId) ?? [],
+    );
     const builds: Record<string, PartyMemberBuild> = {};
     for (const member of existing?.members ?? []) {
       builds[member.speciesId] = member;
@@ -1401,7 +1403,7 @@ export function SelectPokemonScreen() {
     );
   }, [filteredSpecies, sortKey, sortOrder, rulesGeneration]);
 
-  const partyFull = selectedDexNos.length >= PARTY_SIZE;
+  const partyFull = selectedSpeciesIds.length >= PARTY_SIZE;
 
   const suggestions = useMemo(() => {
     if (partyFull) return [] as PokemonSpecies[];
@@ -1465,65 +1467,82 @@ export function SelectPokemonScreen() {
     });
   };
 
-  const togglePokemon = (dexNo: number) => {
-    const pokemon = species.find((row) => row.dex_no === dexNo);
-    if (!pokemon) return;
+  /** Party member sharing this dex number (another form), if any. */
+  const sameDexSelectedId = (speciesId: string, dexNo: number) =>
+    selectedSpeciesIds.find(
+      (id) => id !== speciesId && buildsBySpeciesId[id]?.dexNo === dexNo,
+    ) ?? null;
 
-    const isSelected = selectedDexNos.includes(dexNo);
-    if (isSelected) {
-      const remaining = selectedDexNos.length - 1;
-      setSelectedDexNos((current) => current.filter((id) => id !== dexNo));
+  /**
+   * One member per dex number: picking another form replaces it in the same
+   * slot. `build` replaces the stored build when given.
+   */
+  const putMemberInParty = (
+    speciesId: string,
+    dexNo: number,
+    makeBuild: () => PartyMemberBuild,
+    build?: PartyMemberBuild,
+  ) => {
+    if (selectedSpeciesIds.includes(speciesId)) {
+      if (build) {
+        setBuildsBySpeciesId((current) => ({ ...current, [speciesId]: build }));
+      }
+      return;
+    }
+    const replacedId = sameDexSelectedId(speciesId, dexNo);
+    if (!replacedId && selectedSpeciesIds.length >= PARTY_SIZE) return;
+
+    setSelectedSpeciesIds((current) =>
+      replacedId
+        ? current.map((id) => (id === replacedId ? speciesId : id))
+        : [...current, speciesId],
+    );
+    setBuildsBySpeciesId((current) => {
+      const next = { ...current };
+      if (replacedId) delete next[replacedId];
+      next[speciesId] = build ?? next[speciesId] ?? makeBuild();
+      return next;
+    });
+    if (replacedId && settingSpeciesId === replacedId) {
+      setSettingSpeciesId(null);
+    }
+  };
+
+  const addPokemonToParty = (pokemon: PokemonSpecies) =>
+    putMemberInParty(pokemon.id, pokemon.dex_no, () =>
+      createBuildWithFilters(
+        pokemon,
+        levelCapMode,
+        moveFilters,
+        abilityFilter,
+        rulesGeneration,
+      ),
+    );
+
+  const togglePokemon = (pokemon: PokemonSpecies) => {
+    if (selectedSpeciesIds.includes(pokemon.id)) {
+      const remaining = selectedSpeciesIds.length - 1;
+      setSelectedSpeciesIds((current) =>
+        current.filter((id) => id !== pokemon.id),
+      );
       setBuildsBySpeciesId((current) => {
         const next = { ...current };
         delete next[pokemon.id];
-        for (const [id, member] of Object.entries(next)) {
-          if (member.dexNo === dexNo) delete next[id];
-        }
         return next;
       });
       if (settingSpeciesId === pokemon.id) setSettingSpeciesId(null);
       if (remaining <= 0) setPartyReviewOpen(false);
       return;
     }
-
-    if (selectedDexNos.length >= PARTY_SIZE) return;
-
-    setSelectedDexNos((current) => [...current, dexNo]);
-    setBuildsBySpeciesId((current) => {
-      if (current[pokemon.id]) return current;
-      return {
-        ...current,
-        [pokemon.id]: createBuildWithFilters(
-          pokemon,
-          levelCapMode,
-          moveFilters,
-          abilityFilter,
-          rulesGeneration,
-        ),
-      };
-    });
+    addPokemonToParty(pokemon);
   };
 
   /** List tap: add if new; if already selected, apply move/ability filters (never deselect). */
   const handleListPokemonPress = (pokemon: PokemonSpecies) => {
-    const isSelected = selectedDexNos.includes(pokemon.dex_no);
+    const isSelected = selectedSpeciesIds.includes(pokemon.id);
 
     if (!isSelected) {
-      if (partyFull) return;
-      setSelectedDexNos((current) => [...current, pokemon.dex_no]);
-      setBuildsBySpeciesId((current) => {
-        if (current[pokemon.id]) return current;
-        return {
-          ...current,
-          [pokemon.id]: createBuildWithFilters(
-            pokemon,
-            levelCapMode,
-            moveFilters,
-            abilityFilter,
-            rulesGeneration,
-          ),
-        };
-      });
+      addPokemonToParty(pokemon);
       return;
     }
 
@@ -1583,29 +1602,13 @@ export function SelectPokemonScreen() {
   };
 
   const addPokemonFromSuggest = (pokemon: PokemonSpecies) => {
-    if (partyFull) return;
-    if (!selectedDexNos.includes(pokemon.dex_no)) {
-      setSelectedDexNos((current) => [...current, pokemon.dex_no]);
-      setBuildsBySpeciesId((current) => {
-        if (current[pokemon.id]) return current;
-        return {
-          ...current,
-          [pokemon.id]: createBuildWithFilters(
-            pokemon,
-            levelCapMode,
-            moveFilters,
-            abilityFilter,
-            rulesGeneration,
-          ),
-        };
-      });
-    }
+    addPokemonToParty(pokemon);
     setNameQuery("");
     setSuggestOpen(false);
   };
 
-  const selectedPokemon = selectedDexNos
-    .map((dexNo) => species.find((pokemon) => pokemon.dex_no === dexNo))
+  const selectedPokemon = selectedSpeciesIds
+    .map((id) => species.find((pokemon) => pokemon.id === id))
     .filter((pokemon): pokemon is PokemonSpecies => Boolean(pokemon));
 
   const orderedMembers = selectedPokemon
@@ -1776,9 +1779,9 @@ export function SelectPokemonScreen() {
 
   const continueButtonText = cpuGenerating
     ? "CPU編成を準備中…"
-    : selectedDexNos.length >= MIN_PARTY_SIZE
+    : selectedSpeciesIds.length >= MIN_PARTY_SIZE
       ? continueLabel
-      : `あと${MIN_PARTY_SIZE - selectedDexNos.length}体以上選んでください`;
+      : `あと${MIN_PARTY_SIZE - selectedSpeciesIds.length}体以上選んでください`;
 
   const leaveBack = () => {
     if (isOpponentSide) {
@@ -1811,7 +1814,7 @@ export function SelectPokemonScreen() {
 
   const discardOpponentSelectionAndLeave = () => {
     setSideParty("b", null);
-    setSelectedDexNos([]);
+    setSelectedSpeciesIds([]);
     setBuildsBySpeciesId({});
     setLeaveConfirmOpen(false);
     leaveBack();
@@ -1833,7 +1836,7 @@ export function SelectPokemonScreen() {
 
   const requestLeave = () => {
     if (isOpponentSide) {
-      if (selectedDexNos.length > 0) {
+      if (selectedSpeciesIds.length > 0) {
         setLeaveConfirmOpen(true);
         return;
       }
@@ -1843,7 +1846,7 @@ export function SelectPokemonScreen() {
       return;
     }
 
-    if (selectedDexNos.length > 0) {
+    if (selectedSpeciesIds.length > 0) {
       setLeaveConfirmOpen(true);
       return;
     }
@@ -1873,20 +1876,20 @@ export function SelectPokemonScreen() {
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`手持ちを確認 ${selectedDexNos.length}/${PARTY_SIZE}`}
-            accessibilityState={{ disabled: selectedDexNos.length === 0 }}
-            disabled={selectedDexNos.length === 0}
+            accessibilityLabel={`手持ちを確認 ${selectedSpeciesIds.length}/${PARTY_SIZE}`}
+            accessibilityState={{ disabled: selectedSpeciesIds.length === 0 }}
+            disabled={selectedSpeciesIds.length === 0}
             onPress={() => setPartyReviewOpen(true)}
             style={({ pressed }) => [
               styles.partyReviewButton,
-              selectedDexNos.length === 0 && styles.partyReviewButtonDisabled,
-              pressed && selectedDexNos.length > 0 && styles.pressed,
+              selectedSpeciesIds.length === 0 && styles.partyReviewButtonDisabled,
+              pressed && selectedSpeciesIds.length > 0 && styles.pressed,
             ]}
           >
             <Text
               style={[
                 styles.partyReviewButtonText,
-                selectedDexNos.length === 0 &&
+                selectedSpeciesIds.length === 0 &&
                   styles.partyReviewButtonTextDisabled,
               ]}
             >
@@ -1895,11 +1898,11 @@ export function SelectPokemonScreen() {
             <Text
               style={[
                 styles.partyReviewButtonCount,
-                selectedDexNos.length === 0 &&
+                selectedSpeciesIds.length === 0 &&
                   styles.partyReviewButtonCountDisabled,
               ]}
             >
-              {selectedDexNos.length}/{PARTY_SIZE}
+              {selectedSpeciesIds.length}/{PARTY_SIZE}
             </Text>
           </Pressable>
         </View>
@@ -2003,11 +2006,10 @@ export function SelectPokemonScreen() {
                 {!partyFull && suggestions.length > 0 ? (
                   <View style={styles.suggestList}>
                     {suggestions.map((pokemon) => {
-                      const alreadyIn =
-                        selectedDexNos.includes(pokemon.dex_no);
+                      const alreadyIn = selectedSpeciesIds.includes(pokemon.id);
                       return (
                         <Pressable
-                          key={`${pokemon.dex_no}-${pokemon.region_type}`}
+                          key={pokemon.id}
                           disabled={alreadyIn}
                           onPress={() => addPokemonFromSuggest(pokemon)}
                           style={({ pressed }) => [
@@ -2130,13 +2132,17 @@ export function SelectPokemonScreen() {
                 </View>
               ) : (
                 pageItems.map((pokemon) => {
-                  const selected = selectedDexNos.includes(pokemon.dex_no);
+                  const selected = selectedSpeciesIds.includes(pokemon.id);
                   return (
                     <PokemonCard
-                      key={`${pokemon.dex_no}-${pokemon.region_type}-${pokemon.is_mega}`}
+                      key={pokemon.id}
                       pokemon={pokemon}
                       selected={selected}
-                      disabled={partyFull && !selected}
+                      disabled={
+                        partyFull &&
+                        !selected &&
+                        !sameDexSelectedId(pokemon.id, pokemon.dex_no)
+                      }
                       onPress={() => handleListPokemonPress(pokemon)}
                       rulesGeneration={rulesGeneration}
                     />
@@ -2189,7 +2195,7 @@ export function SelectPokemonScreen() {
           <View style={styles.partyReviewSheet}>
             <View style={styles.partyReviewHeader}>
               <Text style={styles.partyReviewTitle}>
-                手持ち {selectedDexNos.length}/{PARTY_SIZE}
+                手持ち {selectedSpeciesIds.length}/{PARTY_SIZE}
               </Text>
               <Pressable
                 accessibilityRole="button"
@@ -2303,7 +2309,7 @@ export function SelectPokemonScreen() {
                         <Pressable
                           accessibilityRole="button"
                           accessibilityLabel={`${pokemon.name_ja}を解除`}
-                          onPress={() => togglePokemon(pokemon.dex_no)}
+                          onPress={() => togglePokemon(pokemon)}
                           hitSlop={6}
                           style={({ pressed }) => [
                             styles.partyActionButton,
@@ -2317,18 +2323,18 @@ export function SelectPokemonScreen() {
                     </View>
                   );
                 })}
-                {selectedDexNos.length > 0 &&
-                selectedDexNos.length < PARTY_SIZE ? (
+                {selectedSpeciesIds.length > 0 &&
+                selectedSpeciesIds.length < PARTY_SIZE ? (
                   <View style={styles.partyEmptyRow}>
                     {Array.from(
-                      { length: PARTY_SIZE - selectedDexNos.length },
+                      { length: PARTY_SIZE - selectedSpeciesIds.length },
                       (_, index) => (
                         <View
                           key={`empty-${index}`}
                           style={styles.partySlotEmpty}
                         >
                           <Text style={styles.partyEmpty}>
-                            {selectedDexNos.length + index + 1}
+                            {selectedSpeciesIds.length + index + 1}
                           </Text>
                         </View>
                       ),
@@ -2465,18 +2471,10 @@ export function SelectPokemonScreen() {
         initialMoveGenerations={simulatorMoveGenerations}
         initialItemGenerations={simulatorItemGenerations}
         partyBuildsBySpeciesId={buildsBySpeciesId}
-        partyDexNos={selectedDexNos}
+        partySpeciesIds={selectedSpeciesIds}
         onClose={() => setSimulatorOpen(false)}
         onApplyToParty={(build) => {
-          const alreadyInParty = selectedDexNos.includes(build.dexNo);
-          if (!alreadyInParty) {
-            if (selectedDexNos.length >= PARTY_SIZE) return;
-            setSelectedDexNos((current) => [...current, build.dexNo]);
-          }
-          setBuildsBySpeciesId((current) => ({
-            ...current,
-            [build.speciesId]: build,
-          }));
+          putMemberInParty(build.speciesId, build.dexNo, () => build, build);
         }}
       />
 

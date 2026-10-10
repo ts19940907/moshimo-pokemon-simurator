@@ -85,7 +85,7 @@ type Props = {
   /** Gen2+: held-item pool for the self side (adopted into the party). */
   itemGenerationOptions?: GenerationFilterOptions;
   partyBuildsBySpeciesId: Record<string, PartyMemberBuild>;
-  partyDexNos: number[];
+  partySpeciesIds: string[];
   onClose: () => void;
   onApplyToParty: (build: PartyMemberBuild) => void;
   presentation?: "modal" | "embedded";
@@ -309,7 +309,7 @@ export function SpeedCompareDialog({
   levelCapMode,
   itemGenerationOptions,
   partyBuildsBySpeciesId,
-  partyDexNos,
+  partySpeciesIds,
   onClose,
   onApplyToParty,
   presentation = "modal",
@@ -612,7 +612,10 @@ export function SpeedCompareDialog({
     const takenToolIds = new Set<string>();
     const takenToolPokeapiIds = new Set<number>();
     for (const member of Object.values(partyBuildsBySpeciesId)) {
-      if (member.dexNo === build.dexNo || !partyDexNos.includes(member.dexNo)) {
+      if (
+        member.dexNo === build.dexNo ||
+        !partySpeciesIds.includes(member.speciesId)
+      ) {
         continue;
       }
       if (member.toolId) takenToolIds.add(member.toolId);
@@ -628,7 +631,7 @@ export function SpeedCompareDialog({
           takenToolPokeapiIds.has(Number(tool.pokeapi_id))
         ),
     );
-  }, [tools, self.build, partyBuildsBySpeciesId, partyDexNos]);
+  }, [tools, self.build, partyBuildsBySpeciesId, partySpeciesIds]);
 
   const setSelfTool = (toolId: string | null) => {
     const tool = toolId ? toolsById[toolId] ?? null : null;
@@ -687,7 +690,13 @@ export function SpeedCompareDialog({
       : null,
   ].filter((name): name is string => name != null);
 
-  const partyFull = partyDexNos.length >= PARTY_SIZE;
+  const partyFull = partySpeciesIds.length >= PARTY_SIZE;
+  /** Another form with this dex number is in the party (adding swaps it). */
+  const sameDexInParty = (species: PokemonSpecies) =>
+    partySpeciesIds.some(
+      (id) =>
+        id !== species.id && partyBuildsBySpeciesId[id]?.dexNo === species.dex_no,
+    );
 
   const selfPartyAction = useMemo((): PartyApplyAction => {
     const labelAdd = "このポケモンをパーティに入れる";
@@ -701,14 +710,14 @@ export function SpeedCompareDialog({
       };
     }
     const existing = partyBuildsBySpeciesId[self.species.id] ?? null;
-    const inParty = partyDexNos.includes(self.species.dex_no);
+    const inParty = partySpeciesIds.includes(self.species.id);
     const applyBuild = makeSelfApplyBuild(
       self.build,
       inParty ? existing : null,
     );
 
     if (!inParty) {
-      if (partyFull) {
+      if (partyFull && !sameDexInParty(self.species)) {
         return {
           mode: "disabled",
           label: labelAdd,
@@ -738,7 +747,7 @@ export function SpeedCompareDialog({
     self.species,
     self.build,
     partyBuildsBySpeciesId,
-    partyDexNos,
+    partySpeciesIds,
     partyFull,
   ]);
 
@@ -1113,7 +1122,7 @@ export function SpeedCompareDialog({
                   <View style={styles.suggestList}>
                     {suggestions.map((pokemon) => (
                       <Pressable
-                        key={`${pokemon.dex_no}-${pokemon.region_type}`}
+                        key={pokemon.id}
                         onPress={() => {
                           setNameQuery(pokemon.name_ja);
                           setSuggestOpen(false);
@@ -1281,10 +1290,10 @@ export function SpeedCompareDialog({
 
               <View style={styles.pickList}>
                 {pageItems.map((pokemon) => {
-                  const inParty = partyDexNos.includes(pokemon.dex_no);
+                  const inParty = partySpeciesIds.includes(pokemon.id);
                   return (
                     <Pressable
-                      key={`${pokemon.dex_no}-${pokemon.region_type}-${pokemon.is_mega}`}
+                      key={pokemon.id}
                       onPress={() => handlePickSpecies(pokemon)}
                       style={({ pressed }) => [
                         styles.pickCard,
