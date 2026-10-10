@@ -178,6 +178,37 @@ export async function searchMoves(
     .slice(0, limit);
 }
 
+const MOVE_PAGE_SIZE = 1000;
+
+/** Every move usable under the match's move-generation settings (e.g. Metronome pool). */
+export async function fetchMovesForRules(
+  generationOptions: GenerationFilterOptions,
+): Promise<Move[]> {
+  const rows: Move[] = [];
+  for (let from = 0; ; from += MOVE_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("moves")
+      .select(MOVE_SELECT_COLUMNS)
+      .order("id", { ascending: true })
+      .range(from, from + MOVE_PAGE_SIZE - 1);
+
+    if (error) {
+      throw new Error(`技マスタの取得に失敗しました: ${error.message}`);
+    }
+    const page = (data as unknown as Move[]) ?? [];
+    rows.push(...page.map(normalizeMove));
+    if (page.length < MOVE_PAGE_SIZE) break;
+  }
+
+  return filterByGenerationAvailability(
+    rows,
+    generationOptions,
+    (move) => String(move.pokeapi_id),
+  ).filter((move) =>
+    isMoveUsableInRules(move.pokeapi_id, generationOptions.rulesGeneration),
+  );
+}
+
 /** Pokemon row ids that can learn every selected move (AND), including Gen1 evolutions of learners. */
 export async function fetchPokemonIdsForMoves(
   moveIds: string[],
