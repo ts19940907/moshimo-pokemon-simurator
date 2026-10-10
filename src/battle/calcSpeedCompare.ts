@@ -1,5 +1,6 @@
 import { calcBattleStats } from "../party/calcBattleStats";
-import { abilitySpeedMultiplierFor } from "./abilityEffects";
+import { ABILITY, abilitySpeedMultiplierFor } from "./abilityEffects";
+import { heldItemSpeedMultiplier, itemsEnabledInBattle } from "./toolEffects";
 import { calcGen1OtherStat } from "../party/gen1Stats";
 import { ivMaxForRules, maxEvForKey, usesModernIvEv } from "../party/gen3Stats";
 import type { PartyMemberBuild } from "../party/types";
@@ -45,16 +46,29 @@ export function calcEffectiveSpeed(side: SpeedSideInput): number {
     side.build,
     side.rulesGeneration ?? 1,
   );
+  const rulesGeneration = side.rulesGeneration ?? 1;
   let spd = stagedStat(stats.speed, side.speedStage);
-  if (side.paralyzed) {
+  if (side.paralyzed && side.abilityId !== ABILITY.QUICK_FEET) {
     spd = Math.max(1, Math.floor(spd / 4));
   }
   const abilityMult = abilitySpeedMultiplierFor(
     side.abilityId ?? null,
     side.weatherId ?? null,
+    { statused: side.paralyzed },
   );
   if (abilityMult !== 1) {
     spd = Math.max(1, Math.floor(spd * abilityMult));
+  }
+  const itemId = itemsEnabledInBattle(rulesGeneration)
+    ? (side.build.toolPokeapiId ?? null)
+    : null;
+  const itemMult = heldItemSpeedMultiplier(
+    itemId == null ? null : Number(itemId),
+    side.species.dex_no,
+    rulesGeneration,
+  );
+  if (itemMult !== 1) {
+    spd = Math.max(1, Math.floor(spd * itemMult));
   }
   return spd;
 }

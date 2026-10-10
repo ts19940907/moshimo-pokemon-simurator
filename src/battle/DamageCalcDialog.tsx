@@ -71,6 +71,7 @@ import {
 } from "./calcDamage";
 import {
   applyHeldItemStats,
+  heldItemFinalDamageMultiplier,
   resolveHeldToolPokeapiId,
 } from "./toolEffects";
 import {
@@ -929,6 +930,12 @@ export function DamageCalcDialog({
     ) {
       return `状態異常（${name}）`;
     }
+    if (
+      attackerAbility === ABILITY.SLOW_START &&
+      selectedMove.damage_class === "physical"
+    ) {
+      return `${name}中`;
+    }
     return null;
   })();
   const defenderConditionLabel =
@@ -964,12 +971,22 @@ export function DamageCalcDialog({
         defenderStatused: defenderAbilityActive,
         attackerPinch: attackerAbilityActive,
         flashFireActive: attackerAbilityActive,
+        typeEffectiveness,
+        weatherId: effectiveWeatherId,
+        basePower: selectedMove.power,
+        stab:
+          attacker.species != null &&
+          (selectedMove.type_id === attacker.species.type1 ||
+            selectedMove.type_id === attacker.species.type2),
+        attackerSlowStart:
+          attackerAbility === ABILITY.SLOW_START && attackerAbilityActive,
       },
       selectedMove,
     );
-    return { blockedBy, ...mult };
+    return { blockedBy, typeEffectiveness, ...mult };
   }, [
     selectedMove,
+    attacker.species,
     defender.species,
     rulesGeneration,
     attackerAbility,
@@ -977,6 +994,7 @@ export function DamageCalcDialog({
     attackerBurn,
     attackerAbilityActive,
     defenderAbilityActive,
+    effectiveWeatherId,
   ]);
   const isPhysicalMove = selectedMove?.damage_class === "physical";
   const isSpecialMove = selectedMove?.damage_class === "special";
@@ -1208,6 +1226,14 @@ export function DamageCalcDialog({
         attackerItemPokeapiId: atkToolPokeapiId,
         rulesGeneration,
         abilityDamageMult: abilityDamage?.total ?? 1,
+        finalDamageMult:
+          rulesGeneration >= 4
+            ? heldItemFinalDamageMultiplier(
+                atkToolPokeapiId,
+                abilityDamage?.typeEffectiveness ?? 1,
+              ) *
+              (effectiveCrit && attackerAbility === ABILITY.SNIPER ? 1.5 : 1)
+            : 1,
       },
     );
   }, [

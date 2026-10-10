@@ -11,6 +11,7 @@ import {
 import { typeEffectivenessForRules } from "./typeEffectiveness";
 import { hypothesizeThreatMoves, randInt } from "./cpuTeam";
 import { getForcedMove } from "./resolveTurn";
+import { moveSelectionBlockReason } from "./gen4MoveEffects";
 import { getMoveByPokeapiId } from "./gen1MovePool";
 import { effectiveWeatherId } from "./abilityEffects";
 import { moveForUse } from "./moveVariants";
@@ -268,6 +269,7 @@ function availableMoves(
   fighter: BattleFighter,
   movesById: Record<string, Move>,
   ppRemaining: Record<string, number>,
+  field?: BattleFieldState,
 ): Move[] {
   const out: Move[] = [];
   for (const id of fighter.member.moveIds) {
@@ -277,6 +279,9 @@ function availableMoves(
     if (!move) continue;
     const pp = ppRemaining[`${fighter.speciesId}:${id}`];
     if (pp != null && pp <= 0) continue;
+    if (fighter.rulesGeneration >= 4 && moveSelectionBlockReason(fighter, move, field)) {
+      continue;
+    }
     out.push(move);
   }
   return out;
@@ -317,6 +322,7 @@ export function chooseCpuAction(input: {
     input.self,
     input.selfMovesById,
     input.ppRemaining,
+    input.field,
   );
   const threat = foeThreatMoves({
     foe: input.foe,

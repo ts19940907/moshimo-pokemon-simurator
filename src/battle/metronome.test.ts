@@ -48,6 +48,9 @@ describe("ゆびをふるの候補", () => {
     expect(isMetronomeBanned(274, 3)).toBe(true); // ねこのて
     expect(isMetronomeBanned(264, 3)).toBe(true); // きあいパンチ
     expect(isMetronomeBanned(299, 3)).toBe(false); // ブレイズキック
+    expect(isMetronomeBanned(382, 4)).toBe(true); // さきどり
+    expect(isMetronomeBanned(415, 4)).toBe(true); // すりかえ
+    expect(isMetronomeBanned(394, 4)).toBe(false); // フレアドライブ
   });
 
   it("除外技しか無いリストからは選ばない", () => {

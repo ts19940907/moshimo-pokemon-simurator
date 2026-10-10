@@ -74,17 +74,21 @@ export function weatherBallVariant(
   };
 }
 
-/** Gen2: weather lasts until replaced by another weather move. */
+/**
+ * Gen2–3 (this app): weather lasts until replaced. Gen4 weather moves pass
+ * `turnsLeft` (5, or 8 with the matching rock); abilities keep it indefinite.
+ */
 export function setWeather(
   current: BattleWeather | null,
   id: WeatherId,
   logs: string[],
+  turnsLeft: number | null = null,
 ): BattleWeather {
   // Same weather already active: no message / no reset.
   if (current?.id === id) {
     return current;
   }
-  const next: BattleWeather = { id, turnsLeft: null };
+  const next: BattleWeather = { id, turnsLeft };
   if (id === "rain") {
     logs.push("雨が　降り始めた！");
   } else if (id === "sun") {

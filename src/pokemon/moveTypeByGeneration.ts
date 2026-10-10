@@ -45,15 +45,24 @@ const GEN2_MOVE_CHANGES: Record<number, MoveDataChange> = {
 
 const RAPID_SPIN_POKEAPI = 229;
 
-function applyGen2MoveChanges(move: Move): Move {
+/** Gen1–3 bits. Rows without them were split off for Gen4+ and carry Gen4 values. */
+const PRE_GEN4_GENERATION_BITS = 0b111;
+
+function applyGen2MoveChanges(move: Move, rulesGeneration: number): Move {
   // Only Gen1-debut rows carry the old values.
   if (move.introduced_generation !== 1) return move;
   const change = GEN2_MOVE_CHANGES[move.pokeapi_id];
   if (!change) return move;
-  const { stat_chance, flinch_chance, ...fields } = change;
+  const { stat_chance, flinch_chance, damage_class, power, accuracy, ...fields } =
+    change;
+  const gen4Row = (move.available_generations & PRE_GEN4_GENERATION_BITS) === 0;
   return {
     ...move,
     ...fields,
+    // Gen4+: physical / special is per move (Bite stays physical).
+    ...(damage_class != null && rulesGeneration < 4 ? { damage_class } : {}),
+    ...(power != null && !gen4Row ? { power } : {}),
+    ...(accuracy != null && !gen4Row ? { accuracy } : {}),
     effect_meta: move.effect_meta
       ? {
           ...move.effect_meta,
@@ -112,7 +121,8 @@ export function applyMoveTypeForGeneration(
   move: Move,
   rulesGeneration: number,
 ): Move {
-  let adjusted = rulesGeneration >= 2 ? applyGen2MoveChanges(move) : move;
+  let adjusted =
+    rulesGeneration >= 2 ? applyGen2MoveChanges(move, rulesGeneration) : move;
   if (rulesGeneration <= 2) adjusted = applyPreGen3TerrainMoves(adjusted);
   if (rulesGeneration < 8) adjusted = applyPreGen8RapidSpin(adjusted);
   const typeId = moveTypeIdForGeneration(adjusted.type_id, rulesGeneration);

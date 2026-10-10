@@ -24,15 +24,17 @@ import {
   getForcedMove,
   pursuitSideAgainstSwitch,
   resolveTurnSteps,
-  applySpikesOnSwitchIn,
+  applyEntryHazards,
   applyNaturalCureOnSwitchOut,
   applySwitchInAbilities,
   canSwitchAway,
   markTruantSwitchIn,
+  moveSelectionBlockReason,
   switchBlockedLogs,
 } from "../battle/resolveTurn";
 import {
   createBattleField,
+  createSideField,
   type BattleAction,
   type BattleFieldState,
   type BattleFighter,
@@ -168,6 +170,7 @@ function statusBadges(
   }
   if (fighter.volatiles.semiInvulnerable === "fly") badges.push("そらをとぶ");
   if (fighter.volatiles.semiInvulnerable === "dig") badges.push("あなをほる");
+  if (fighter.volatiles.semiInvulnerable === "shadow") badges.push("シャドーダイブ");
   if (fighter.volatiles.lockedMove) badges.push("暴走");
   if (fighter.volatiles.bideTurnsLeft > 0) badges.push("がまん");
   if (fighter.volatiles.rageActive) badges.push("いかり");
@@ -332,17 +335,41 @@ function formatStage(value: number): string {
   return String(value);
 }
 
+/** Turn state kept while the U-turn user picks its replacement. */
+type TurnContinuation = {
+  nextA: BattleAction;
+  nextB: BattleAction;
+  skipSides: PartySide[];
+  liveActive: { a: number; b: number };
+};
+
 function sideFieldSummary(field: BattleFieldState, side: PartySide): string[] {
   const f = field[side];
   const lines: string[] = [];
-  if (f.mist) lines.push("しろいきり：継続（交代まで）");
-  if (f.reflect) lines.push("リフレクター：継続（交代まで）");
-  if (f.lightScreen) lines.push("ひかりのかべ：継続（交代まで）");
-  if (f.spikes) lines.push("まきびし：継続");
+  const timed = (label: string, active: boolean, turns: number) => {
+    if (!active) return;
+    lines.push(turns > 0 ? `${label}：残り${turns}` : `${label}：継続（交代まで）`);
+  };
+  timed("しろいきり", f.mist, f.mistTurns);
+  timed("リフレクター", f.reflect, f.reflectTurns);
+  timed("ひかりのかべ", f.lightScreen, f.lightScreenTurns);
+  if (f.spikesLayers > 0) lines.push(`まきびし：${f.spikesLayers}段`);
+  else if (f.spikes) lines.push("まきびし：継続");
+  if (f.toxicSpikes > 0) lines.push(`どくびし：${f.toxicSpikes}段`);
+  if (f.stealthRock) lines.push("ステルスロック：継続");
   if (f.safeguardTurns > 0) {
     lines.push(`しんぴのまもり：残り${f.safeguardTurns}`);
   }
+  if (f.tailwindTurns > 0) lines.push(`おいかぜ：残り${f.tailwindTurns}`);
+  if (f.luckyChantTurns > 0) lines.push(`おまじない：残り${f.luckyChantTurns}`);
   if (lines.length === 0) lines.push("場効果：なし");
+  return lines;
+}
+
+function globalFieldSummary(field: BattleFieldState): string[] {
+  const lines: string[] = [];
+  if (field.trickRoomTurns > 0) lines.push(`トリックルーム：残り${field.trickRoomTurns}`);
+  if (field.gravityTurns > 0) lines.push(`じゅうりょく：残り${field.gravityTurns}`);
   return lines;
 }
 
@@ -455,6 +482,7 @@ export function BattleScreen() {
   const learnsetBySpeciesIdRef = useRef<Record<string, Move[]>>({});
   const metronomePoolRef = useRef<Move[]>([]);
   const ppRemainingRef = useRef<Record<string, number>>({});
+  const selfSwitchContinuationRef = useRef<TurnContinuation | null>(null);
   const [fighterTick, setFighterTick] = useState(0);
   const bumpFighters = () => setFighterTick((n) => n + 1);
   /** Display HP during step playback (multi-hit snapshots). */
@@ -1120,16 +1148,17 @@ export function BattleScreen() {
       stored != null ? Math.max(0, Math.min(stats.hp, stored)) : stats.hp;
     const storedStatus = statusBySpeciesIdRef.current[speciesId] ?? null;
     const storedSleep = sleepTurnsBySpeciesIdRef.current[speciesId] ?? 0;
-    // Gen1: mist / reflect / light screen end on switch-out.
-    // Gen2 spikes / safeguard remain on the side.
+    // Gen1–3 (this app): mist / reflect / light screen end on switch-out.
+    // Gen4: they are timed and stay; spikes / safeguard always remain on the side.
     const prevField = fieldRef.current[side];
-    fieldRef.current[side] = {
-      mist: false,
-      reflect: false,
-      lightScreen: false,
-      spikes: prevField.spikes,
-      safeguardTurns: prevField.safeguardTurns,
-    };
+    fieldRef.current[side] =
+      rulesGeneration >= 4
+        ? prevField
+        : {
+            ...createSideField(),
+            spikes: prevField.spikes,
+            safeguardTurns: prevField.safeguardTurns,
+          };
     // End binding if either side switches
     const prev = fightersRef.current[side];
     const other = fightersRef.current[side === "a" ? "b" : "a"];
@@ -1192,7 +1221,7 @@ export function BattleScreen() {
         switched.volatiles.cursed = baton.cursed;
         switched.volatiles.perishCount = baton.perishCount;
       }
-      applySpikesOnSwitchIn(switched, fieldRef.current, entryLogs);
+      applyEntryHazards(switched, fieldRef.current, entryLogs, rulesGeneration);
       applySwitchInAbilities(
         switched,
         other,
@@ -1211,6 +1240,45 @@ export function BattleScreen() {
     markSeenOnField(speciesId);
     bumpFighters();
     return entryLogs;
+  };
+
+  const playStep = async (step: TurnStep) => {
+    const stepLogs = [...step.logs];
+    if (step.ppSpent) {
+      const leppa = spendPp(
+        step.ppSpent.speciesId,
+        step.ppSpent.moveId,
+        step.ppSpent.amount ?? 1,
+      );
+      if (leppa.log) stepLogs.push(leppa.log);
+    }
+    // Apply this beat's HP with its logs so bars drop in attack order.
+    // Status badges update AFTER the matching log (see below).
+    // (Berries: ailment beat then cure beat — badge follows each log.)
+    if (step.hpSnapshot) {
+      setFieldHp({ a: step.hpSnapshot.a, b: step.hpSnapshot.b });
+      persistSnapshotHp(step.hpSnapshot);
+    }
+    // Persist consumed berries so switch-in does not restore the item.
+    for (const side of ["a", "b"] as const) {
+      persistHeldTool(fightersRef.current[side]);
+    }
+    await sleep(0);
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => resolve());
+      });
+    });
+    if (stepLogs.length > 0) {
+      await playLog(stepLogs);
+    } else {
+      await sleep(420);
+    }
+    // Reveal status / confusion only after the effect lines have played.
+    if (step.statusSnapshot) {
+      setStatusDisplay(step.statusSnapshot);
+    }
+    bumpFighters();
   };
 
   const runResolve = async (nextA: BattleAction, nextB: BattleAction) => {
@@ -1238,45 +1306,6 @@ export function BattleScreen() {
       confusionB: fightersRef.current.b?.volatiles.confusionTurns ?? 0,
     });
     bumpFighters();
-
-    const playStep = async (step: TurnStep) => {
-      const stepLogs = [...step.logs];
-      if (step.ppSpent) {
-        const leppa = spendPp(
-          step.ppSpent.speciesId,
-          step.ppSpent.moveId,
-          step.ppSpent.amount ?? 1,
-        );
-        if (leppa.log) stepLogs.push(leppa.log);
-      }
-      // Apply this beat's HP with its logs so bars drop in attack order.
-      // Status badges update AFTER the matching log (see below).
-      // (Berries: ailment beat then cure beat — badge follows each log.)
-      if (step.hpSnapshot) {
-        setFieldHp({ a: step.hpSnapshot.a, b: step.hpSnapshot.b });
-        persistSnapshotHp(step.hpSnapshot);
-      }
-      // Persist consumed berries so switch-in does not restore the item.
-      for (const side of ["a", "b"] as const) {
-        persistHeldTool(fightersRef.current[side]);
-      }
-      await sleep(0);
-      await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => resolve());
-        });
-      });
-      if (stepLogs.length > 0) {
-        await playLog(stepLogs);
-      } else {
-        await sleep(420);
-      }
-      // Reveal status / confusion only after the effect lines have played.
-      if (step.statusSnapshot) {
-        setStatusDisplay(step.statusSnapshot);
-      }
-      bumpFighters();
-    };
 
     // Pursuit hits the Pokémon that is switching out, before it leaves.
     const pursuitSide = pursuitSideAgainstSwitch(nextA, nextB, rulesGeneration);
@@ -1333,14 +1362,37 @@ export function BattleScreen() {
       bumpFighters();
     }
 
+    await playTurnSteps(nextA, nextB, {
+      liveActive: { a: liveActiveA, b: liveActiveB },
+      skipSides: pursuitSide ? [pursuitSide] : undefined,
+      continuation: false,
+    });
+  };
+
+  /** Resolve (or resume after a U-turn switch) the move phase and play it. */
+  const playTurnSteps = async (
+    nextA: BattleAction,
+    nextB: BattleAction,
+    opts: {
+      liveActive: { a: number; b: number };
+      skipSides?: PartySide[];
+      continuation: boolean;
+    },
+  ) => {
+    if (!lineup || !fightersRef.current.a || !fightersRef.current.b) return;
+    let liveActiveA = opts.liveActive.a;
+    let liveActiveB = opts.liveActive.b;
     const result = resolveTurnSteps({
-      fighterA: fightersRef.current.a!,
-      fighterB: fightersRef.current.b!,
+      fighterA: fightersRef.current.a,
+      fighterB: fightersRef.current.b,
       actionA: nextA,
       actionB: nextB,
       field: fieldRef.current,
       rulesGeneration,
-      skipSides: pursuitSide ? [pursuitSide] : undefined,
+      skipSides: opts.skipSides,
+      continuation: opts.continuation,
+      ppRemaining: (speciesId, moveId) =>
+        ppRemainingRef.current[ppKey(speciesId, moveId)] ?? null,
       metronomePool: metronomePoolRef.current,
     });
 
@@ -1386,6 +1438,40 @@ export function BattleScreen() {
     setStatusDisplay(null);
     setHideDeferredBadges(false);
     bumpFighters();
+
+    // U-turn: the user switches now, then the rest of the turn resumes.
+    if (result.pendingSelfSwitch) {
+      const side = result.pendingSelfSwitch;
+      const ids = side === "a" ? lineup.a : lineup.b;
+      const active = side === "a" ? liveActiveA : liveActiveB;
+      const hasBench = ids.some(
+        (id, index) => index !== active && (hpBySpeciesIdRef.current[id] ?? 0) > 0,
+      );
+      const continuation: TurnContinuation = {
+        nextA,
+        nextB,
+        skipSides: result.actedSides,
+        liveActive: { a: liveActiveA, b: liveActiveB },
+      };
+      if (!hasBench) {
+        await playTurnSteps(nextA, nextB, {
+          liveActive: continuation.liveActive,
+          skipSides: continuation.skipSides,
+          continuation: true,
+        });
+        return;
+      }
+      selfSwitchContinuationRef.current = continuation;
+      await playLog([
+        isCpu && side === "b"
+          ? "CPUが　交代する　ポケモンを　選んでいます…"
+          : `${side === "a" ? "サイドA" : "サイドB"}は　交代する　ポケモンを　選んでください。`,
+      ]);
+      setMustSwitchSide(side);
+      setPickPhase(side);
+      setMenu(isCpu && side === "b" ? "root" : "party");
+      return;
+    }
 
     if (result.ran) {
       goMenu();
@@ -1462,6 +1548,14 @@ export function BattleScreen() {
         setLog(["そのポケモンは　ひんしだ！"]);
         return;
       }
+      const turnContinuation = selfSwitchContinuationRef.current;
+      if (
+        turnContinuation &&
+        action.index === turnContinuation.liveActive[switchingSide]
+      ) {
+        setLog(["すでに　場に　出ている！"]);
+        return;
+      }
       const pending = pendingMustSwitchSideRef.current;
       pendingMustSwitchSideRef.current = null;
       // Clear before async work so CPU auto-switch effect cannot re-enter.
@@ -1477,6 +1571,18 @@ export function BattleScreen() {
         b: fightersRef.current.b?.currentHp ?? 0,
       });
       const member = resolveMember(switchingSide, speciesId);
+      if (turnContinuation) {
+        selfSwitchContinuationRef.current = null;
+        const liveActive = { ...turnContinuation.liveActive, [switchingSide]: action.index };
+        void playLog([`ゆけ！　${member?.nameJa ?? "ポケモン"}！`, ...entryLogs]).then(() =>
+          playTurnSteps(turnContinuation.nextA, turnContinuation.nextB, {
+            liveActive,
+            skipSides: turnContinuation.skipSides,
+            continuation: true,
+          }),
+        );
+        return;
+      }
       if (pending) {
         void playLog([
           `ゆけ！　${member?.nameJa ?? "ポケモン"}！`,
@@ -1666,6 +1772,14 @@ export function BattleScreen() {
         setLog([`${move.name_ja}の　PPが　ない！`]);
         return;
       }
+      const blocked =
+        fighter && rulesGeneration >= 4
+          ? moveSelectionBlockReason(fighter, move, fieldRef.current)
+          : null;
+      if (blocked) {
+        setLog([blocked]);
+        return;
+      }
     }
     // PP is spent only when the move actually executes (after sleep/confusion checks)
     lockAction({ type: "move", move });
@@ -1676,6 +1790,13 @@ export function BattleScreen() {
     if (!move || !controllingMember) return false;
     const fighter = fightersRef.current[controllingSide];
     if (fighter?.volatiles.disableMoveId === move.id) return false;
+    if (
+      fighter &&
+      rulesGeneration >= 4 &&
+      moveSelectionBlockReason(fighter, move, fieldRef.current)
+    ) {
+      return false;
+    }
     const key = ppKey(controllingMember.speciesId, move.id);
     const remaining = ppRemaining[key] ?? move.pp ?? 0;
     return remaining > 0;
@@ -2619,6 +2740,11 @@ export function BattleScreen() {
                 </View>
               );
             })}
+            {globalFieldSummary(fieldRef.current).map((line) => (
+              <Text key={line} style={styles.detailStat}>
+                {line}
+              </Text>
+            ))}
             {fieldRef.current.weather ? (
               <Text style={styles.detailStat}>
                 天気：

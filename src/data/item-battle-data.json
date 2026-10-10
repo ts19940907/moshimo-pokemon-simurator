@@ -1,0 +1,514 @@
+{
+  "43": {
+    "fling": 30
+  },
+  "112": {
+    "fling": 60
+  },
+  "113": {
+    "fling": 60
+  },
+  "126": {
+    "fling": 10,
+    "naturalGiftType": 2,
+    "naturalGiftPower": 60
+  },
+  "127": {
+    "fling": 10,
+    "naturalGiftType": 3,
+    "naturalGiftPower": 60
+  },
+  "128": {
+    "fling": 10,
+    "naturalGiftType": 4,
+    "naturalGiftPower": 60
+  },
+  "129": {
+    "fling": 10,
+    "naturalGiftType": 5,
+    "naturalGiftPower": 60
+  },
+  "130": {
+    "fling": 10,
+    "naturalGiftType": 6,
+    "naturalGiftPower": 60
+  },
+  "131": {
+    "fling": 10,
+    "naturalGiftType": 7,
+    "naturalGiftPower": 60
+  },
+  "132": {
+    "fling": 10,
+    "naturalGiftType": 8,
+    "naturalGiftPower": 60
+  },
+  "133": {
+    "fling": 10,
+    "naturalGiftType": 9,
+    "naturalGiftPower": 60
+  },
+  "134": {
+    "fling": 10,
+    "naturalGiftType": 10,
+    "naturalGiftPower": 60
+  },
+  "135": {
+    "fling": 10,
+    "naturalGiftType": 11,
+    "naturalGiftPower": 60
+  },
+  "136": {
+    "fling": 10,
+    "naturalGiftType": 12,
+    "naturalGiftPower": 60
+  },
+  "137": {
+    "fling": 10,
+    "naturalGiftType": 13,
+    "naturalGiftPower": 60
+  },
+  "138": {
+    "fling": 10,
+    "naturalGiftType": 14,
+    "naturalGiftPower": 60
+  },
+  "139": {
+    "fling": 10,
+    "naturalGiftType": 15,
+    "naturalGiftPower": 60
+  },
+  "140": {
+    "fling": 10,
+    "naturalGiftType": 16,
+    "naturalGiftPower": 60
+  },
+  "161": {
+    "fling": 10,
+    "naturalGiftType": 2,
+    "naturalGiftPower": 60
+  },
+  "162": {
+    "fling": 10,
+    "naturalGiftType": 3,
+    "naturalGiftPower": 60
+  },
+  "163": {
+    "fling": 10,
+    "naturalGiftType": 4,
+    "naturalGiftPower": 60
+  },
+  "164": {
+    "fling": 10,
+    "naturalGiftType": 5,
+    "naturalGiftPower": 60
+  },
+  "165": {
+    "fling": 10,
+    "naturalGiftType": 6,
+    "naturalGiftPower": 60
+  },
+  "166": {
+    "fling": 10,
+    "naturalGiftType": 7,
+    "naturalGiftPower": 60
+  },
+  "167": {
+    "fling": 10,
+    "naturalGiftType": 8,
+    "naturalGiftPower": 60
+  },
+  "168": {
+    "fling": 10,
+    "naturalGiftType": 9,
+    "naturalGiftPower": 60
+  },
+  "169": {
+    "fling": 10,
+    "naturalGiftType": 10,
+    "naturalGiftPower": 60
+  },
+  "170": {
+    "fling": 10,
+    "naturalGiftType": 11,
+    "naturalGiftPower": 60
+  },
+  "171": {
+    "fling": 10,
+    "naturalGiftType": 12,
+    "naturalGiftPower": 60
+  },
+  "172": {
+    "fling": 10,
+    "naturalGiftType": 13,
+    "naturalGiftPower": 60
+  },
+  "173": {
+    "fling": 10,
+    "naturalGiftType": 14,
+    "naturalGiftPower": 60
+  },
+  "174": {
+    "fling": 10,
+    "naturalGiftType": 15,
+    "naturalGiftPower": 60
+  },
+  "175": {
+    "fling": 10,
+    "naturalGiftType": 16,
+    "naturalGiftPower": 60
+  },
+  "176": {
+    "fling": 10,
+    "naturalGiftType": 17,
+    "naturalGiftPower": 60
+  },
+  "177": {
+    "fling": 10,
+    "naturalGiftType": 1,
+    "naturalGiftPower": 60
+  },
+  "178": {
+    "fling": 10,
+    "naturalGiftType": 5,
+    "naturalGiftPower": 80
+  },
+  "179": {
+    "fling": 10,
+    "naturalGiftType": 6,
+    "naturalGiftPower": 80
+  },
+  "180": {
+    "fling": 10,
+    "naturalGiftType": 7,
+    "naturalGiftPower": 80
+  },
+  "181": {
+    "fling": 10,
+    "naturalGiftType": 8,
+    "naturalGiftPower": 80
+  },
+  "182": {
+    "fling": 10,
+    "naturalGiftType": 9,
+    "naturalGiftPower": 80
+  },
+  "183": {
+    "fling": 10,
+    "naturalGiftType": 10,
+    "naturalGiftPower": 80
+  },
+  "184": {
+    "fling": 10,
+    "naturalGiftType": 11,
+    "naturalGiftPower": 80
+  },
+  "186": {
+    "fling": 10,
+    "naturalGiftType": 13,
+    "naturalGiftPower": 80
+  },
+  "187": {
+    "fling": 10,
+    "naturalGiftType": 14,
+    "naturalGiftPower": 80
+  },
+  "188": {
+    "fling": 10,
+    "naturalGiftType": 15,
+    "naturalGiftPower": 80
+  },
+  "189": {
+    "fling": 10,
+    "naturalGiftType": 16,
+    "naturalGiftPower": 80
+  },
+  "190": {
+    "fling": 10
+  },
+  "191": {
+    "fling": 10
+  },
+  "192": {
+    "fling": 60
+  },
+  "194": {
+    "fling": 80
+  },
+  "196": {
+    "fling": 10
+  },
+  "197": {
+    "fling": 10
+  },
+  "198": {
+    "fling": 30
+  },
+  "199": {
+    "fling": 10
+  },
+  "202": {
+    "fling": 30
+  },
+  "203": {
+    "fling": 90
+  },
+  "204": {
+    "fling": 30
+  },
+  "205": {
+    "fling": 30
+  },
+  "207": {
+    "fling": 10
+  },
+  "209": {
+    "fling": 30
+  },
+  "210": {
+    "fling": 30
+  },
+  "211": {
+    "fling": 10
+  },
+  "213": {
+    "fling": 30
+  },
+  "214": {
+    "fling": 10
+  },
+  "215": {
+    "fling": 100
+  },
+  "216": {
+    "fling": 30
+  },
+  "217": {
+    "fling": 30
+  },
+  "218": {
+    "fling": 30
+  },
+  "219": {
+    "fling": 30
+  },
+  "220": {
+    "fling": 30
+  },
+  "221": {
+    "fling": 50
+  },
+  "222": {
+    "fling": 70
+  },
+  "223": {
+    "fling": 30
+  },
+  "224": {
+    "fling": 30
+  },
+  "225": {
+    "fling": 30
+  },
+  "226": {
+    "fling": 30
+  },
+  "227": {
+    "fling": 70
+  },
+  "228": {
+    "fling": 10
+  },
+  "230": {
+    "fling": 30
+  },
+  "231": {
+    "fling": 10
+  },
+  "232": {
+    "fling": 10
+  },
+  "233": {
+    "fling": 40
+  },
+  "234": {
+    "fling": 10
+  },
+  "235": {
+    "fling": 90
+  },
+  "236": {
+    "fling": 60
+  },
+  "242": {
+    "fling": 10
+  },
+  "243": {
+    "fling": 10
+  },
+  "244": {
+    "fling": 10
+  },
+  "245": {
+    "fling": 10
+  },
+  "246": {
+    "fling": 30
+  },
+  "247": {
+    "fling": 30
+  },
+  "248": {
+    "fling": 10
+  },
+  "249": {
+    "fling": 30
+  },
+  "250": {
+    "fling": 30
+  },
+  "251": {
+    "fling": 10
+  },
+  "252": {
+    "fling": 10
+  },
+  "253": {
+    "fling": 10
+  },
+  "254": {
+    "fling": 30
+  },
+  "255": {
+    "fling": 130
+  },
+  "256": {
+    "fling": 10
+  },
+  "257": {
+    "fling": 10
+  },
+  "258": {
+    "fling": 30
+  },
+  "259": {
+    "fling": 40
+  },
+  "260": {
+    "fling": 10
+  },
+  "261": {
+    "fling": 60
+  },
+  "262": {
+    "fling": 60
+  },
+  "263": {
+    "fling": 90
+  },
+  "264": {
+    "fling": 10
+  },
+  "265": {
+    "fling": 80
+  },
+  "266": {
+    "fling": 70
+  },
+  "267": {
+    "fling": 70
+  },
+  "268": {
+    "fling": 70
+  },
+  "269": {
+    "fling": 70
+  },
+  "270": {
+    "fling": 70
+  },
+  "271": {
+    "fling": 70
+  },
+  "272": {
+    "fling": 10
+  },
+  "273": {
+    "fling": 10
+  },
+  "274": {
+    "fling": 10
+  },
+  "275": {
+    "fling": 90
+  },
+  "276": {
+    "fling": 90
+  },
+  "277": {
+    "fling": 90
+  },
+  "278": {
+    "fling": 90
+  },
+  "279": {
+    "fling": 90
+  },
+  "280": {
+    "fling": 90
+  },
+  "281": {
+    "fling": 90
+  },
+  "282": {
+    "fling": 90
+  },
+  "283": {
+    "fling": 90
+  },
+  "284": {
+    "fling": 90
+  },
+  "285": {
+    "fling": 90
+  },
+  "286": {
+    "fling": 90
+  },
+  "287": {
+    "fling": 90
+  },
+  "288": {
+    "fling": 90
+  },
+  "289": {
+    "fling": 90
+  },
+  "290": {
+    "fling": 90
+  },
+  "291": {
+    "fling": 10
+  },
+  "292": {
+    "fling": 10
+  },
+  "293": {
+    "fling": 10
+  },
+  "294": {
+    "fling": 10
+  },
+  "295": {
+    "fling": 10
+  },
+  "303": {
+    "fling": 80
+  },
+  "304": {
+    "fling": 30
+  },
+  "442": {
+    "fling": 60
+  }
+}
