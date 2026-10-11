@@ -5,6 +5,7 @@ import gen4Moves from "../data/gen4-moves.json";
 import { filterByGenerationAvailability } from "../match-setup/generationFilter";
 import { EMPTY_EFFECT_META, type Move } from "../pokemon/moves";
 import { applyMoveTypeForGeneration } from "../pokemon/moveTypeByGeneration";
+import { isToolUsableInRules } from "../pokemon/rulesExclusions";
 import { ABILITY } from "./abilityEffects";
 import { getMoveByPokeapiId } from "./gen1MovePool";
 import { gen4VariablePower, moveSelectionBlockReason } from "./gen4MoveEffects";
@@ -185,6 +186,15 @@ describe("3世代以前のルールでの4世代技", () => {
     });
     expect(field.a.reflect).toBe(true);
     expect(field.a.reflectTurns).toBe(0);
+  });
+});
+
+describe("天候いわ", () => {
+  it("3世代以前のルールでは選べず、4世代ルールで選べる", () => {
+    for (const rock of [259, 260, 261, 262]) {
+      for (const gen of [1, 2, 3]) expect(isToolUsableInRules(rock, gen)).toBe(false);
+      expect(isToolUsableInRules(rock, 4)).toBe(true);
+    }
   });
 });
 

@@ -41,9 +41,21 @@ export function isMoveUsableInRules(
   return rulesGeneration >= 3 || !GEN3_MECHANIC_MOVE_POKEAPI.has(pokeapiId);
 }
 
+/**
+ * Weather rocks only lengthen timed (Gen4+) weather; older weather lasts until
+ * replaced, so they do nothing. Hidden from selection under Gen1–3 rules.
+ */
+const GEN4_MECHANIC_TOOL_POKEAPI = new Set([
+  259, // Icy Rock
+  260, // Smooth Rock
+  261, // Heat Rock
+  262, // Damp Rock
+]);
+
 export function isToolUsableInRules(
   pokeapiId: number,
   rulesGeneration: number,
 ): boolean {
+  if (rulesGeneration <= 3 && GEN4_MECHANIC_TOOL_POKEAPI.has(pokeapiId)) return false;
   return rulesGeneration >= 3 || !GEN3_MECHANIC_TOOL_POKEAPI.has(pokeapiId);
 }
