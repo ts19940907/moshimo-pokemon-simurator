@@ -7,6 +7,8 @@
  * - Physical/special split: Gen1–3 rows use type-based classes. Rows that also
  *   cover Gen4+ and whose Gen4 class / power / accuracy / PP differ are split
  *   into a Gen1–3 row and a Gen4+ copy with the Gen4 values.
+ * - Gen1–3 rules: gen4_moves_pre_gen4_type_class.sql (hand-written, bundled
+ *   into gen4_moves_all.sql) adds type-based physical / special rows.
  * - Learnsets: diamond-pearl / platinum / heartgold-soulsilver for dex 1–493
  *   and alternate forms (Deoxys forms also get RSE/FRLG, as they are new rows).
  *
@@ -377,6 +379,7 @@ async function main() {
   const chunkCount = writeLearnsetChunks(seedDir, pairs);
 
   const allParts = [movesSql, split];
+  allParts.push(fs.readFileSync(path.join(seedDir, "gen4_moves_pre_gen4_type_class.sql"), "utf8"));
   allParts.push(fs.readFileSync(path.join(seedDir, "gen4_pokemon_moves_00_setup.sql"), "utf8"));
   for (let c = 1; c <= chunkCount; c += 1) {
     const n = String(c).padStart(2, "0");

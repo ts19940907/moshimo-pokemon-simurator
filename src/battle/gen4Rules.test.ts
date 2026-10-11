@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import gen4MoveValues from "../data/gen4-move-values.json";
 import gen4Moves from "../data/gen4-moves.json";
+import { filterByGenerationAvailability } from "../match-setup/generationFilter";
 import { EMPTY_EFFECT_META, type Move } from "../pokemon/moves";
 import { applyMoveTypeForGeneration } from "../pokemon/moveTypeByGeneration";
 import { ABILITY } from "./abilityEffects";
@@ -69,6 +70,121 @@ describe("物理・特殊の分離（4世代）", () => {
     const adjusted = applyMoveTypeForGeneration(gen4Row, 4);
     expect(adjusted.damage_class).toBe("physical");
     expect(adjusted.type_id).toBe(16);
+  });
+
+  it("4世代の技は3世代以前のルールでタイプ別の分類の行が選ばれる", () => {
+    const suckerPunch = gen4Move(389);
+    const rows: Move[] = [
+      suckerPunch,
+      { ...suckerPunch, damage_class: "special", available_generations: 6 },
+      { ...suckerPunch, type_id: 1, damage_class: "physical", available_generations: 1 },
+    ];
+    const pick = (rulesGeneration: number) =>
+      filterByGenerationAvailability(
+        rows,
+        { syncWithRules: false, rulesGeneration, introducedGenerations: [1, 2, 3, 4] },
+        (move) => String(move.pokeapi_id),
+      )[0];
+
+    expect(suckerPunch.damage_class).toBe("physical");
+    expect(pick(4).available_generations).toBe(504);
+    expect(pick(3).damage_class).toBe("special");
+    expect(pick(2).damage_class).toBe("special");
+    expect(pick(1)).toMatchObject({ type_id: 1, damage_class: "physical" });
+  });
+});
+
+describe("3世代以前のルールでの4世代技", () => {
+  function gen3Fighter(input: Parameters<typeof makeFighter>[0]): BattleFighter {
+    const f = makeFighter(input);
+    f.rulesGeneration = 3;
+    return f;
+  }
+
+  it("ふいうちは相手が変化技を選んでいると失敗する", () => {
+    forceHits();
+    const a = gen3Fighter({ side: "a", nameJa: "アブソル", hp: 300 });
+    const b = gen3Fighter({ side: "b", nameJa: "マト", hp: 300 });
+    const { result } = runTurn({
+      fighterA: a,
+      fighterB: b,
+      actionA: { type: "move", move: gen4Move(389) },
+      actionB: { type: "move", move: idleMove() },
+      rulesGeneration: 3,
+    });
+    expect(result.steps.flatMap((s) => s.logs)).toContain("しかし　うまく　決まらなかった！");
+    expect(b.currentHp).toBe(300);
+  });
+
+  it("ステルスロックを撒くと交代先がダメージを受ける", () => {
+    forceHits();
+    const a = gen3Fighter({ side: "a", nameJa: "イワ", hp: 300 });
+    const b = gen3Fighter({ side: "b", nameJa: "マト", hp: 300 });
+    const { field } = runTurn({
+      fighterA: a,
+      fighterB: b,
+      actionA: { type: "move", move: gen4Move(446) },
+      rulesGeneration: 3,
+    });
+    expect(field.b.stealthRock).toBe(true);
+    const next = gen3Fighter({ side: "b", nameJa: "リザ", hp: 160, type1: 2, type2: 10 });
+    applyEntryHazards(next, field, [], 3);
+    expect(next.currentHp).toBe(80);
+  });
+
+  it("とんぼがえりは攻撃後に交代待ちになる", () => {
+    forceHits();
+    const a = gen3Fighter({ side: "a", nameJa: "ハッサム", hp: 300, speed: 200 });
+    const b = gen3Fighter({ side: "b", nameJa: "マト", hp: 300, speed: 50 });
+    const { result } = runTurn({
+      fighterA: a,
+      fighterB: b,
+      actionA: { type: "move", move: gen4Move(369) },
+      rulesGeneration: 3,
+    });
+    expect(result.pendingSelfSwitch).toBe("a");
+    expect(b.currentHp).toBeLessThan(300);
+  });
+
+  it("トリックルームはターン経過で残りが減る", () => {
+    forceHits();
+    const a = gen3Fighter({ side: "a", nameJa: "オソイ", hp: 300 });
+    const b = gen3Fighter({ side: "b", nameJa: "マト", hp: 300 });
+    const { field } = runTurn({
+      fighterA: a,
+      fighterB: b,
+      actionA: { type: "move", move: gen4Move(433) },
+      rulesGeneration: 3,
+    });
+    expect(field.trickRoomTurns).toBe(4);
+  });
+
+  it("ジャイロボールは素早さで威力が決まる", () => {
+    const a = gen3Fighter({ side: "a", nameJa: "ハガネ", speed: 50 });
+    const b = gen3Fighter({ side: "b", nameJa: "マト", speed: 200 });
+    const power = gen4VariablePower(gen4Move(360), a, b, {
+      rulesGeneration: 3,
+      attackerSpeed: 50,
+      defenderSpeed: 200,
+      ppAfterUse: null,
+    });
+    expect(power).toBe(101);
+  });
+
+  it("以前からある技は4世代の仕様にならない", () => {
+    const a = gen3Fighter({ side: "a", nameJa: "カイリキー" });
+    const b = gen3Fighter({ side: "b", nameJa: "マト" });
+    const ctx = { rulesGeneration: 3, attackerSpeed: 100, defenderSpeed: 100, ppAfterUse: null };
+    expect(gen4VariablePower(gen1Move(67), a, b, ctx)).toBeNull(); // けたぐり
+
+    const { field } = runTurn({
+      fighterA: a,
+      fighterB: b,
+      actionA: { type: "move", move: gen1Move(115) }, // リフレクター
+      rulesGeneration: 3,
+    });
+    expect(field.a.reflect).toBe(true);
+    expect(field.a.reflectTurns).toBe(0);
   });
 });
 

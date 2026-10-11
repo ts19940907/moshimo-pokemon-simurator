@@ -1,5 +1,5 @@
 /**
- * Gen3 moves / items that only work with Gen3+ mechanics
+ * Moves / items that only work with Gen3+ mechanics
  * (abilities, double battles, hail, battle terrain, natures).
  * Hidden from selection under Gen1–2 rules.
  */
@@ -10,12 +10,18 @@ const GEN3_MECHANIC_MOVE_POKEAPI = new Set([
   272, // Role Play
   285, // Skill Swap
   293, // Camouflage
+  380, // Gastro Acid
+  388, // Worry Seed
 ]);
 
 /** Moves whose only effect is on held items (no held items in Gen1). */
 const ITEM_ONLY_MOVE_POKEAPI = new Set([
   271, // Trick
   278, // Recycle
+  363, // Natural Gift
+  373, // Embargo
+  374, // Fling
+  415, // Switcheroo
 ]);
 
 /** Nature-dependent confusion berries. */
