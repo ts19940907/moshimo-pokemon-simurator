@@ -44,6 +44,7 @@ import {
   flingSecondary,
   GEN4_MOVE,
   gen4DamageMoveFails,
+  gen4MoveEffectsActive,
   gen4MoveForUse,
   gen4Rules,
   gen4VariablePower,
@@ -1560,7 +1561,7 @@ function executeMoveInner(
   const gen4 = gen4Rules(rulesGeneration);
 
   // Choice lock / Gravity / Heal Block (the UI also blocks selection).
-  if (gen4 && !fromMirror) {
+  if (!fromMirror) {
     const blocked = moveSelectionBlockReason(attacker, move, field);
     if (blocked) {
       logs.push(blocked);
@@ -1621,7 +1622,7 @@ function executeMoveInner(
   if (!fromMirror || code !== "unique-mirror-move") {
     logs.push(`${attacker.member.nameJa}の　${move.name_ja}！`);
   }
-  if (gen4 && !fromMirror) noteMoveBegan(attacker, selectedMove);
+  if (!fromMirror) noteMoveBegan(attacker, selectedMove, rulesGeneration);
 
   // Gen2 Protect / Detect / Endure
   if (tryExecuteProtectFamily(attacker, move, logs)) {
@@ -1630,7 +1631,7 @@ function executeMoveInner(
   // Using any other move breaks the Protect-family success streak.
   attacker.volatiles.protectStreak = 0;
 
-  if (gen4) {
+  {
     const gen4Result = tryExecuteGen4StatusMove(attacker, defender, move, field, logs, {
       rulesGeneration,
       hits: () => {
@@ -1692,7 +1693,8 @@ function executeMoveInner(
 
   if (
     move.pokeapi_id === ITEM_MOVE_POKEAPI.TRICK ||
-    (gen4 && move.pokeapi_id === ITEM_MOVE_POKEAPI.SWITCHEROO)
+    (gen4MoveEffectsActive(move, rulesGeneration) &&
+      move.pokeapi_id === ITEM_MOVE_POKEAPI.SWITCHEROO)
   ) {
     if (!checkAccuracy(attacker, defender, move, activeWeather, rulesGeneration)) {
       logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
@@ -2437,7 +2439,7 @@ function executeMoveInner(
   }
 
   // Gen4 Metal Burst: 1.5× the damage taken this turn.
-  if (gen4 && move.pokeapi_id === GEN4_MOVE.METAL_BURST) {
+  if (gen4MoveEffectsActive(move, rulesGeneration) && move.pokeapi_id === GEN4_MOVE.METAL_BURST) {
     if (!checkAccuracy(attacker, defender, move, activeWeather, rulesGeneration, field)) {
       logs.push(`しかし　${defender.member.nameJa}には　当たらなかった！`);
       attacker.volatiles.lastMoveUsed = move;
@@ -2471,7 +2473,7 @@ function executeMoveInner(
     return;
   }
 
-  if (gen4) breaksProtect(move, defender, logs);
+  if (gen4MoveEffectsActive(move, rulesGeneration)) breaksProtect(move, defender, logs);
   if (blockedByProtect(defender, logs)) {
     finishThrashLock(attacker, move, logs);
     attacker.volatiles.lastMoveUsed = move;
@@ -2799,7 +2801,7 @@ function executeMoveInner(
   }
   const attackerToolId = activeToolPokeapiId(attacker);
   if (
-    gen4 &&
+    gen4MoveEffectsActive(move, rulesGeneration) &&
     move.pokeapi_id === GEN4_MOVE.FLING &&
     totalDealt > 0 &&
     !hitSubstitute &&
@@ -2945,7 +2947,7 @@ function executeMoveInner(
       field[attacker.side].spikesLayers = 0;
       logs.push(`${attacker.member.nameJa}は　まきびしを　吹き飛ばした！`);
     }
-    if (gen4 && clearGen4Hazards(field[attacker.side])) {
+    if (clearGen4Hazards(field[attacker.side])) {
       logs.push(`${attacker.member.nameJa}は　まわりの　しかけを　吹き飛ばした！`);
     }
   }
@@ -3159,17 +3161,17 @@ export function buildFighter(input: {
   };
 }
 
-/** Entry hazards on switch-in: Gen4 layered hazards / Healing Wish, else Gen2 Spikes. */
+/**
+ * Entry hazards on switch-in: Gen4 layered hazards / Healing Wish.
+ * Older rules use Gen2 Spikes, plus what Gen4-debut moves left (Stealth Rock, …).
+ */
 export function applyEntryHazards(
   fighter: BattleFighter,
   field: BattleFieldState,
   logs: TurnLogLine[],
   rulesGeneration: number,
 ): void {
-  if (!gen4Rules(rulesGeneration)) {
-    applySpikesOnSwitchIn(fighter, field, logs);
-    return;
-  }
+  if (!gen4Rules(rulesGeneration)) applySpikesOnSwitchIn(fighter, field, logs);
   applyGen4EntryEffects(fighter, field, logs, (target, status, badlyPoison) =>
     applyAilment(
       target,
@@ -3667,20 +3669,24 @@ export function resolveTurnSteps(input: {
       endLogs,
       rulesGeneration,
     );
-    if (gen4Rules(rulesGeneration)) {
+    {
       const endWeather = effectiveWeatherId(field, fighterA, fighterB);
       for (const fighter of [fighterA, fighterB]) {
-        applyGen4EndOfTurnFighter(fighter, endLogs, (target, status, badlyPoison) =>
-          applyAilment(
-            target,
-            status,
-            endLogs,
-            target.member.nameJa,
-            target.side,
-            endWeather,
-            field,
-            { rulesGeneration, silentFailure: true, badlyPoison },
-          ),
+        applyGen4EndOfTurnFighter(
+          fighter,
+          endLogs,
+          (target, status, badlyPoison) =>
+            applyAilment(
+              target,
+              status,
+              endLogs,
+              target.member.nameJa,
+              target.side,
+              endWeather,
+              field,
+              { rulesGeneration, silentFailure: true, badlyPoison },
+            ),
+          gen4Rules(rulesGeneration),
         );
       }
       tickGen4Field(field, endLogs);

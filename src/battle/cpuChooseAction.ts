@@ -279,7 +279,7 @@ function availableMoves(
     if (!move) continue;
     const pp = ppRemaining[`${fighter.speciesId}:${id}`];
     if (pp != null && pp <= 0) continue;
-    if (fighter.rulesGeneration >= 4 && moveSelectionBlockReason(fighter, move, field)) {
+    if (moveSelectionBlockReason(fighter, move, field)) {
       continue;
     }
     out.push(move);

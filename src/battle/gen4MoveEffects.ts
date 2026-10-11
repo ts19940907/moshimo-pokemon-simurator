@@ -1,6 +1,7 @@
 /**
  * Gen4 (DPPt / HGSS) move effects and field mechanics.
- * Only active when the rules generation is 4 or later.
+ * Gen4-debut moves keep their effects under older rules too; Gen4 changes to
+ * older moves, items and abilities only apply from Gen4 rules.
  */
 import type { Move } from "../pokemon/moves";
 import pokemonWeights from "../data/pokemon-weights.json";
@@ -133,12 +134,20 @@ export function gen4Rules(rulesGeneration: number): boolean {
   return rulesGeneration >= 4;
 }
 
+/** Gen4 handling for this move: always for Gen4-debut moves, else Gen4 rules only. */
+export function gen4MoveEffectsActive(
+  move: Pick<Move, "introduced_generation">,
+  rulesGeneration: number,
+): boolean {
+  return gen4Rules(rulesGeneration) || move.introduced_generation >= 4;
+}
+
 export function isGen4RechargeMove(move: Move, rulesGeneration: number): boolean {
-  return gen4Rules(rulesGeneration) && GEN4_RECHARGE_MOVES.has(move.pokeapi_id);
+  return gen4MoveEffectsActive(move, rulesGeneration) && GEN4_RECHARGE_MOVES.has(move.pokeapi_id);
 }
 
 export function isGen4ChargeMove(move: Move, rulesGeneration: number): boolean {
-  return gen4Rules(rulesGeneration) && move.pokeapi_id === GEN4_MOVE.SHADOW_FORCE;
+  return gen4MoveEffectsActive(move, rulesGeneration) && move.pokeapi_id === GEN4_MOVE.SHADOW_FORCE;
 }
 
 export function canPowerHerbSkip(move: Move): boolean {
@@ -148,10 +157,10 @@ export function canPowerHerbSkip(move: Move): boolean {
 /** Gen2+ binding moves that use the 1/16 end-of-turn residual. */
 export function isPartialTrapMove(move: Move, rulesGeneration: number): boolean {
   if (move.pokeapi_id === WHIRLPOOL_POKEAPI) return true;
-  if (!gen4Rules(rulesGeneration)) return false;
-  return (
-    move.pokeapi_id === GEN4_MOVE.MAGMA_STORM || move.pokeapi_id === SAND_TOMB_POKEAPI
-  );
+  if (move.pokeapi_id === GEN4_MOVE.MAGMA_STORM) {
+    return gen4MoveEffectsActive(move, rulesGeneration);
+  }
+  return gen4Rules(rulesGeneration) && move.pokeapi_id === SAND_TOMB_POKEAPI;
 }
 
 export function pokemonWeightKg(fighter: BattleFighter): number | null {
@@ -178,7 +187,7 @@ export function gen4MoveForUse(
   attacker: BattleFighter,
   rulesGeneration: number,
 ): Move {
-  if (!gen4Rules(rulesGeneration)) return move;
+  if (!gen4MoveEffectsActive(move, rulesGeneration)) return move;
   let next = move;
   if (move.pokeapi_id === GEN4_MOVE.JUDGMENT) {
     const plate = plateTypeId(activeToolPokeapiId(attacker));
@@ -195,6 +204,7 @@ export function gen4MoveForUse(
     next = { ...next, effect_meta: { ...next.effect_meta, ailment_chance: 10 } };
   }
   if (
+    gen4Rules(rulesGeneration) &&
     hasAbility(attacker, ABILITY.NORMALIZE) &&
     move.pokeapi_id !== STRUGGLE_POKEAPI &&
     next.type_id !== 1
@@ -220,7 +230,7 @@ export function gen4VariablePower(
   defender: BattleFighter,
   ctx: Gen4PowerContext,
 ): number | null {
-  if (!gen4Rules(ctx.rulesGeneration)) return null;
+  if (!gen4MoveEffectsActive(move, ctx.rulesGeneration)) return null;
   const base = move.power ?? 0;
   switch (move.pokeapi_id) {
     case GEN4_MOVE.LOW_KICK:
@@ -304,16 +314,22 @@ function isChoiceLockedItem(fighter: BattleFighter): boolean {
   );
 }
 
-/** After a move begins: Choice lock and the Metronome (item) counter. */
-export function noteMoveBegan(attacker: BattleFighter, move: Move): void {
-  if (isChoiceLockedItem(attacker) && !attacker.volatiles.choiceLockMoveId) {
-    attacker.volatiles.choiceLockMoveId = move.id;
-  }
-  if (attacker.volatiles.metronomeMoveId === move.id) {
-    attacker.volatiles.metronomeCount += 1;
-  } else {
-    attacker.volatiles.metronomeMoveId = move.id;
-    attacker.volatiles.metronomeCount = 0;
+/** After a move begins: Choice lock and the Metronome (item) counter (Gen4 rules), moves used (Last Resort). */
+export function noteMoveBegan(
+  attacker: BattleFighter,
+  move: Move,
+  rulesGeneration: number,
+): void {
+  if (gen4Rules(rulesGeneration)) {
+    if (isChoiceLockedItem(attacker) && !attacker.volatiles.choiceLockMoveId) {
+      attacker.volatiles.choiceLockMoveId = move.id;
+    }
+    if (attacker.volatiles.metronomeMoveId === move.id) {
+      attacker.volatiles.metronomeCount += 1;
+    } else {
+      attacker.volatiles.metronomeMoveId = move.id;
+      attacker.volatiles.metronomeCount = 0;
+    }
   }
   if (!attacker.volatiles.movesUsedIds.includes(move.id)) {
     attacker.volatiles.movesUsedIds = [...attacker.volatiles.movesUsedIds, move.id];
@@ -409,7 +425,7 @@ export function tryExecuteGen4StatusMove(
   logs: TurnLogLine[],
   deps: Gen4StatusDeps,
 ): Gen4StatusResult {
-  if (!gen4Rules(deps.rulesGeneration)) return { kind: "none" };
+  if (!gen4MoveEffectsActive(move, deps.rulesGeneration)) return { kind: "none" };
   const name = attacker.member.nameJa;
   const foeName = defender.member.nameJa;
   const mySide = field[attacker.side];
@@ -731,7 +747,7 @@ export function gen4DamageMoveFails(
   rulesGeneration: number,
   foeSelectedMove: Move | null,
 ): boolean {
-  if (!gen4Rules(rulesGeneration)) return false;
+  if (!gen4MoveEffectsActive(move, rulesGeneration)) return false;
   switch (move.pokeapi_id) {
     case GEN4_MOVE.SUCKER_PUNCH:
       if (
@@ -809,7 +825,7 @@ export function applyGen4AfterHit(
   rulesGeneration: number,
   eatBerry: (eater: BattleFighter, berryId: number) => void,
 ): { selfSwitch: boolean } {
-  if (!gen4Rules(rulesGeneration) || dealt <= 0) return { selfSwitch: false };
+  if (!gen4MoveEffectsActive(move, rulesGeneration) || dealt <= 0) return { selfSwitch: false };
   switch (move.pokeapi_id) {
     case GEN4_MOVE.WAKE_UP_SLAP:
       if (defender.status === "sleep" && defender.currentHp > 0) {
@@ -929,7 +945,10 @@ export function clearGen4Hazards(side: SideFieldEffects): boolean {
   return had;
 }
 
-/** End-of-turn per-fighter Gen4 effects (Aqua Ring, orbs, Sticky Barb, counters). */
+/**
+ * End-of-turn per-fighter Gen4 effects (Aqua Ring, counters, and with
+ * `itemEffects` the orbs / Sticky Barb / Big Root).
+ */
 export function applyGen4EndOfTurnFighter(
   fighter: BattleFighter,
   logs: TurnLogLine[],
@@ -938,19 +957,20 @@ export function applyGen4EndOfTurnFighter(
     status: "burn" | "poison",
     badlyPoison: boolean,
   ) => boolean,
+  itemEffects = true,
 ): void {
   const v = fighter.volatiles;
   const name = fighter.member.nameJa;
   if (fighter.currentHp > 0) {
     if (v.aquaRing && fighter.currentHp < fighter.maxHp && v.healBlockTurns <= 0) {
       let heal = Math.max(1, Math.floor(fighter.maxHp / 16));
-      if (activeToolPokeapiId(fighter) === TOOL_POKEAPI.BIG_ROOT) {
+      if (itemEffects && activeToolPokeapiId(fighter) === TOOL_POKEAPI.BIG_ROOT) {
         heal = Math.floor(heal * 1.3);
       }
       fighter.currentHp = Math.min(fighter.maxHp, fighter.currentHp + heal);
       logs.push(`${name}は　水の　リングで　HPを　回復した！`);
     }
-    const tool = activeToolPokeapiId(fighter);
+    const tool = itemEffects ? activeToolPokeapiId(fighter) : null;
     const orb =
       tool === TOOL_POKEAPI.TOXIC_ORB
         ? ({ status: "poison", toxic: true } as const)

@@ -1149,7 +1149,8 @@ export function BattleScreen() {
     const storedStatus = statusBySpeciesIdRef.current[speciesId] ?? null;
     const storedSleep = sleepTurnsBySpeciesIdRef.current[speciesId] ?? 0;
     // Gen1–3 (this app): mist / reflect / light screen end on switch-out.
-    // Gen4: they are timed and stay; spikes / safeguard always remain on the side.
+    // Gen4: they are timed and stay; spikes / safeguard and Gen4-debut move
+    // effects always remain on the side.
     const prevField = fieldRef.current[side];
     fieldRef.current[side] =
       rulesGeneration >= 4
@@ -1158,6 +1159,11 @@ export function BattleScreen() {
             ...createSideField(),
             spikes: prevField.spikes,
             safeguardTurns: prevField.safeguardTurns,
+            toxicSpikes: prevField.toxicSpikes,
+            stealthRock: prevField.stealthRock,
+            tailwindTurns: prevField.tailwindTurns,
+            luckyChantTurns: prevField.luckyChantTurns,
+            healingWish: prevField.healingWish,
           };
     // End binding if either side switches
     const prev = fightersRef.current[side];
@@ -1772,10 +1778,9 @@ export function BattleScreen() {
         setLog([`${move.name_ja}の　PPが　ない！`]);
         return;
       }
-      const blocked =
-        fighter && rulesGeneration >= 4
-          ? moveSelectionBlockReason(fighter, move, fieldRef.current)
-          : null;
+      const blocked = fighter
+        ? moveSelectionBlockReason(fighter, move, fieldRef.current)
+        : null;
       if (blocked) {
         setLog([blocked]);
         return;
@@ -1790,11 +1795,7 @@ export function BattleScreen() {
     if (!move || !controllingMember) return false;
     const fighter = fightersRef.current[controllingSide];
     if (fighter?.volatiles.disableMoveId === move.id) return false;
-    if (
-      fighter &&
-      rulesGeneration >= 4 &&
-      moveSelectionBlockReason(fighter, move, fieldRef.current)
-    ) {
+    if (fighter && moveSelectionBlockReason(fighter, move, fieldRef.current)) {
       return false;
     }
     const key = ppKey(controllingMember.speciesId, move.id);
